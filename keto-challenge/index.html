@@ -1698,7 +1698,238 @@ function switchDeviceTab(cat,el){
 }
 
 /* ═══ PROFILE ═══ */
-function rProfile(){const el=document.getElementById('profile-content');const mem=MEMBERS.find(m=>m.uid===CU.id);if(!mem){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">○</div><div>لم يُربط حسابك بملف مشترك</div><div style="font-size:12px;margin-top:5px">تواصل مع د. عمار</div></div></div>';return;}const logs=PROGRESS.filter(p=>p.mid===mem.id).sort((a,b)=>a.date.localeCompare(b.date));const lost=(mem.start_weight-mem.current_weight).toFixed(1);const total=mem.start_weight-mem.goal_weight;const pct=Math.min(100,Math.round(parseFloat(lost)/total*100));const jd=mem.join_date||mem.start_date;const sd=mem.start_date;const ch=WEEKLY_CHALLENGES.find(c=>c.active);if(!CHALLENGE_PROGRESS[CU.id])CHALLENGE_PROGRESS[CU.id]={};const cd=ch?ch.tasks.filter(t=>CHALLENGE_PROGRESS[CU.id][ch.id+'_'+t.id]).length:0;const ct=ch?ch.tasks.length:0;const cp=ct>0?Math.round(cd/ct*100):0;el.innerHTML=`<div class="stats-grid"><div class="stat-card"><div class="stat-label">الوزن الحالي</div><div class="stat-val">${mem.current_weight} كغ</div></div><div class="stat-card"><div class="stat-label">المفقود</div><div class="stat-val">−${lost} كغ</div></div><div class="stat-card"><div class="stat-label">المتبقي للهدف</div><div class="stat-val warn">${(mem.current_weight-mem.goal_weight).toFixed(1)} كغ</div></div><div class="stat-card"><div class="stat-label">الإنجاز</div><div class="stat-val inf">${pct}%</div></div></div><div class="two-col"><div class="card"><div class="card-header"><div class="card-title">معلوماتي</div></div>${[['الاسم',mem.name],['العمر',mem.age+' سنة'],['الطول',mem.height+' سم'],['الجنس',mem.gender],['المرحلة',`<span class="badge ${mem.phase===1?'b':mem.phase===2?'g':'y'}">مرحلة ${mem.phase}</span>`],['تاريخ الانضمام',jd],['مدة الاشتراك',`<strong style="color:var(--accent)">${dur(jd)}</strong>`],['تاريخ بداية التحدي',sd],['مدة التحدي',`<strong style="color:var(--info)">${dur(sd)}</strong>`],['الملاحظات الصحية',`<span style="color:var(--warning)">${mem.health_notes||'—'}</span>`]].map(([l,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text3)">${l}</span><span>${v}</span></div>`).join('')}</div><div><div class="card"><div class="card-header"><div class="card-title">تحدي الأسبوع</div></div>${ch?`<div style="font-size:13px;font-weight:500;margin-bottom:8px">${ch.title}</div><div style="display:flex;align-items:center;gap:10px;margin-bottom:7px"><div class="kbar" style="flex:1;margin:0"><div class="kfill gr" style="width:${cp}%"></div></div><span class="mono" style="color:var(--accent);font-weight:600">${cp}%</span></div><div style="font-size:11px;color:var(--text3);margin-bottom:10px">${cd} من ${ct} مهام مكتملة</div><button class="btn sm" onclick="gp('challenge_personal')">متابعة التحدي ←</button>`:'<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لا يوجد تحدي نشط</div>'}</div><div class="card"><div class="card-header"><div class="card-title">مسار الوزن</div></div>${logs.length>0?logs.slice(-6).map(l=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3)">${l.date}</span><span class="mono" style="color:var(--accent)">${l.weight} كغ</span></div>`).join(''):'<div style="color:var(--text3);text-align:center;padding:14px 0;font-size:13px">لا توجد قياسات</div>'}</div><div class="card"><div class="card-header"><div class="card-title">المكملات</div></div><div style="display:flex;flex-wrap:wrap;gap:6px">${mem.supplements_used.map(sid=>{const s=SUPPLEMENTS.find(x=>x.id===sid);return s?`<span class="badge g">${s.name}</span>`:''}).join('')||'<span style="color:var(--text3);font-size:13px">لم تُسجَّل مكملات</span>'}</div></div></div></div>`;}
-</script>
+let profileEditMode = {};
+
+function rProfile(){
+  const el=document.getElementById('profile-content');
+  const mem=MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem){
+    el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">○</div><div>لم يُربط حسابك بملف مشترك</div><div style="font-size:12px;margin-top:5px">تواصل مع د. عمار</div></div></div>';
+    return;
+  }
+
+  const logs=PROGRESS.filter(p=>p.mid===mem.id).sort((a,b)=>a.date.localeCompare(b.date));
+  const lost=mem.start_weight?(mem.start_weight-mem.current_weight).toFixed(1):'0';
+  const pct=mem.start_weight&&mem.goal_weight?Math.min(100,Math.round(parseFloat(lost)/(mem.start_weight-mem.goal_weight)*100)):0;
+  const jd=mem.join_date||mem.start_date;
+  const ch=WEEKLY_CHALLENGES.find(c=>c.active);
+  if(!CHALLENGE_PROGRESS[CU.id])CHALLENGE_PROGRESS[CU.id]={};
+  const cd=ch?ch.tasks.filter(t=>CHALLENGE_PROGRESS[CU.id][ch.id+'_'+t.id]).length:0;
+  const ct=ch?ch.tasks.length:0;
+  const cp=ct>0?Math.round(cd/ct*100):0;
+  const goalLabels={fat_loss:'⚖️ خسارة الدهون',health:'🫀 نمط حياة صحي',medical:'🩺 علاجي',recovery:'✨ استعادة الصحة'};
+
+  el.innerHTML=`
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">الوزن الحالي</div><div class="stat-val">${mem.current_weight?mem.current_weight+' كغ':'—'}</div></div>
+    <div class="stat-card"><div class="stat-label">المفقود</div><div class="stat-val">${mem.start_weight?'−'+lost+' كغ':'—'}</div></div>
+    <div class="stat-card"><div class="stat-label">المتبقي للهدف</div><div class="stat-val warn">${mem.start_weight&&mem.goal_weight?(mem.current_weight-mem.goal_weight).toFixed(1)+' كغ':'—'}</div></div>
+    <div class="stat-card"><div class="stat-label">الإنجاز</div><div class="stat-val inf">${mem.start_weight&&mem.goal_weight?pct+'%':'—'}</div></div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <!-- Section: Personal Info -->
+      <div class="card" id="section-personal">
+        <div class="card-header">
+          <div><div class="card-title">المعلومات الأساسية</div></div>
+          <button class="btn sm" onclick="toggleProfileEdit('personal')">✏️ تعديل</button>
+        </div>
+        <div id="view-personal">
+          ${profileRow('الاسم', mem.name)}
+          ${profileRow('الجنس', mem.gender||'—')}
+          ${profileRow('تاريخ الميلاد', mem.dob||'—')}
+          ${profileRow('العمر', mem.age?mem.age+' سنة':'—')}
+          ${profileRow('تاريخ الانضمام', jd)}
+          ${profileRow('مدة الاشتراك', `<strong style="color:var(--accent)">${dur(jd)}</strong>`)}
+          ${profileRow('بداية التحدي', mem.start_date)}
+          ${profileRow('مدة التحدي', `<strong style="color:var(--info)">${dur(mem.start_date)}</strong>`)}
+        </div>
+        <div id="edit-personal" style="display:none">
+          <div class="form-row"><div class="fg"><label>الاسم</label><input id="pe-name" value="${mem.name||''}"></div><div class="fg"><label>الجنس</label><select id="pe-gender"><option value="أنثى" ${mem.gender==='أنثى'?'selected':''}>أنثى</option><option value="ذكر" ${mem.gender==='ذكر'?'selected':''}>ذكر</option></select></div></div>
+          <div class="form-row"><div class="fg"><label>تاريخ الميلاد</label><input type="date" id="pe-dob" value="${mem.dob||''}"></div><div class="fg"><label>المرحلة</label><select id="pe-phase"><option value="1" ${mem.phase==1?'selected':''}>1 — التكيف</option><option value="2" ${mem.phase==2?'selected':''}>2 — الاستمرار</option><option value="3" ${mem.phase==3?'selected':''}>3 — الصيانة</option></select></div></div>
+          <div class="flex-end"><button class="btn sm" onclick="toggleProfileEdit('personal')">إلغاء</button><button class="btn primary sm" onclick="saveProfileSection('personal')">حفظ ✓</button></div>
+        </div>
+      </div>
+
+      <!-- Section: Body Data -->
+      <div class="card" id="section-body">
+        <div class="card-header">
+          <div><div class="card-title">البيانات الجسدية</div></div>
+          <button class="btn sm" onclick="toggleProfileEdit('body')">✏️ تعديل</button>
+        </div>
+        <div id="view-body">
+          ${profileRow('الطول', mem.height?mem.height+' سم':'—')}
+          ${profileRow('وزن البداية', mem.start_weight?mem.start_weight+' كغ':'—')}
+          ${profileRow('الوزن الحالي', mem.current_weight?mem.current_weight+' كغ':'—', 'var(--accent)')}
+          ${profileRow('الوزن الهدف', mem.goal_weight?mem.goal_weight+' كغ':'—', 'var(--info)')}
+        </div>
+        <div id="edit-body" style="display:none">
+          <div class="form-row"><div class="fg"><label>الطول (سم)</label><input type="number" id="pe-height" value="${mem.height||''}"></div><div class="fg"><label>وزن البداية (كغ)</label><input type="number" step="0.1" id="pe-sw" value="${mem.start_weight||''}"></div></div>
+          <div class="form-row"><div class="fg"><label>الوزن الحالي (كغ)</label><input type="number" step="0.1" id="pe-cw" value="${mem.current_weight||''}"></div><div class="fg"><label>الوزن الهدف (كغ)</label><input type="number" step="0.1" id="pe-gw" value="${mem.goal_weight||''}"></div></div>
+          <div class="flex-end"><button class="btn sm" onclick="toggleProfileEdit('body')">إلغاء</button><button class="btn primary sm" onclick="saveProfileSection('body')">حفظ ✓</button></div>
+        </div>
+      </div>
+
+      <!-- Section: Goal -->
+      <div class="card" id="section-goal">
+        <div class="card-header">
+          <div><div class="card-title">هدف الاشتراك</div></div>
+          <button class="btn sm" onclick="toggleProfileEdit('goal')">✏️ تعديل</button>
+        </div>
+        <div id="view-goal">
+          ${profileRow('الهدف الحالي', mem.ob_goal?`<span class="badge g">${goalLabels[mem.ob_goal]||mem.ob_goal}</span>`:'<span style="color:var(--warning)">غير محدد</span>')}
+        </div>
+        <div id="edit-goal" style="display:none">
+          <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px">
+            ${[{id:'fat_loss',icon:'⚖️',label:'خسارة الدهون'},{id:'health',icon:'🫀',label:'نمط حياة صحي'},{id:'medical',icon:'🩺',label:'علاجي'},{id:'recovery',icon:'✨',label:'استعادة الصحة'}].map(g=>`
+            <div onclick="selectProfileGoal('${g.id}')" id="pg-opt-${g.id}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);border:2px solid ${mem.ob_goal===g.id?'var(--accent)':'var(--border)'};background:${mem.ob_goal===g.id?'var(--accent-light)':'var(--surface2)'};cursor:pointer;transition:all .15s">
+              <span style="font-size:18px">${g.icon}</span>
+              <span style="font-size:13px;font-weight:${mem.ob_goal===g.id?'500':'400'}">${g.label}</span>
+              ${mem.ob_goal===g.id?'<span style="margin-right:auto;color:var(--accent)">✓</span>':''}
+            </div>`).join('')}
+          </div>
+          <div class="flex-end"><button class="btn sm" onclick="toggleProfileEdit('goal')">إلغاء</button><button class="btn primary sm" onclick="saveProfileSection('goal')">حفظ ✓</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <!-- Section: Health Notes -->
+      <div class="card" id="section-health">
+        <div class="card-header">
+          <div><div class="card-title">الملاحظات الصحية</div></div>
+          <button class="btn sm" onclick="toggleProfileEdit('health')">✏️ تعديل</button>
+        </div>
+        <div id="view-health">
+          <div style="font-size:13px;color:${mem.health_notes?'var(--text2)':'var(--text3)'};line-height:1.7;padding:4px 0">
+            ${mem.health_notes||'لم تُضَف ملاحظات صحية بعد'}
+          </div>
+        </div>
+        <div id="edit-health" style="display:none">
+          <textarea id="pe-health" style="width:100%;min-height:100px">${mem.health_notes||''}</textarea>
+          <div class="flex-end"><button class="btn sm" onclick="toggleProfileEdit('health')">إلغاء</button><button class="btn primary sm" onclick="saveProfileSection('health')">حفظ ✓</button></div>
+        </div>
+      </div>
+
+      <!-- Section: Supplements -->
+      <div class="card" id="section-supps">
+        <div class="card-header">
+          <div><div class="card-title">المكملات المستخدمة</div></div>
+          <button class="btn sm" onclick="toggleProfileEdit('supps')">✏️ تعديل</button>
+        </div>
+        <div id="view-supps">
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${mem.supplements_used&&mem.supplements_used.length?mem.supplements_used.map(sid=>{const s=SUPPLEMENTS.find(x=>x.id===sid);return s?`<span class="badge g">${s.name}</span>`:''}).join(''):'<span style="color:var(--text3);font-size:13px">لم تُسجَّل مكملات بعد</span>'}
+          </div>
+        </div>
+        <div id="edit-supps" style="display:none">
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+            ${SUPPLEMENTS.map(s=>`
+            <label style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--surface2);cursor:pointer;font-size:13px">
+              <input type="checkbox" value="${s.id}" ${mem.supplements_used&&mem.supplements_used.includes(s.id)?'checked':''} style="accent-color:var(--accent);width:15px;height:15px">
+              <span>${s.name}</span>
+              <span style="font-size:11px;color:var(--text3);margin-right:auto">${s.eng}</span>
+            </label>`).join('')}
+          </div>
+          <div class="flex-end"><button class="btn sm" onclick="toggleProfileEdit('supps')">إلغاء</button><button class="btn primary sm" onclick="saveProfileSection('supps')">حفظ ✓</button></div>
+        </div>
+      </div>
+
+      <!-- Weight log -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">مسار الوزن</div></div>
+        ${logs.length>0?logs.slice(-6).map(l=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:12px;color:var(--text3)">${l.date}</span>
+            <span class="mono" style="color:var(--accent)">${l.weight} كغ</span>
+          </div>`).join(''):'<div style="color:var(--text3);text-align:center;padding:14px 0;font-size:13px">لا توجد قياسات بعد</div>'}
+      </div>
+
+      <!-- Challenge progress -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">تحدي الأسبوع</div></div>
+        ${ch?`
+          <div style="font-size:13px;font-weight:500;margin-bottom:8px">${ch.title}</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <div class="kbar" style="flex:1;margin:0"><div class="kfill gr" style="width:${cp}%"></div></div>
+            <span class="mono" style="color:var(--accent);font-weight:600">${cp}%</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px">${cd} من ${ct} مهام مكتملة</div>
+          <button class="btn sm" onclick="gp('challenge_personal')">متابعة التحدي ←</button>`
+        :'<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لا يوجد تحدي نشط</div>'}
+      </div>
+    </div>
+  </div>`;
+
+  // Track selected goal in edit mode
+  window._profileSelectedGoal = mem.ob_goal;
+}
+
+function profileRow(label, value, color=''){
+  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+    <span style="color:var(--text3)">${label}</span>
+    <span${color?` style="color:${color};font-weight:500"`:''}}>${value}</span>
+  </div>`;
+}
+
+function toggleProfileEdit(section){
+  const view=document.getElementById('view-'+section);
+  const edit=document.getElementById('edit-'+section);
+  if(!view||!edit)return;
+  const isEditing=edit.style.display!=='none';
+  view.style.display=isEditing?'block':'none';
+  edit.style.display=isEditing?'none':'block';
+}
+
+function selectProfileGoal(id){
+  window._profileSelectedGoal=id;
+  document.querySelectorAll('[id^=pg-opt-]').forEach(el=>{
+    const gid=el.id.replace('pg-opt-','');
+    const active=gid===id;
+    el.style.borderColor=active?'var(--accent)':'var(--border)';
+    el.style.background=active?'var(--accent-light)':'var(--surface2)';
+  });
+}
+
+async function saveProfileSection(section){
+  const mem=MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem)return;
+
+  if(section==='personal'){
+    mem.name=document.getElementById('pe-name')?.value.trim()||mem.name;
+    mem.gender=document.getElementById('pe-gender')?.value||mem.gender;
+    mem.dob=document.getElementById('pe-dob')?.value||mem.dob;
+    mem.age=mem.dob?Math.floor((new Date()-new Date(mem.dob))/31557600000):mem.age;
+    mem.phase=parseInt(document.getElementById('pe-phase')?.value)||mem.phase;
+    CU.name=mem.name;
+    document.getElementById('sb-uname').textContent=mem.name;
+  } else if(section==='body'){
+    mem.height=parseFloat(document.getElementById('pe-height')?.value)||mem.height;
+    mem.start_weight=parseFloat(document.getElementById('pe-sw')?.value)||mem.start_weight;
+    mem.current_weight=parseFloat(document.getElementById('pe-cw')?.value)||mem.current_weight;
+    mem.goal_weight=parseFloat(document.getElementById('pe-gw')?.value)||mem.goal_weight;
+  } else if(section==='goal'){
+    mem.ob_goal=window._profileSelectedGoal||mem.ob_goal;
+    const goalLabels={fat_loss:'خسارة الدهون',health:'نمط حياة صحي',medical:'علاجي',recovery:'استعادة الصحة'};
+    mem.ob_goal_label=goalLabels[mem.ob_goal]||mem.ob_goal;
+  } else if(section==='health'){
+    mem.health_notes=document.getElementById('pe-health')?.value||'';
+  } else if(section==='supps'){
+    const checked=[...document.querySelectorAll('#edit-supps input[type=checkbox]:checked')].map(c=>parseInt(c.value));
+    mem.supplements_used=checked;
+  }
+
+  // Save to Firebase
+  if(window.DB){
+    const ok=await window.DB.saveMember(mem);
+    if(ok) console.log('✅ Profile saved to Firebase');
+  }
+
+  // Re-render profile and dashboard
+  rProfile();
+  rDash();
+}
 </body>
 </html>
