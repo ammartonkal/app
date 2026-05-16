@@ -445,7 +445,7 @@ let CHALLENGE_PROGRESS={};
     <button class="btn primary" style="width:100%;justify-content:center;margin-top:8px" onclick="doLogin()">دخول ←</button>
     <div class="login-demo"><b>حسابات تجريبية:</b><br>🔑 مدير: admin@drammartonkal.com / admin2024<br>👤 عضو: anya@test.com / anya123</div>
     <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-      <button class="btn sm" style="width:100%;justify-content:center;background:var(--info-dim);border-color:var(--info);color:var(--info)" onclick="quickLogin('anya@test.com','anya123')">⚡ دخول سريع — Anya</button>
+      <button class="btn sm" style="width:100%;justify-content:center;background:var(--info-dim);border-color:var(--info);color:var(--info)" onclick="document.getElementById('le').value='anya@test.com';document.getElementById('lp').value='anya123';doLogin()">⚡ دخول سريع — Anya</button>
     </div>
   </div>
 </div>
@@ -710,8 +710,20 @@ function kc(k){return k>=80?'var(--accent)':k>=60?'var(--warning)':'var(--danger
 function macHTML(m,sv){const kl=klbl(m.k);return`<div class="kscore-box"><div><div class="kscore-lbl">نقاط التوافق الكيتوني</div><div class="kscore-val" style="color:${kc(m.k)}">${m.k}<span style="font-size:12px;color:var(--text3)">/100</span></div></div><span class="badge ${kl.c}">${kl.l}</span></div><div class="mrow"><div class="mchip"><div class="mchip-l">دهون</div><div class="mchip-v f">${Math.round(m.fp)}</div><div class="mchip-u">%</div></div><div class="mchip"><div class="mchip-l">بروتين</div><div class="mchip-v p">${Math.round(m.pp)}</div><div class="mchip-u">%</div></div><div class="mchip"><div class="mchip-l">كربو</div><div class="mchip-v c">${Math.round(m.cp)}</div><div class="mchip-u">%</div></div></div><div style="font-size:12px">${[['سعرات/حصة',Math.round(m.cal/(sv||1))+' سعر',''],['دهون',m.fat.toFixed(1)+'غ','var(--accent)'],['بروتين',m.prot.toFixed(1)+'غ','var(--info)'],['كربو صافية',m.nc.toFixed(1)+'غ','var(--danger)'],['ألياف',m.fib.toFixed(1)+'غ',''],['صوديوم',Math.round(m.sod)+'مغ',''],['بوتاسيوم',Math.round(m.pot)+'مغ','']].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text3)">${l}</span><span class="mono"${c?` style="color:${c}"`:''}>${v}</span></div>`).join('')}</div>`;}
 
 /* ═══ AUTH ═══ */
-function doLogin(){const e=document.getElementById('le').value.trim(),p=document.getElementById('lp').value,u=USERS.find(x=>x.email===e&&x.pass===p);if(!u){document.getElementById('lerr').textContent='البريد أو كلمة المرور غير صحيحة';return;}CU=u;document.getElementById('login-screen').style.display='none';document.getElementById('app').style.display='flex';document.getElementById('sb-uname').textContent=u.name;document.getElementById('sb-urole').textContent=u.role==='admin'?'مدير':'عضو';adjRole();initApp();
-  // Load data from Firebase
+function doLogin(){
+  const e=document.getElementById('le').value.trim(),p=document.getElementById('lp').value;
+  const u=USERS.find(x=>x.email===e&&x.pass===p);
+  if(!u){document.getElementById('lerr').textContent='البريد أو كلمة المرور غير صحيحة';return;}
+  localStorage.setItem('keto_session',JSON.stringify({email:u.email,pass:u.pass}));
+  startSession(u);
+}
+function startSession(u){
+  CU=u;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('sb-uname').textContent=u.name;
+  document.getElementById('sb-urole').textContent=u.role==='admin'?'مدير':'عضو';
+  adjRole();initApp();
   loadFromFirebase(u);
 }
 async function loadFromFirebase(u){
@@ -763,8 +775,29 @@ function showAppLoading(show){
   }
   el.style.display=show?'flex':'none';
 }
-function doLogout(){CU=null;document.getElementById('app').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('le').value='';document.getElementById('lp').value='';document.getElementById('lerr').textContent='';}
+function doLogout(){
+  localStorage.removeItem('keto_session');
+  CU=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('le').value='';
+  document.getElementById('lp').value='';
+  document.getElementById('lerr').textContent='';
+}
 function quickLogin(email,pass){document.getElementById('le').value=email;document.getElementById('lp').value=pass;doLogin();}
+
+// Auto-login on page load
+window.addEventListener('load',()=>{
+  try{
+    const saved=localStorage.getItem('keto_session');
+    if(saved){
+      const {email,pass}=JSON.parse(saved);
+      const u=USERS.find(x=>x.email===email&&x.pass===pass);
+      if(u){startSession(u);return;}
+      localStorage.removeItem('keto_session');
+    }
+  }catch(e){localStorage.removeItem('keto_session');}
+});
 function adjRole(){const adm=CU.role==='admin';['add-food-btn','add-prod-btn','nav-members','nav-progress','nav-addmember'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=adm?'':'none';});document.getElementById('adm-lbl').textContent=adm?'المشتركون':'حسابي';}
 
 /* ═══ ONBOARDING ═══ */
