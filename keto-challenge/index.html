@@ -263,14 +263,25 @@ textarea{resize:vertical;min-height:76px;}
 }
 </style>
 <script>
-// Early stubs — loaded before HTML buttons, replaced by main script
+// Bridge: handles button clicks before main JS loads
+var _loginQueue=null;
 function doLogin(){
-  const e=document.getElementById('le').value.trim();
-  const p=document.getElementById('lp').value;
-  if(window._doLoginFn){window._doLoginFn(e,p);}
-  else{window._pendingLogin={e,p};}
+  var e=document.getElementById('le').value.trim();
+  var p=document.getElementById('lp').value;
+  if(typeof startSession==='function'){
+    var u=USERS?USERS.find(function(x){return x.email===e&&x.pass===p;}):null;
+    if(!u){document.getElementById('lerr').textContent='البريد أو كلمة المرور غير صحيحة';return;}
+    localStorage.setItem('keto_session',JSON.stringify({email:u.email,pass:u.pass}));
+    startSession(u);
+  } else {
+    _loginQueue={e:e,p:p};
+  }
 }
-function quickLogin(e,p){document.getElementById('le').value=e;document.getElementById('lp').value=p;doLogin();}
+function quickLogin(e,p){
+  document.getElementById('le').value=e;
+  document.getElementById('lp').value=p;
+  doLogin();
+}
 </script>
 </head>
 <body>
@@ -342,6 +353,8 @@ let GROUP_CHALLENGE_PROGRESS={
 
 let CHALLENGE_PROGRESS={};
 </script>
+
+<!-- ════════════ ONBOARDING + APP HTML ════════════ -->
 
 <!-- ════════════ LOGIN ════════════ -->
 <div id="login-screen" class="login-screen">
@@ -611,8 +624,22 @@ let CHALLENGE_PROGRESS={};
   </main>
 </div>
 
+
 <script>
 /* ═══ HELPERS ═══ */
+// Process any queued login from before this script loaded
+(function(){
+  if(window._loginQueue){
+    var q=window._loginQueue; window._loginQueue=null;
+    var u=USERS.find(function(x){return x.email===q.e&&x.pass===q.p;});
+    if(u){localStorage.setItem('keto_session',JSON.stringify({email:u.email,pass:u.pass}));startSession(u);}
+  }
+  // Also check localStorage for auto-login
+  try{
+    var saved=localStorage.getItem('keto_session');
+    if(saved){var s=JSON.parse(saved);var u=USERS.find(function(x){return x.email===s.email&&x.pass===s.pass;});if(u){startSession(u);}}
+  }catch(e){localStorage.removeItem('keto_session');}
+})();
 let CU=null,rbItems=[],calcItems=[],editRid=null;
 function ks(fp,cg,pp){let s=0;if(fp>=70)s+=40;else if(fp>=60)s+=25;else if(fp>=50)s+=10;if(cg<=20)s+=40;else if(cg<=30)s+=25;else if(cg<=50)s+=10;if(pp>=20&&pp<=30)s+=20;else if(pp<20)s+=10;return Math.min(s,100);}
 function klbl(s){if(s>=80)return{l:"كيتو ممتاز ✓",c:"g"};if(s>=60)return{l:"كيتو جيد",c:"y"};if(s>=40)return{l:"حدودي",c:"y"};return{l:"غير كيتو",c:"r"};}
@@ -623,20 +650,6 @@ function kc(k){return k>=80?'var(--accent)':k>=60?'var(--warning)':'var(--danger
 function macHTML(m,sv){const kl=klbl(m.k);return`<div class="kscore-box"><div><div class="kscore-lbl">نقاط التوافق الكيتوني</div><div class="kscore-val" style="color:${kc(m.k)}">${m.k}<span style="font-size:12px;color:var(--text3)">/100</span></div></div><span class="badge ${kl.c}">${kl.l}</span></div><div class="mrow"><div class="mchip"><div class="mchip-l">دهون</div><div class="mchip-v f">${Math.round(m.fp)}</div><div class="mchip-u">%</div></div><div class="mchip"><div class="mchip-l">بروتين</div><div class="mchip-v p">${Math.round(m.pp)}</div><div class="mchip-u">%</div></div><div class="mchip"><div class="mchip-l">كربو</div><div class="mchip-v c">${Math.round(m.cp)}</div><div class="mchip-u">%</div></div></div><div style="font-size:12px">${[['سعرات/حصة',Math.round(m.cal/(sv||1))+' سعر',''],['دهون',m.fat.toFixed(1)+'غ','var(--accent)'],['بروتين',m.prot.toFixed(1)+'غ','var(--info)'],['كربو صافية',m.nc.toFixed(1)+'غ','var(--danger)'],['ألياف',m.fib.toFixed(1)+'غ',''],['صوديوم',Math.round(m.sod)+'مغ',''],['بوتاسيوم',Math.round(m.pot)+'مغ','']].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text3)">${l}</span><span class="mono"${c?` style="color:${c}"`:''}>${v}</span></div>`).join('')}</div>`;}
 
 /* ═══ AUTH ═══ */
-// Register with early stub
-window._doLoginFn = function(e,p){
-  const u=USERS.find(x=>x.email===e&&x.pass===p);
-  if(!u){document.getElementById('lerr').textContent='البريد أو كلمة المرور غير صحيحة';return;}
-  localStorage.setItem('keto_session',JSON.stringify({email:u.email,pass:u.pass}));
-  startSession(u);
-};
-// Handle any pending login from before main script loaded
-if(window._pendingLogin){
-  const {e,p}=window._pendingLogin;
-  window._pendingLogin=null;
-  window._doLoginFn(e,p);
-}
-
 function doLogin(){
   const e=document.getElementById('le').value.trim(),p=document.getElementById('lp').value;
   const u=USERS.find(x=>x.email===e&&x.pass===p);
@@ -713,18 +726,7 @@ function doLogout(){
 }
 function quickLogin(email,pass){document.getElementById('le').value=email;document.getElementById('lp').value=pass;doLogin();}
 
-// Auto-login on page load
-window.addEventListener('load',()=>{
-  try{
-    const saved=localStorage.getItem('keto_session');
-    if(saved){
-      const {email,pass}=JSON.parse(saved);
-      const u=USERS.find(x=>x.email===email&&x.pass===pass);
-      if(u){startSession(u);return;}
-      localStorage.removeItem('keto_session');
-    }
-  }catch(e){localStorage.removeItem('keto_session');}
-});
+// Auto-login handled at script start above
 function adjRole(){const adm=CU.role==='admin';['add-food-btn','add-prod-btn','nav-members','nav-progress','nav-addmember'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=adm?'':'none';});document.getElementById('adm-lbl').textContent=adm?'المشتركون':'حسابي';}
 
 /* ═══ ONBOARDING ═══ */
@@ -1893,6 +1895,9 @@ async function saveProfileSection(section){
 }
 
 <!-- ════ FIREBASE ════ -->
+</script>
+
+<!-- ════ FIREBASE ════ -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy }
@@ -1989,6 +1994,7 @@ window._fbReady = true;
 window.dispatchEvent(new Event('fbReady'));
 console.log("✅ Firebase connected — Keto Challenge 2026");
 </script>
-</script>
+</body>
+</html>
 </body>
 </html>
