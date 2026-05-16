@@ -270,6 +270,9 @@ textarea{resize:vertical;min-height:76px;}
 <script src="db-recipes.js"></script>
 <script src="db-supplements.js"></script>
 <script src="db-products.js"></script>
+<script src="db-restaurants.js"></script>
+<script src="db-stores.js"></script>
+<script src="db-devices.js"></script>
 
 <!-- ════ FIREBASE ════ -->
 <script type="module">
@@ -463,6 +466,9 @@ let CHALLENGE_PROGRESS={};
       <div class="nav-item" onclick="gp('recipes')" id="nav-recipes"><span class="nav-icon">◎</span>الوصفات الكيتونية</div>
       <div class="nav-item" onclick="gp('products')" id="nav-products"><span class="nav-icon">◉</span>منتجات السوق</div>
       <div class="nav-item" onclick="gp('supplements')" id="nav-supplements"><span class="nav-icon">⊕</span>المكملات الغذائية</div>
+      <div class="nav-item" onclick="gp('restaurants')" id="nav-restaurants"><span class="nav-icon">🍽️</span>المطاعم</div>
+      <div class="nav-item" onclick="gp('stores')" id="nav-stores"><span class="nav-icon">🛒</span>المتاجر</div>
+      <div class="nav-item" onclick="gp('devices')" id="nav-devices"><span class="nav-icon">📱</span>الأجهزة الموصى بها</div>
       <div class="nav-section">الأدوات</div>
       <div class="nav-item" onclick="gp('calculator')" id="nav-calculator"><span class="nav-icon">◇</span>حاسبة الوصفة</div>
       <div class="nav-item" onclick="gp('needs')" id="nav-needs"><span class="nav-icon">◈</span>حاسبة الاحتياج</div>
@@ -656,6 +662,15 @@ let CHALLENGE_PROGRESS={};
 
       <!-- ADD MEMBER (ADMIN) -->
       <div class="panel" id="panel-addmember"><div id="addmember-content"></div></div>
+
+      <!-- RESTAURANTS -->
+      <div class="panel" id="panel-restaurants"><div id="restaurants-content"></div></div>
+
+      <!-- STORES -->
+      <div class="panel" id="panel-stores"><div id="stores-content"></div></div>
+
+      <!-- DEVICES -->
+      <div class="panel" id="panel-devices"><div id="devices-content"></div></div>
 
     </div>
   </main>
@@ -1033,8 +1048,8 @@ function openSb(){document.getElementById('sb').classList.add('open');document.g
 function closeSb(){document.getElementById('sb').classList.remove('open');document.getElementById('sov').style.display='none';}
 
 /* ═══ NAV ═══ */
-const TITLES={dashboard:'لوحة التحكم',challenge_personal:'تحديي الشخصي',challenge_group:'التحدي العام',schedule:'جدول الأسبوع',foods:'الأطعمة والمغذيات',recipes:'الوصفات الكيتونية',products:'منتجات السوق',supplements:'المكملات الغذائية',calculator:'حاسبة الوصفة',needs:'حاسبة الاحتياج اليومي',members:'المشتركون',progress:'سجل التقدم',profile:'ملفي الشخصي',addmember:'تسجيل مشترك جديد'};
-const RNDS={dashboard:rDash,challenge_personal:rPersonalChallenge,challenge_group:rGroupChallenge,schedule:rSchedule,foods:rFoods,recipes:rRecipes,products:rProducts,supplements:rSupps,members:rMembers,progress:rProgress,profile:rProfile,addmember:rAddMember};
+const TITLES={dashboard:'لوحة التحكم',challenge_personal:'تحديي الشخصي',challenge_group:'التحدي العام',schedule:'جدول الأسبوع',foods:'الأطعمة والمغذيات',recipes:'الوصفات الكيتونية',products:'منتجات السوق',supplements:'المكملات الغذائية',restaurants:'المطاعم الكيتو-فريندلي',stores:'المتاجر وأماكن التسوق',devices:'الأجهزة والمعدات الموصى بها',calculator:'حاسبة الوصفة',needs:'حاسبة الاحتياج اليومي',members:'المشتركون',progress:'سجل التقدم',profile:'ملفي الشخصي',addmember:'تسجيل مشترك جديد'};
+const RNDS={dashboard:rDash,challenge_personal:rPersonalChallenge,challenge_group:rGroupChallenge,schedule:rSchedule,foods:rFoods,recipes:rRecipes,products:rProducts,supplements:rSupps,restaurants:rRestaurants,stores:rStores,devices:rDevices,members:rMembers,progress:rProgress,profile:rProfile,addmember:rAddMember};
 function gp(id){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.getElementById('panel-'+id).classList.add('active');const ni=document.getElementById('nav-'+id);if(ni)ni.classList.add('active');document.getElementById('ptitle').textContent=TITLES[id]||'';if(RNDS[id])RNDS[id]();closeSb();}
 
 /* ═══ INIT ═══ */
@@ -1046,47 +1061,20 @@ function rDash(){
   const adm=CU.role==='admin';
   document.getElementById('d-rbar').innerHTML=adm?'⬡ دخلت كمدير — صلاحيات كاملة':`⬡ أهلاً ${CU.name}`;
   if(adm){
-    document.getElementById('d-stats').innerHTML=`<div class="stat-card"><div class="stat-label">الأطعمة</div><div class="stat-val">${FOODS.length}</div></div><div class="stat-card"><div class="stat-label">الوصفات</div><div class="stat-val">${RECIPES.length}</div></div><div class="stat-card"><div class="stat-label">المشتركون</div><div class="stat-val inf">${MEMBERS.length}</div></div><div class="stat-card"><div class="stat-label">المنتجات</div><div class="stat-val warn">${PRODUCTS.length}</div></div>`;
-    document.getElementById('d-bottom').innerHTML=`<div class="card"><div class="card-header"><div class="card-title">آخر الوصفات</div></div>${RECIPES.slice(-4).map(r=>{const m=cmac(r);const k=klbl(m.k);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px;font-weight:500">${r.name}</div><div style="font-size:11px;color:var(--text3)">${Math.round(m.cal/r.servings)} سعر/حصة</div></div><span class="badge ${k.c}">${k.l}</span></div>`;}).join('')}</div><div class="card"><div class="card-header"><div class="card-title">تحدي الأسبوع</div><button class="btn sm" onclick="gp('challenge_personal')">عرض ←</button></div>${miniChallenge()}</div>`;
-  } else {
-    const mem=MEMBERS.find(m=>m.uid===CU.id);
-    if(mem){
-      // Check missing fields
-      const missing=[];
-      if(!mem.ob_goal) missing.push({label:'هدف الاشتراك',icon:'🎯'});
-      if(!mem.start_weight||mem.start_weight===0) missing.push({label:'الوزن الحالي',icon:'⚖️'});
-      if(!mem.goal_weight||mem.goal_weight===0) missing.push({label:'وزن الهدف',icon:'🏁'});
-      if(!mem.height||mem.height===0) missing.push({label:'الطول',icon:'📏'});
-
-      if(missing.length>0){
-        document.getElementById('d-rbar').innerHTML=`<div style="width:100%">
-          <div style="margin-bottom:8px">⬡ أهلاً ${CU.name}</div>
-          <div style="background:var(--warning-dim);border:1px solid rgba(160,112,16,.25);border-radius:var(--radius-sm);padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-            <div>
-              <div style="font-size:12px;font-weight:600;color:var(--warning);margin-bottom:5px">💡 أكمل ملفك للحصول على تجربة مخصصة</div>
-              <div style="display:flex;flex-wrap:wrap;gap:5px">
-                ${missing.map(m=>`<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(160,112,16,.12);border:1px solid rgba(160,112,16,.2);color:var(--warning);border-radius:100px;padding:2px 9px;font-size:11px">${m.icon} ${m.label}</span>`).join('')}
-              </div>
-            </div>
-            <button class="btn sm" style="background:var(--warning);color:#fff;border-color:var(--warning);white-space:nowrap;flex-shrink:0" onclick="gp('profile')">إكمال الملف ←</button>
-          </div>
-        </div>`;
-      } else {
-        document.getElementById('d-rbar').innerHTML=`⬡ أهلاً ${CU.name}`;
-      }
-
-      const lost=(mem.start_weight-mem.current_weight).toFixed(1);
-      const pct=mem.start_weight&&mem.goal_weight?Math.min(100,Math.round(parseFloat(lost)/(mem.start_weight-mem.goal_weight)*100)):0;
-      document.getElementById('d-stats').innerHTML=`
-        <div class="stat-card"><div class="stat-label">وزن البداية</div><div class="stat-val warn">${mem.start_weight?mem.start_weight+' كغ':'—'}</div></div>
-        <div class="stat-card"><div class="stat-label">الوزن الحالي</div><div class="stat-val">${mem.current_weight?mem.current_weight+' كغ':'—'}</div></div>
-        <div class="stat-card"><div class="stat-label">المفقود</div><div class="stat-val">${mem.start_weight?lost+' كغ':'—'}</div></div>
-        <div class="stat-card"><div class="stat-label">نحو الهدف</div><div class="stat-val inf">${mem.start_weight&&mem.goal_weight?pct+'%':'—'}</div></div>`;
-      document.getElementById('d-bottom').innerHTML=`
-        <div class="card"><div class="card-header"><div class="card-title">تحدي الأسبوع</div><button class="btn sm" onclick="gp('challenge_personal')">متابعة ←</button></div>${miniChallenge()}</div>
-        <div class="card"><div class="card-header"><div class="card-title">آخر قياساتي</div></div>${PROGRESS.filter(p=>p.mid===mem.id).slice(-4).reverse().map(p=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3)">${p.date}</span><span class="mono" style="color:var(--accent)">${p.weight} كغ</span></div>`).join('')||'<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لا توجد قياسات بعد</div>'}</div>`;
-    }
-    else{document.getElementById('d-stats').innerHTML='';document.getElementById('d-bottom').innerHTML=`<div class="card" style="grid-column:1/-1"><div style="text-align:center;padding:10px 0 18px"><div style="font-size:40px;margin-bottom:10px">👋</div><div style="font-size:16px;font-weight:600;margin-bottom:6px">أهلاً ${CU.name}!</div><div style="font-size:13px;color:var(--text2);margin-bottom:18px">لم يكتمل ملفك بعد — أكملي بياناتك لتبدأي رحلتك</div><button class="btn primary" onclick="showOnboarding()">إكمال الملف الشخصي ←</button></div></div>`;}
+    document.getElementById('d-stats').innerHTML=`
+      <div class="stat-card"><div class="stat-label">الأطعمة</div><div class="stat-val">${FOODS.length}</div></div>
+      <div class="stat-card"><div class="stat-label">الوصفات</div><div class="stat-val">${RECIPES.length}</div></div>
+      <div class="stat-card"><div class="stat-label">المشتركون</div><div class="stat-val inf">${MEMBERS.length}</div></div>
+      <div class="stat-card"><div class="stat-label">المطاعم</div><div class="stat-val warn">${typeof RESTAURANTS!=='undefined'?RESTAURANTS.length:0}</div></div>`;
+    document.getElementById('d-bottom').innerHTML=`
+      <div class="card">
+        <div class="card-header"><div class="card-title">آخر الوصفات</div><button class="btn sm" onclick="gp('recipes')">عرض الكل ←</button></div>
+        ${RECIPES.slice(-4).map(r=>{const m=cmac(r);const k=klbl(m.k);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px;font-weight:500">${r.name}</div><div style="font-size:11px;color:var(--text3)">${Math.round(m.cal/r.servings)} سعر/حصة</div></div><span class="badge ${k.c}">${k.l}</span></div>`;}).join('')}
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">تحدي الأسبوع</div><button class="btn sm" onclick="gp('challenge_personal')">عرض ←</button></div>
+        ${miniChallenge()}
+      </div>`;
   }
 }
 function miniChallenge(){const ch=WEEKLY_CHALLENGES.find(c=>c.active);if(!ch)return'<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لا يوجد تحدي نشط</div>';if(!CHALLENGE_PROGRESS[CU.id])CHALLENGE_PROGRESS[CU.id]={};const done=ch.tasks.filter(t=>CHALLENGE_PROGRESS[CU.id][ch.id+'_'+t.id]).length;const pct=Math.round(done/ch.tasks.length*100);return`<div style="font-size:13px;font-weight:500;margin-bottom:6px">${ch.title}</div><div style="display:flex;align-items:center;gap:10px"><div class="kbar" style="flex:1;margin:0"><div class="kfill gr" style="width:${pct}%"></div></div><span class="mono" style="color:var(--accent);font-weight:600">${pct}%</span></div><div style="font-size:11px;color:var(--text3);margin-top:4px">${done} من ${ch.tasks.length} مهام مكتملة</div>`;}
@@ -1526,6 +1514,123 @@ function saveNewMember(){
   if(window.DB) window.DB.saveMember(MEMBERS[MEMBERS.length-1]);
   document.getElementById('am-success-card').style.display='block';
   document.getElementById('am-success-card').scrollIntoView({behavior:'smooth'});
+}
+
+/* ═══ RESTAURANTS ═══ */
+function rRestaurants(){
+  const el=document.getElementById('restaurants-content');
+  if(typeof RESTAURANTS==='undefined'||!RESTAURANTS.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🍽️</div><div>لم تُضف مطاعم بعد</div></div>';return;}
+  const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);
+  const cats=[...new Set(RESTAURANTS.map(r=>r.category))];
+  el.innerHTML=`
+    <div class="sbar" style="margin-bottom:14px">
+      <div class="si-wrap"><input type="text" id="rest-search" placeholder="ابحث عن مطعم..." oninput="filterRestaurants()"><span class="si-icon">⌕</span></div>
+      <select id="rest-cat" onchange="filterRestaurants()" style="width:140px">
+        <option value="">كل الفئات</option>
+        ${cats.map(c=>`<option>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div id="rest-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px"></div>`;
+  renderRestaurantCards(RESTAURANTS);
+}
+function filterRestaurants(){
+  const q=(document.getElementById('rest-search')?.value||'').toLowerCase();
+  const cat=document.getElementById('rest-cat')?.value||'';
+  const filtered=RESTAURANTS.filter(r=>(!q||r.name.includes(q)||r.name_en.toLowerCase().includes(q))&&(!cat||r.category===cat));
+  renderRestaurantCards(filtered);
+}
+function renderRestaurantCards(list){
+  const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);
+  document.getElementById('rest-grid').innerHTML=list.map(r=>`
+    <div class="card" style="margin:0">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div><div style="font-weight:500;font-size:14px">${r.name}</div><div style="font-size:11px;color:var(--text3)">${r.name_en} · ${r.category}</div></div>
+        <span style="color:var(--warning);font-size:13px;letter-spacing:1px">${stars(r.keto_score)}</span>
+      </div>
+      ${r.doc_note?`<div class="doc-note" style="margin-bottom:10px"><div class="doc-note-head">📋 توصية د. عمار</div>${r.doc_note}</div>`:''}
+      <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px">خيارات الكيتو:</div>
+      ${r.keto_options.map(o=>`
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <div>
+            <div style="font-weight:500">${o.name}</div>
+            ${o.notes?`<div style="font-size:11px;color:var(--text3)">${o.notes}</div>`:''}
+          </div>
+          <div style="text-align:left;flex-shrink:0;font-family:var(--mono);font-size:11px;color:var(--text3)">
+            <div style="color:var(--danger)">${o.carb}غ كربو</div>
+            <div style="color:var(--accent)">${o.fat}غ دهون</div>
+          </div>
+        </div>`).join('')}
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+        ${r.approved?'<span class="badge g">✓ موصى به</span>':'<span class="badge r">بحذر</span>'}
+        ${r.available_regions.map(reg=>`<span class="tag">${reg}</span>`).join('')}
+      </div>
+    </div>`).join('')||'<div class="empty-state"><div>لا توجد نتائج</div></div>';
+}
+
+/* ═══ STORES ═══ */
+function rStores(){
+  const el=document.getElementById('stores-content');
+  if(typeof STORES==='undefined'||!STORES.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🛒</div><div>لم تُضف متاجر بعد</div></div>';return;}
+  const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);
+  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+    ${STORES.map(s=>`
+      <div class="card" style="margin:0">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-weight:500;font-size:14px">${s.name}</div>
+            <div style="font-size:11px;color:var(--text3)">${s.name_en} · ${s.category}</div>
+          </div>
+          <span style="color:var(--warning);font-size:13px;letter-spacing:1px">${stars(s.keto_score)}</span>
+        </div>
+        ${s.doc_note?`<div class="doc-note" style="margin-bottom:10px"><div class="doc-note-head">📋 توصية د. عمار</div>${s.doc_note}</div>`:''}
+        <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px">أفضل الأقسام للكيتو:</div>
+        ${s.best_sections.map(sec=>`<div style="display:flex;align-items:center;gap:7px;padding:4px 0;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border)"><span style="color:var(--accent)">✓</span>${sec}</div>`).join('')}
+        ${s.keto_tips?`<div style="margin-top:10px;background:var(--accent-light);border-radius:var(--radius-sm);padding:8px 10px;font-size:11px;color:var(--text2)">💡 ${s.keto_tips}</div>`:''}
+        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+          ${s.delivery?'<span class="badge g">🚚 توصيل متاح</span>':''}
+          ${s.app_available?'<span class="badge b">📱 تطبيق</span>':''}
+          ${s.website?`<a href="https://${s.website}" target="_blank" class="supp-link" style="font-size:11px">الموقع ↗</a>`:''}
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+/* ═══ DEVICES ═══ */
+function rDevices(){
+  const el=document.getElementById('devices-content');
+  if(typeof RECOMMENDED_DEVICES==='undefined'||!RECOMMENDED_DEVICES.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📱</div><div>لم تُضف أجهزة بعد</div></div>';return;}
+  const cats=getDeviceCategories();
+  const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);
+  let html=`<div class="tabs-bar">${cats.map((c,i)=>`<div class="tab-item${i===0?' active':''}" onclick="switchDeviceTab('${c}',this)">${c}</div>`).join('')}</div>`;
+  cats.forEach((cat,ci)=>{
+    const devs=getDevicesByCategory(cat);
+    html+=`<div class="device-cat-panel" id="dcat-${ci}" style="${ci===0?'':'display:none'}">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+        ${devs.map(d=>`
+          <div class="card" style="margin:0;position:relative">
+            ${d.priority===1?'<span class="badge g" style="position:absolute;top:14px;left:14px;font-size:10px">⭐ أساسي</span>':''}
+            <div style="margin-bottom:10px;padding-left:${d.priority===1?'60px':'0'}">
+              <div style="font-weight:500;font-size:13px">${d.name_ar||d.name}</div>
+              <div style="font-size:11px;color:var(--text3);font-style:italic">${d.name}</div>
+              <div style="font-size:12px;color:var(--warning);font-family:var(--mono)">${d.price_range}</div>
+            </div>
+            ${d.doc_note?`<div class="doc-note" style="margin-bottom:10px"><div class="doc-note-head">📋 توصية د. عمار</div>${d.doc_note}</div>`:''}
+            ${d.pros?.length?`<div style="margin-bottom:8px">${d.pros.map(p=>`<div style="display:flex;gap:6px;font-size:12px;padding:2px 0;color:var(--text2)"><span style="color:var(--accent)">✓</span>${p}</div>`).join('')}</div>`:''}
+            ${d.cons?.length?`<div style="margin-bottom:8px">${d.cons.map(c=>`<div style="display:flex;gap:6px;font-size:12px;padding:2px 0;color:var(--text3)"><span style="color:var(--danger)">✕</span>${c}</div>`).join('')}</div>`:''}
+            ${d.usage_tip?`<div style="background:var(--info-dim);border-radius:var(--radius-sm);padding:8px 10px;font-size:11px;color:var(--info);margin-top:6px">💡 ${d.usage_tip}</div>`:''}
+            ${d.buy_link?`<div style="margin-top:10px"><a href="${d.buy_link}" target="_blank" class="supp-link">🛒 رابط الشراء ↗</a></div>`:''}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+function switchDeviceTab(cat,el){
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const cats=getDeviceCategories();
+  const idx=cats.indexOf(cat);
+  document.querySelectorAll('.device-cat-panel').forEach((p,i)=>p.style.display=i===idx?'block':'none');
 }
 
 /* ═══ PROFILE ═══ */
