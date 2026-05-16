@@ -265,6 +265,12 @@ textarea{resize:vertical;min-height:76px;}
 </head>
 <body>
 
+<!-- ════ DATABASE FILES ════ -->
+<script src="db-foods.js"></script>
+<script src="db-recipes.js"></script>
+<script src="db-supplements.js"></script>
+<script src="db-products.js"></script>
+
 <!-- ════ FIREBASE ════ -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -364,98 +370,13 @@ console.log("✅ Firebase connected — Keto Challenge 2026");
 </script>
 
 <script>
-/* ═══════════════ DATABASE ═══════════════ */
+/* ═══════════════ MAIN APP ═══════════════ */
 const USERS=[
   {id:1,name:"د. عمار تنكل",email:"admin@drammartonkal.com",pass:"admin2024",role:"admin"},
   {id:2,name:"Anya",email:"anya@test.com",pass:"anya123",role:"member"},
   {id:3,name:"Battal",email:"battal@test.com",pass:"battal123",role:"member"},
 ];
-const FOODS=[
-  {id:1,name:"دجاج مشوي (صدر)",name_en:"Grilled Chicken Breast",cat:"بروتين",cal:165,fat:3.6,sat_fat:1.0,protein:31,carb:0,fiber:0,net_carb:0,sodium:74,potassium:256},
-  {id:2,name:"لحم بقر مفروم (80/20)",name_en:"Ground Beef 80/20",cat:"بروتين",cal:254,fat:20,sat_fat:7.7,protein:17,carb:0,fiber:0,net_carb:0,sodium:75,potassium:270},
-  {id:3,name:"سمك سلمون",name_en:"Salmon",cat:"بروتين",cal:208,fat:13,sat_fat:2.5,protein:20,carb:0,fiber:0,net_carb:0,sodium:59,potassium:363},
-  {id:4,name:"بيض كامل",name_en:"Whole Egg",cat:"بروتين",cal:143,fat:9.5,sat_fat:3.1,protein:13,carb:0.7,fiber:0,net_carb:0.7,sodium:142,potassium:138},
-  {id:5,name:"لحم خروف",name_en:"Lamb",cat:"بروتين",cal:282,fat:22,sat_fat:9.4,protein:19,carb:0,fiber:0,net_carb:0,sodium:72,potassium:310},
-  {id:6,name:"جبن شيدر",name_en:"Cheddar Cheese",cat:"ألبان",cal:403,fat:33,sat_fat:21,protein:25,carb:1.3,fiber:0,net_carb:1.3,sodium:621,potassium:98},
-  {id:7,name:"جبن موزاريلا",name_en:"Mozzarella",cat:"ألبان",cal:300,fat:22,sat_fat:14,protein:22,carb:2.2,fiber:0,net_carb:2.2,sodium:627,potassium:76},
-  {id:8,name:"كريمة طازجة",name_en:"Heavy Cream",cat:"ألبان",cal:340,fat:36,sat_fat:23,protein:2.0,carb:2.7,fiber:0,net_carb:2.7,sodium:38,potassium:75},
-  {id:9,name:"زبدة",name_en:"Butter",cat:"دهون",cal:717,fat:81,sat_fat:51,protein:0.9,carb:0.1,fiber:0,net_carb:0.1,sodium:11,potassium:24},
-  {id:10,name:"زيت زيتون",name_en:"Olive Oil",cat:"دهون",cal:884,fat:100,sat_fat:14,protein:0,carb:0,fiber:0,net_carb:0,sodium:2,potassium:1},
-  {id:11,name:"زيت جوز الهند",name_en:"Coconut Oil",cat:"دهون",cal:892,fat:100,sat_fat:87,protein:0,carb:0,fiber:0,net_carb:0,sodium:0,potassium:0},
-  {id:12,name:"أفوكادو",name_en:"Avocado",cat:"خضار",cal:160,fat:15,sat_fat:2.1,protein:2.0,carb:8.5,fiber:6.7,net_carb:1.8,sodium:7,potassium:485},
-  {id:13,name:"سبانخ طازجة",name_en:"Spinach",cat:"خضار",cal:23,fat:0.4,sat_fat:0.1,protein:2.9,carb:3.6,fiber:2.2,net_carb:1.4,sodium:79,potassium:558},
-  {id:14,name:"بروكلي",name_en:"Broccoli",cat:"خضار",cal:34,fat:0.4,sat_fat:0.1,protein:2.8,carb:7.0,fiber:2.6,net_carb:4.4,sodium:33,potassium:316},
-  {id:15,name:"كوسا",name_en:"Zucchini",cat:"خضار",cal:17,fat:0.3,sat_fat:0.1,protein:1.2,carb:3.1,fiber:1.0,net_carb:2.1,sodium:8,potassium:261},
-  {id:16,name:"قرنبيط",name_en:"Cauliflower",cat:"خضار",cal:25,fat:0.3,sat_fat:0.1,protein:2.0,carb:5.0,fiber:2.0,net_carb:3.0,sodium:30,potassium:303},
-  {id:17,name:"خيار",name_en:"Cucumber",cat:"خضار",cal:16,fat:0.1,sat_fat:0.0,protein:0.7,carb:3.6,fiber:0.5,net_carb:3.1,sodium:2,potassium:147},
-  {id:18,name:"ليتوس روماني",name_en:"Romaine Lettuce",cat:"خضار",cal:17,fat:0.3,sat_fat:0.0,protein:1.2,carb:3.3,fiber:2.1,net_carb:1.2,sodium:8,potassium:247},
-  {id:19,name:"مكسرات مشكلة",name_en:"Mixed Nuts",cat:"مكسرات",cal:607,fat:54,sat_fat:7.2,protein:16,carb:21,fiber:7.4,net_carb:13.6,sodium:5,potassium:600},
-  {id:20,name:"لوز",name_en:"Almonds",cat:"مكسرات",cal:579,fat:50,sat_fat:3.8,protein:21,carb:22,fiber:12,net_carb:10,sodium:1,potassium:733},
-  {id:21,name:"جوز برازيلي",name_en:"Brazil Nuts",cat:"مكسرات",cal:659,fat:67,sat_fat:15,protein:14,carb:12,fiber:7.5,net_carb:4.5,sodium:3,potassium:597},
-  {id:22,name:"بذور الشيا",name_en:"Chia Seeds",cat:"بذور",cal:486,fat:31,sat_fat:3.3,protein:17,carb:42,fiber:34,net_carb:8,sodium:16,potassium:407},
-  {id:23,name:"بذور كتان",name_en:"Flaxseeds",cat:"بذور",cal:534,fat:42,sat_fat:3.7,protein:18,carb:29,fiber:27,net_carb:2,sodium:30,potassium:813},
-  {id:24,name:"تونة بالماء",name_en:"Canned Tuna",cat:"بروتين",cal:109,fat:2.5,sat_fat:0.6,protein:20,carb:0,fiber:0,net_carb:0,sodium:330,potassium:207},
-  {id:25,name:"سجق (بدون حشو)",name_en:"Sausage",cat:"بروتين",cal:346,fat:30,sat_fat:11,protein:18,carb:1.1,fiber:0,net_carb:1.1,sodium:869,potassium:290},
-  {id:26,name:"لحم مقدد",name_en:"Bacon",cat:"بروتين",cal:541,fat:45,sat_fat:15,protein:33,carb:0.6,fiber:0,net_carb:0.6,sodium:1717,potassium:565},
-  {id:27,name:"جبن كريمي",name_en:"Cream Cheese",cat:"ألبان",cal:342,fat:34,sat_fat:21,protein:6.0,carb:4.1,fiber:0,net_carb:4.1,sodium:321,potassium:138},
-  {id:28,name:"قشطة حامضة",name_en:"Sour Cream",cat:"ألبان",cal:193,fat:19,sat_fat:12,protein:2.4,carb:4.6,fiber:0,net_carb:4.6,sodium:53,potassium:138},
-  {id:29,name:"جوز الهند المجفف",name_en:"Desiccated Coconut",cat:"بذور",cal:660,fat:65,sat_fat:58,protein:6.9,carb:23,fiber:15,net_carb:8,sodium:37,potassium:543},
-  {id:30,name:"جوز عادي",name_en:"Walnuts",cat:"مكسرات",cal:654,fat:65,sat_fat:6.1,protein:15,carb:14,fiber:6.7,net_carb:7.3,sodium:2,potassium:441},
-];
-let RECIPES=[
-  {id:1,name:"كريمة دجاج بالسبانخ",name_en:"Creamy Spinach Chicken",desc:"طبق كيتو كلاسيكي غني بالدهون الصحية",servings:2,ingredients:[{fid:1,qty:200},{fid:13,qty:100},{fid:8,qty:60},{fid:6,qty:50}],approved:true},
-  {id:2,name:"سلطة أفوكادو بالتونة",name_en:"Tuna Avocado Salad",desc:"سريع التحضير وغني بالأوميغا 3",servings:1,ingredients:[{fid:24,qty:150},{fid:12,qty:100},{fid:18,qty:80},{fid:10,qty:15}],approved:true},
-  {id:3,name:"بيض مقلي بالزبدة والجبن",name_en:"Butter Fried Eggs",desc:"فطور كيتو مثالي",servings:1,ingredients:[{fid:4,qty:120},{fid:9,qty:20},{fid:6,qty:30}],approved:true},
-];
-const SUPPLEMENTS=[
-  {id:1,name:"ماغنيسيوم",eng:"Magnesium",why:"ضروري لتعويض الخسارة عبر البول في الكيتو",dose:"200-400 مغ/يوم",types:["مالات","بيسجليسينات","سيترات"],caution:"تجنب الأكسيد",defic:"تشنجات، إمساك، نوم سيء",link:"",doc_note:"أفضل أشكاله البيسجليسينات والمالات — ابدأ بـ 200مغ ليلاً مع العشاء",priority:1},
-  {id:2,name:"البوتاسيوم",eng:"Potassium",why:"الكتروليت أساسي يُفقد في بداية الكيتو",dose:"1000-3500 مغ/يوم من الغذاء",types:["كلوريد","سيترات"],caution:"لا تتعدى 3.5 غ مكمل/يوم",defic:"ضعف، تعب، تقلصات",link:"",doc_note:"أفضل مصادره: أفوكادو، سبانخ، مرق العظام — ركّز على الغذاء قبل المكمل",priority:2},
-  {id:3,name:"الصوديوم",eng:"Sodium",why:"يُفقد مع السوائل في مرحلة التكيف",dose:"2000-4000 مغ/يوم",types:["ملح الهيمالايا","ملح البحر"],caution:"راقب ضغط الدم",defic:"صداع، دوار، كيتو فلو",link:"",doc_note:"ملح الهيمالايا هو الأفضل — أضفه لمياهك الصباحية في الأسبوع الأول",priority:1},
-  {id:4,name:"فيتامين D3",eng:"Vitamin D3",why:"نقص شائع يؤثر على المناعة والهرمونات",dose:"2000-5000 وحدة/يوم",types:["D3 مع K2"],caution:"راقب مستوى الدم كل 6 أشهر",defic:"إجهاد، ألم عظام، مزاج سيء",link:"",doc_note:"خذه مع K2 دائماً لضمان توجيه الكالسيوم للعظام لا الأوعية — مع الدهون",priority:2},
-  {id:5,name:"أوميغا 3",eng:"Omega-3",why:"مضاد التهاب، يدعم صحة القلب في الكيتو",dose:"1000-3000 مغ EPA+DHA/يوم",types:["زيت السمك","زيت الكريل"],caution:"يُخفف الدم بجرعات عالية",defic:"التهاب، ضعف تركيز",link:"",doc_note:"ركّز على نسبة EPA+DHA على العبوة — ليس إجمالي زيت السمك",priority:2},
-  {id:6,name:"MCT Oil",eng:"MCT Oil",why:"يرفع الكيتونات ويدعم الطاقة",dose:"1-3 ملاعق كبيرة/يوم",types:["C8","C8+C10"],caution:"ابدأ بكميات صغيرة",defic:"-",link:"",doc_note:"ابدأ بنصف ملعقة صغيرة وزد تدريجياً — C8 أكثر قدرة على رفع الكيتونات",priority:3},
-  {id:7,name:"الكريتين",eng:"Creatine",why:"يعوض تأثير الكيتو على القوة العضلية",dose:"3-5 غ/يوم",types:["مونوهيدرات"],caution:"اشرب ماء كافياً",defic:"ضعف أداء رياضي",link:"",doc_note:"مونوهيدرات بدون تحميل — 5 غرام يومياً بعد الوجبة الرئيسية مباشرة",priority:3},
-];
-let MEMBERS=[
-  {id:2,uid:3,name:"Battal",email:"battal@test.com",age:45,gender:"ذكر",height:178,start_weight:102,current_weight:96.5,goal_weight:85,phase:1,start_date:"2024-01-20",join_date:"2024-01-18",health_notes:"سكري نوع 2 تحت السيطرة",supplements_used:[1,2,3,4],favorites_foods:[2,5,10],favorites_recipes:[3]},
-];
-let PROGRESS=[
-  {mid:1,date:"2024-01-15",weight:78.0,waist:88,notes:"بداية التحدي",energy:3},
-  {mid:1,date:"2024-01-22",weight:76.3,waist:86,notes:"تحسن في الطاقة",energy:4},
-  {mid:1,date:"2024-01-29",weight:75.1,waist:85,notes:"",energy:4},
-  {mid:1,date:"2024-02-05",weight:74.2,waist:84,notes:"تخطيت البلاتو",energy:5},
-  {mid:2,date:"2024-01-20",weight:102.0,waist:110,notes:"",energy:2},
-  {mid:2,date:"2024-01-27",weight:99.8,waist:108,notes:"كيتو فلو تعدى",energy:3},
-  {mid:2,date:"2024-02-03",weight:98.1,waist:106,notes:"",energy:4},
-  {mid:2,date:"2024-02-10",weight:96.5,waist:104,notes:"السكر تحسن",energy:4},
-];
-let PRODUCTS=[
-  {id:1,name:"زيت MCT الصافي",brand:"Sports Research",keto_score:5,carb:0,fat:100,prot:0,notes:"C8+C10 نقي",approved:true,cat:"دهون صحية",doc_rec:"موصى به — أفضل خيار في السوق للمرحلة الأولى",link:""},
-  {id:2,name:"جبن شيدر",brand:"Kraft",keto_score:4,carb:1.3,fat:33,prot:25,notes:"منخفض الكربوهيدرات",approved:true,cat:"ألبان",doc_rec:"جيد للاستخدام اليومي — راقب الكمية",link:""},
-  {id:3,name:"بيض بلدي عضوي",brand:"الوطنية",keto_score:5,carb:0.7,fat:9.5,prot:13,notes:"أفضل مصدر بروتين كيتو",approved:true,cat:"بروتين",doc_rec:"موصى به بشدة — أساس كل وجبة فطور كيتو",link:""},
-  {id:4,name:"مكسرات مشكلة مملحة",brand:"مزارع الملك",keto_score:3,carb:13.6,fat:54,prot:16,notes:"مقبول (30-40غ فقط)",approved:true,cat:"وجبات خفيفة",doc_rec:"بحذر — لا تتجاوز 30 غرام في اليوم",link:""},
-  {id:5,name:"عصير تفاح طبيعي",brand:"أل ريف",keto_score:0,carb:11,fat:0.1,prot:0.2,notes:"غير متوافق — عالي السكريات",approved:false,cat:"مشروبات",doc_rec:"ممنوع تماماً في الكيتو",link:""},
-];
-
-/* WEEK SCHEDULES — admin creates these */
-let WEEK_SCHEDULES=[
-  {
-    id:1, week:1, title:"جدول الأسبوع الأول — مرحلة التكيف",
-    days:[
-      {day:"السبت",   tasks:["فطور: بيض بالزبدة (3 بيضات + 20غ زبدة)","غداء: صدر دجاج مشوي + سلطة خضراء","عشاء: سلمون مشوي + كوسا"]},
-      {day:"الأحد",   tasks:["فطور: أفوكادو + بيض مسلوق","غداء: لحم مفروم مع قرنبيط","عشاء: سلطة التونة والأفوكادو"]},
-      {day:"الاثنين", tasks:["فطور: بيض مقلي + جبن شيدر","غداء: شاورما دجاج كيتو","عشاء: كريمة دجاج بالسبانخ"]},
-      {day:"الثلاثاء",tasks:["فطور: قهوة بالزبدة + بيض","غداء: لحم خروف مشوي + خضار","عشاء: تونة مع أفوكادو + سبانخ"]},
-      {day:"الأربعاء",tasks:["فطور: أوملت بالجبن والسبانخ","غداء: برجر لحم بدون خبز","عشاء: سمك مشوي + سلطة"]},
-      {day:"الخميس",  tasks:["فطور: بيض مع لحم مقدد","غداء: دجاج بالكريمة والمشروم","عشاء: صيام متقطع (وجبة واحدة)"]},
-      {day:"الجمعة",  tasks:["فطور: بيض + أفوكادو","غداء: مندي دجاج كيتو (بدون أرز)","عشاء: خفيف — جبن + مكسرات"]},
-    ],
-    doc_note:"الأسبوع الأول هو الأصعب — ركّز على الالتزام بالكربوهيدرات فقط، لا تقلق عن السعرات"
-  }
-];
-let WEEKLY_CHALLENGES=[
-  {id:1,week:1,title:"أسبوع التكيف الكيتوني",desc:"هدفنا هذا الأسبوع تهيئة الجسم للدخول في حالة الكيتوزيس بشكل سلس وآمن",tasks:[{id:1,label:"التزم بـ ≤20 غرام كربوهيدرات صافية"},{id:2,label:"اشرب 8 أكواب ماء على الأقل"},{id:3,label:"أضف ملح الهيمالايا (الكتروليت)"},{id:4,label:"تجنب الكافيين بعد الساعة 2 ظهراً"},{id:5,label:"سجّل وجباتك في الحاسبة"}],active:true},
-];
+/* ── البيانات محملة من ملفات خارجية (db-*.js) ── */
 
 /* GROUP CHALLENGES — للجميع مع نقاط ومراكز */
 let GROUP_CHALLENGES=[
