@@ -274,103 +274,6 @@ textarea{resize:vertical;min-height:76px;}
 <script src="db-stores.js"></script>
 <script src="db-devices.js"></script>
 
-<!-- ════ FIREBASE ════ -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDClFiXwKT43at_zghAn-S1AkZZ8wLq7AA",
-  authDomain: "keto-challenge-2026.firebaseapp.com",
-  projectId: "keto-challenge-2026",
-  storageBucket: "keto-challenge-2026.firebasestorage.app",
-  messagingSenderId: "167796538419",
-  appId: "1:167796538419:web:c16b257771094454b83746",
-  measurementId: "G-JF5PVEV8CT"
-};
-
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
-
-/* ── Expose helpers to global scope ── */
-window.DB = {
-
-  // ── MEMBERS ──
-  async saveMember(member) {
-    try {
-      await setDoc(doc(db, "members", String(member.uid)), member);
-      return true;
-    } catch(e){ console.error("saveMember:", e); return false; }
-  },
-
-  async loadMembers() {
-    try {
-      const snap = await getDocs(collection(db, "members"));
-      return snap.docs.map(d => d.data());
-    } catch(e){ console.error("loadMembers:", e); return []; }
-  },
-
-  async getMember(uid) {
-    try {
-      const snap = await getDoc(doc(db, "members", String(uid)));
-      return snap.exists() ? snap.data() : null;
-    } catch(e){ console.error("getMember:", e); return null; }
-  },
-
-  // ── PROGRESS ──
-  async saveProgress(entry) {
-    try {
-      const id = `${entry.mid}_${entry.date}`;
-      await setDoc(doc(db, "progress", id), entry);
-      return true;
-    } catch(e){ console.error("saveProgress:", e); return false; }
-  },
-
-  async loadProgress(mid) {
-    try {
-      const snap = await getDocs(collection(db, "progress"));
-      const all = snap.docs.map(d => d.data());
-      return mid ? all.filter(p => p.mid === mid) : all;
-    } catch(e){ console.error("loadProgress:", e); return []; }
-  },
-
-  // ── CHALLENGE PROGRESS ──
-  async saveChallengeProgress(uid, data) {
-    try {
-      await setDoc(doc(db, "challenge_progress", String(uid)), { uid, data });
-      return true;
-    } catch(e){ console.error("saveChallengeProgress:", e); return false; }
-  },
-
-  async loadChallengeProgress(uid) {
-    try {
-      const snap = await getDoc(doc(db, "challenge_progress", String(uid)));
-      return snap.exists() ? snap.data().data : {};
-    } catch(e){ console.error("loadChallengeProgress:", e); return {}; }
-  },
-
-  // ── USERS (credentials) ──
-  async saveUser(user) {
-    try {
-      await setDoc(doc(db, "users", String(user.id)), user);
-      return true;
-    } catch(e){ console.error("saveUser:", e); return false; }
-  },
-
-  async loadUsers() {
-    try {
-      const snap = await getDocs(collection(db, "users"));
-      return snap.docs.map(d => d.data());
-    } catch(e){ console.error("loadUsers:", e); return []; }
-  },
-};
-
-// Signal app that Firebase is ready
-window._fbReady = true;
-window.dispatchEvent(new Event('fbReady'));
-console.log("✅ Firebase connected — Keto Challenge 2026");
-</script>
 
 <script>
 /* ═══════════════ MAIN APP ═══════════════ */
@@ -1964,5 +1867,103 @@ async function saveProfileSection(section){
   rProfile();
   rDash();
 }
+
+<!-- ════ FIREBASE ════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy }
+  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDClFiXwKT43at_zghAn-S1AkZZ8wLq7AA",
+  authDomain: "keto-challenge-2026.firebaseapp.com",
+  projectId: "keto-challenge-2026",
+  storageBucket: "keto-challenge-2026.firebasestorage.app",
+  messagingSenderId: "167796538419",
+  appId: "1:167796538419:web:c16b257771094454b83746",
+  measurementId: "G-JF5PVEV8CT"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+/* ── Expose helpers to global scope ── */
+window.DB = {
+
+  // ── MEMBERS ──
+  async saveMember(member) {
+    try {
+      await setDoc(doc(db, "members", String(member.uid)), member);
+      return true;
+    } catch(e){ console.error("saveMember:", e); return false; }
+  },
+
+  async loadMembers() {
+    try {
+      const snap = await getDocs(collection(db, "members"));
+      return snap.docs.map(d => d.data());
+    } catch(e){ console.error("loadMembers:", e); return []; }
+  },
+
+  async getMember(uid) {
+    try {
+      const snap = await getDoc(doc(db, "members", String(uid)));
+      return snap.exists() ? snap.data() : null;
+    } catch(e){ console.error("getMember:", e); return null; }
+  },
+
+  // ── PROGRESS ──
+  async saveProgress(entry) {
+    try {
+      const id = `${entry.mid}_${entry.date}`;
+      await setDoc(doc(db, "progress", id), entry);
+      return true;
+    } catch(e){ console.error("saveProgress:", e); return false; }
+  },
+
+  async loadProgress(mid) {
+    try {
+      const snap = await getDocs(collection(db, "progress"));
+      const all = snap.docs.map(d => d.data());
+      return mid ? all.filter(p => p.mid === mid) : all;
+    } catch(e){ console.error("loadProgress:", e); return []; }
+  },
+
+  // ── CHALLENGE PROGRESS ──
+  async saveChallengeProgress(uid, data) {
+    try {
+      await setDoc(doc(db, "challenge_progress", String(uid)), { uid, data });
+      return true;
+    } catch(e){ console.error("saveChallengeProgress:", e); return false; }
+  },
+
+  async loadChallengeProgress(uid) {
+    try {
+      const snap = await getDoc(doc(db, "challenge_progress", String(uid)));
+      return snap.exists() ? snap.data().data : {};
+    } catch(e){ console.error("loadChallengeProgress:", e); return {}; }
+  },
+
+  // ── USERS (credentials) ──
+  async saveUser(user) {
+    try {
+      await setDoc(doc(db, "users", String(user.id)), user);
+      return true;
+    } catch(e){ console.error("saveUser:", e); return false; }
+  },
+
+  async loadUsers() {
+    try {
+      const snap = await getDocs(collection(db, "users"));
+      return snap.docs.map(d => d.data());
+    } catch(e){ console.error("loadUsers:", e); return []; }
+  },
+};
+
+// Signal app that Firebase is ready
+window._fbReady = true;
+window.dispatchEvent(new Event('fbReady'));
+console.log("✅ Firebase connected — Keto Challenge 2026");
+</script>
 </body>
 </html>
