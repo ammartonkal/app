@@ -1081,8 +1081,8 @@ function popSels(){['rb-isel','csel'].forEach(sid=>{const s=document.getElementB
 /* ═══ DASHBOARD ═══ */
 function rDash(){
   const adm=CU.role==='admin';
-  document.getElementById('d-rbar').innerHTML=adm?'⬡ دخلت كمدير — صلاحيات كاملة':`⬡ أهلاً ${CU.name}`;
   if(adm){
+    document.getElementById('d-rbar').innerHTML='⬡ دخلت كمدير — صلاحيات كاملة';
     document.getElementById('d-stats').innerHTML=`
       <div class="stat-card"><div class="stat-label">الأطعمة</div><div class="stat-val">${FOODS.length}</div></div>
       <div class="stat-card"><div class="stat-label">الوصفات</div><div class="stat-val">${RECIPES.length}</div></div>
@@ -1097,6 +1097,48 @@ function rDash(){
         <div class="card-header"><div class="card-title">تحدي الأسبوع</div><button class="btn sm" onclick="gp('challenge_personal')">عرض ←</button></div>
         ${miniChallenge()}
       </div>`;
+  } else {
+    const mem=MEMBERS.find(m=>m.uid===CU.id);
+    if(mem){
+      // Check missing fields
+      const missing=[];
+      if(!mem.ob_goal) missing.push({label:'هدف الاشتراك',icon:'🎯'});
+      if(!mem.start_weight||mem.start_weight===0) missing.push({label:'الوزن الحالي',icon:'⚖️'});
+      if(!mem.goal_weight||mem.goal_weight===0) missing.push({label:'وزن الهدف',icon:'🏁'});
+      if(!mem.height||mem.height===0) missing.push({label:'الطول',icon:'📏'});
+      if(missing.length>0){
+        document.getElementById('d-rbar').innerHTML=`<div style="width:100%">
+          <div style="margin-bottom:8px">⬡ أهلاً ${CU.name}</div>
+          <div style="background:var(--warning-dim);border:1px solid rgba(160,112,16,.25);border-radius:var(--radius-sm);padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--warning);margin-bottom:5px">💡 أكمل ملفك للحصول على تجربة مخصصة</div>
+              <div style="display:flex;flex-wrap:wrap;gap:5px">
+                ${missing.map(m=>`<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(160,112,16,.12);border:1px solid rgba(160,112,16,.2);color:var(--warning);border-radius:100px;padding:2px 9px;font-size:11px">${m.icon} ${m.label}</span>`).join('')}
+              </div>
+            </div>
+            <button class="btn sm" style="background:var(--warning);color:#fff;border-color:var(--warning);white-space:nowrap;flex-shrink:0" onclick="gp('profile')">إكمال الملف ←</button>
+          </div>
+        </div>`;
+      } else {
+        document.getElementById('d-rbar').innerHTML=`⬡ أهلاً ${CU.name}`;
+      }
+      const lost=(mem.start_weight-mem.current_weight).toFixed(1);
+      const pct=mem.start_weight&&mem.goal_weight?Math.min(100,Math.round(parseFloat(lost)/(mem.start_weight-mem.goal_weight)*100)):0;
+      document.getElementById('d-stats').innerHTML=`
+        <div class="stat-card"><div class="stat-label">وزن البداية</div><div class="stat-val warn">${mem.start_weight?mem.start_weight+' كغ':'—'}</div></div>
+        <div class="stat-card"><div class="stat-label">الوزن الحالي</div><div class="stat-val">${mem.current_weight?mem.current_weight+' كغ':'—'}</div></div>
+        <div class="stat-card"><div class="stat-label">المفقود</div><div class="stat-val">${mem.start_weight?lost+' كغ':'—'}</div></div>
+        <div class="stat-card"><div class="stat-label">نحو الهدف</div><div class="stat-val inf">${mem.start_weight&&mem.goal_weight?pct+'%':'—'}</div></div>`;
+      document.getElementById('d-bottom').innerHTML=`
+        <div class="card"><div class="card-header"><div class="card-title">تحدي الأسبوع</div><button class="btn sm" onclick="gp('challenge_personal')">متابعة ←</button></div>${miniChallenge()}</div>
+        <div class="card"><div class="card-header"><div class="card-title">آخر قياساتي</div></div>
+          ${PROGRESS.filter(p=>p.mid===mem.id).slice(-4).reverse().map(p=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3)">${p.date}</span><span class="mono" style="color:var(--accent)">${p.weight} كغ</span></div>`).join('')||'<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لا توجد قياسات بعد</div>'}
+        </div>`;
+    } else {
+      document.getElementById('d-rbar').innerHTML=`⬡ أهلاً ${CU.name}`;
+      document.getElementById('d-stats').innerHTML='';
+      document.getElementById('d-bottom').innerHTML=`<div class="card" style="grid-column:1/-1"><div style="text-align:center;padding:10px 0 18px"><div style="font-size:40px;margin-bottom:10px">👋</div><div style="font-size:16px;font-weight:600;margin-bottom:6px">أهلاً ${CU.name}!</div><div style="font-size:13px;color:var(--text2);margin-bottom:18px">لم يكتمل ملفك بعد</div><button class="btn primary" onclick="showOnboarding()">إكمال الملف الشخصي ←</button></div></div>`;
+    }
   }
 }
 function miniChallenge(){const ch=WEEKLY_CHALLENGES.find(c=>c.active);if(!ch)return'<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لا يوجد تحدي نشط</div>';if(!CHALLENGE_PROGRESS[CU.id])CHALLENGE_PROGRESS[CU.id]={};const done=ch.tasks.filter(t=>CHALLENGE_PROGRESS[CU.id][ch.id+'_'+t.id]).length;const pct=Math.round(done/ch.tasks.length*100);return`<div style="font-size:13px;font-weight:500;margin-bottom:6px">${ch.title}</div><div style="display:flex;align-items:center;gap:10px"><div class="kbar" style="flex:1;margin:0"><div class="kfill gr" style="width:${pct}%"></div></div><span class="mono" style="color:var(--accent);font-weight:600">${pct}%</span></div><div style="font-size:11px;color:var(--text3);margin-top:4px">${done} من ${ch.tasks.length} مهام مكتملة</div>`;}
