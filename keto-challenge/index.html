@@ -720,26 +720,38 @@ let CHALLENGE_PROGRESS={};
 
       <!-- PRODUCTS -->
       <div class="panel" id="panel-products">
-        <div class="sbar">
-          <div class="si-wrap"><input type="text" id="psearch" placeholder="ابحث عن منتج..." oninput="rProducts()"><span class="si-icon">⌕</span></div>
-          <select id="pfil" onchange="rProducts()" style="width:130px"><option value="">الكل</option><option value="true">متوافق</option><option value="false">غير متوافق</option></select>
-          <button class="btn primary" id="add-prod-btn" onclick="tf('prod-form')">+ إضافة</button>
+        <div id="products-main-view">
+          <div class="sbar">
+            <div class="si-wrap"><input type="text" id="psearch" placeholder="ابحث عن منتج..." oninput="rProducts()"><span class="si-icon">⌕</span></div>
+            <select id="pfil" onchange="rProducts()" style="width:130px"><option value="">الكل</option><option value="true">متوافق</option><option value="false">غير متوافق</option></select>
+            <select id="pcat-fil" onchange="rProducts()" style="width:130px"><option value="">كل الفئات</option><option>دهون صحية</option><option>بروتين</option><option>ألبان</option><option>وجبات خفيفة</option><option>مشروبات</option><option>أخرى</option></select>
+            <button class="btn primary" id="add-prod-btn" onclick="tf('prod-form')">+ إضافة</button>
+          </div>
+          <div id="prod-form" class="card" style="display:none">
+            <div class="card-header"><div class="card-title">إضافة منتج</div><button class="btn sm" onclick="tf('prod-form')">✕</button></div>
+            <div class="form-row"><div class="fg"><label>اسم المنتج</label><input id="pf-n"></div><div class="fg"><label>الماركة</label><input id="pf-b"></div></div>
+            <div class="form-row t3"><div class="fg"><label>دهون/100غ</label><input type="number" id="pf-f"></div><div class="fg"><label>بروتين/100غ</label><input type="number" id="pf-p"></div><div class="fg"><label>كربو/100غ</label><input type="number" id="pf-c"></div></div>
+            <div class="form-row"><div class="fg"><label>الفئة</label><select id="pf-cat"><option>دهون صحية</option><option>بروتين</option><option>ألبان</option><option>وجبات خفيفة</option><option>مشروبات</option><option>أخرى</option></select></div><div class="fg"><label>تقييم الكيتو</label><select id="pf-sc"><option value="5">5 — ممتاز</option><option value="4">4 — جيد</option><option value="3">3 — مقبول</option><option value="2">2 — محدود</option><option value="0">0 — غير متوافق</option></select></div></div>
+            <div class="form-row f1"><div class="fg"><label>ملاحظات</label><input id="pf-no"></div></div>
+            <div class="form-row f1"><div class="fg"><label>توصية د. عمار</label><input id="pf-dr"></div></div>
+            <div class="form-row f1"><div class="fg"><label>رابط المنتج</label><input id="pf-lk" dir="ltr" placeholder="https://..."></div></div>
+            <div class="flex-end"><button class="btn primary" onclick="saveProd()">حفظ</button></div>
+          </div>
+          <div id="products-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px"></div>
         </div>
-        <div id="prod-form" class="card" style="display:none">
-          <div class="card-header"><div class="card-title">إضافة منتج</div><button class="btn sm" onclick="tf('prod-form')">✕</button></div>
-          <div class="form-row"><div class="fg"><label>اسم المنتج</label><input id="pf-n"></div><div class="fg"><label>الماركة</label><input id="pf-b"></div></div>
-          <div class="form-row t3"><div class="fg"><label>دهون/100غ</label><input type="number" id="pf-f"></div><div class="fg"><label>بروتين/100غ</label><input type="number" id="pf-p"></div><div class="fg"><label>كربو/100غ</label><input type="number" id="pf-c"></div></div>
-          <div class="form-row"><div class="fg"><label>الفئة</label><select id="pf-cat"><option>دهون صحية</option><option>بروتين</option><option>ألبان</option><option>وجبات خفيفة</option><option>مشروبات</option><option>أخرى</option></select></div><div class="fg"><label>تقييم الكيتو</label><select id="pf-sc"><option value="5">5 — ممتاز</option><option value="4">4 — جيد</option><option value="3">3 — مقبول</option><option value="2">2 — محدود</option><option value="0">0 — غير متوافق</option></select></div></div>
-          <div class="form-row f1"><div class="fg"><label>ملاحظات</label><input id="pf-no"></div></div>
-          <div class="form-row f1"><div class="fg"><label>توصية د. عمار</label><input id="pf-dr" placeholder="مثال: موصى به في المرحلة الأولى — الأفضل في السوق"></div></div>
-          <div class="form-row f1"><div class="fg"><label>رابط المنتج (اختياري)</label><input id="pf-lk" dir="ltr" placeholder="https://..."></div></div>
-          <div class="flex-end"><button class="btn primary" onclick="saveProd()">حفظ</button></div>
-        </div>
-        <div class="card" style="padding:0"><div class="tbl-wrap"><table><thead><tr><th>المنتج</th><th>الماركة</th><th>الفئة</th><th>دهون</th><th>بروتين</th><th>كربو</th><th>تقييم</th><th>الحالة</th><th>توصية د. عمار</th><th></th></tr></thead><tbody id="products-tbody"></tbody></table></div></div>
+        <div id="product-detail-view" style="display:none"><div id="product-detail-content"></div></div>
       </div>
 
       <!-- SUPPLEMENTS -->
-      <div class="panel" id="panel-supplements"><div id="sg" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(295px,1fr));gap:15px"></div></div>
+      <div class="panel" id="panel-supplements">
+        <div id="supps-main-view">
+          <div class="sbar">
+            <select id="supp-pri-fil" onchange="rSupps()" style="width:140px"><option value="">كل الأولويات</option><option value="1">أساسي</option><option value="2">موصى به</option><option value="3">اختياري</option></select>
+          </div>
+          <div id="sg" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(295px,1fr));gap:15px"></div>
+        </div>
+        <div id="supp-detail-view" style="display:none"><div id="supp-detail-content"></div></div>
+      </div>
 
       <!-- CALCULATOR -->
       <div class="panel" id="panel-calculator">
@@ -1614,7 +1626,7 @@ function showFoodDetail(fid){
         ${f.doc_rec?`<div class="doc-note" style="margin-bottom:16px"><div class="doc-note-head">📋 توصية د. عمار</div>${f.doc_rec}</div>`:''}
         <div class="card" style="margin:0 0 16px">
           <div class="card-header"><div class="card-title">🍳 وصفات تحتوي على هذا الصنف</div></div>
-          ${relRecipes.length>0?relRecipes.map(r=>{const m=cmac(r);const k2=klbl(m.k);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="gp('recipes')"><div><div style="font-size:13px;font-weight:500">${r.name}</div><div style="font-size:11px;color:var(--text3)">${Math.round(m.cal/r.servings)} سعر/حصة</div></div><span class="badge ${k2.c}">${k2.l}</span></div>`;}).join(''):`<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لا توجد وصفات مرتبطة</div>`}
+          ${relRecipes.length>0?relRecipes.map(r=>{const m=cmac(r);const k2=klbl(m.k);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="hideFoodDetail();gp('recipes');setTimeout(()=>showRecipeDetail(${r.id}),100)"><div><div style="font-size:13px;font-weight:500">${r.name}</div><div style="font-size:11px;color:var(--text3)">${Math.round(m.cal/r.servings)} سعر/حصة</div></div><span class="badge ${k2.c}">${k2.l}</span></div>`;}).join(''):`<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لا توجد وصفات مرتبطة</div>`}
           <button class="btn sm" style="margin-top:10px;width:100%;justify-content:center" onclick="addToCalc(${fid})">+ أضف للحاسبة</button>
         </div>
         <div class="card" style="margin:0 0 16px">
@@ -1912,13 +1924,341 @@ function saveRecipe(){
 function delRecipe(id){if(!confirm('حذف هذه الوصفة؟'))return;RECIPES=RECIPES.filter(r=>r.id!==id);rRecipes();}
 
 /* ═══ PRODUCTS ═══ */
-function rProducts(){const q=(document.getElementById('psearch')?.value||'').toLowerCase();const f=document.getElementById('pfil')?.value;const prods=PRODUCTS.filter(p=>(!q||p.name.includes(q)||p.brand.includes(q))&&(f===''||String(p.approved)===f));const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);document.getElementById('products-tbody').innerHTML=prods.map(p=>`<tr><td><div style="font-weight:500">${p.name}</div>${p.notes?`<div style="font-size:11px;color:var(--text3)">${p.notes}</div>`:''}</td><td style="color:var(--text2)">${p.brand}</td><td><span class="tag">${p.cat}</span></td><td class="mono" style="color:var(--accent)">${p.fat}غ</td><td class="mono" style="color:var(--info)">${p.prot}غ</td><td class="mono" style="color:var(--danger)">${p.carb}غ</td><td style="color:var(--warning);letter-spacing:1px;font-size:12px">${stars(p.keto_score)}</td><td><span class="badge ${p.approved?'g':'r'}">${p.approved?'متوافق':'غير متوافق'}</span></td><td style="max-width:180px">${p.doc_rec?`<div class="doc-note" style="font-size:11px;padding:6px 9px">${p.doc_rec}</div>`:'<span style="color:var(--text3);font-size:11px">—</span>'}${p.link?`<a href="${p.link}" target="_blank" class="supp-link" style="margin-top:5px;font-size:11px">رابط المنتج ↗</a>`:''}</td>${CU.role==='admin'?`<td><button class="btn sm dng" onclick="delProd(${p.id})">حذف</button></td>`:'<td></td>'}</tr>`).join('');}
-function saveProd(){const n=document.getElementById('pf-n').value.trim();if(!n){alert('أدخل الاسم');return;}const sc=parseInt(document.getElementById('pf-sc').value);PRODUCTS.push({id:PRODUCTS.length+1,name:n,brand:document.getElementById('pf-b').value,fat:parseFloat(document.getElementById('pf-f').value)||0,prot:parseFloat(document.getElementById('pf-p').value)||0,carb:parseFloat(document.getElementById('pf-c').value)||0,keto_score:sc,approved:sc>=3,notes:document.getElementById('pf-no').value,cat:document.getElementById('pf-cat').value,doc_rec:document.getElementById('pf-dr').value,link:document.getElementById('pf-lk').value});tf('prod-form');rProducts();}
+/* ═══ PRODUCTS ═══ */
+function rProducts(){
+  const q=(document.getElementById('psearch')?.value||'').toLowerCase();
+  const fil=document.getElementById('pfil')?.value||'';
+  const cat=document.getElementById('pcat-fil')?.value||'';
+  const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);
+  const prods=PRODUCTS.filter(p=>
+    (!q||p.name.includes(q)||p.brand.includes(q))&&
+    (fil===''||String(p.approved)===fil)&&
+    (!cat||p.cat===cat)
+  );
+  const g=document.getElementById('products-grid');if(!g)return;
+  if(!prods.length){g.innerHTML='<div class="empty-state"><div class="empty-icon">◉</div><div>لا توجد منتجات</div></div>';return;}
+  g.innerHTML=prods.map(p=>{
+    const isFav=p.favorites&&CU&&p.favorites.includes(CU.id);
+    const ratings=p.ratings?Object.values(p.ratings):[];
+    const avgR=ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1):0;
+    return`<div class="card" style="margin:0;cursor:pointer" onclick="showProductDetail(${p.id})">
+      <div style="position:relative;margin-bottom:10px">
+        ${p.img_url?'<img src="'+p.img_url+'" style="width:100%;height:110px;object-fit:cover;border-radius:var(--radius-sm)">':'<div style="width:100%;height:80px;background:var(--surface2);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:28px">🛒</div>'}
+        <button onclick="event.stopPropagation();toggleProductFav(${p.id})" style="position:absolute;top:5px;left:5px;background:rgba(255,255,255,.85);border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">${isFav?'❤️':'🤍'}</button>
+        <span class="badge ${p.approved?'g':'r'}" style="position:absolute;top:5px;right:5px">${p.approved?'متوافق':'بحذر'}</span>
+      </div>
+      <div style="font-weight:600;font-size:13px;margin-bottom:2px">${p.name}</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${p.brand} · <span class="tag" style="font-size:10px">${p.cat}</span></div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <div style="flex:1;text-align:center;background:var(--surface2);border-radius:5px;padding:5px"><div style="font-size:9px;color:var(--text3)">دهون</div><div style="font-size:12px;font-weight:600;color:var(--accent);font-family:var(--mono)">${p.fat}غ</div></div>
+        <div style="flex:1;text-align:center;background:var(--surface2);border-radius:5px;padding:5px"><div style="font-size:9px;color:var(--text3)">بروتين</div><div style="font-size:12px;font-weight:600;color:var(--info);font-family:var(--mono)">${p.prot}غ</div></div>
+        <div style="flex:1;text-align:center;background:var(--surface2);border-radius:5px;padding:5px"><div style="font-size:9px;color:var(--text3)">كربو</div><div style="font-size:12px;font-weight:600;color:var(--danger);font-family:var(--mono)">${p.carb}غ</div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="color:var(--warning);font-size:11px;letter-spacing:1px">${stars(p.keto_score)}</div>
+        <div style="font-size:11px;color:var(--text3)">${avgR>0?'⭐'+avgR:''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showProductDetail(pid){
+  const p=PRODUCTS.find(x=>x.id===pid);if(!p)return;
+  document.getElementById('products-main-view').style.display='none';
+  document.getElementById('product-detail-view').style.display='block';
+  const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);
+  const isFav=p.favorites&&CU&&p.favorites.includes(CU.id);
+  const ratings=p.ratings?Object.values(p.ratings):[];
+  const avgR=ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1):0;
+  const myR=p.ratings&&CU?p.ratings[CU.id]||0:0;
+  const isAdmin=CU&&CU.role==='admin';
+  // Related supplements (same category logic)
+  const relSupps=SUPPLEMENTS.filter(s=>s.types&&s.types.some(t=>p.name.includes(t)||t.includes(p.cat)));
+  // Related foods with same category
+  const relFoods=FOODS.filter(f=>f.cat===p.cat).slice(0,4);
+
+  document.getElementById('product-detail-content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+      <button class="btn sm" onclick="hideProductDetail()">← رجوع</button>
+      <span style="color:var(--text3);font-size:13px">المنتجات</span>
+      <span style="color:var(--text3)">›</span>
+      <span style="font-size:13px;font-weight:500">${p.name}</span>
+    </div>
+    <div class="two-col">
+      <div>
+        <!-- Image + header -->
+        <div class="card" style="margin:0 0 16px;padding:0;overflow:hidden">
+          <div style="position:relative">
+            ${p.img_url?`<img src="${p.img_url}" style="width:100%;height:200px;object-fit:cover">`:`<div style="width:100%;height:140px;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px"><div style="font-size:44px">🛒</div></div>`}
+            <button onclick="toggleProductFav(${p.id})" style="position:absolute;top:10px;left:10px;background:rgba(255,255,255,.9);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.15)">${isFav?'❤️':'🤍'}</button>
+            <span class="badge ${p.approved?'g':'r'}" style="position:absolute;top:10px;right:10px">${p.approved?'✓ متوافق مع الكيتو':'⚠ استخدم بحذر'}</span>
+          </div>
+          <div style="padding:14px 16px">
+            <div style="font-size:18px;font-weight:700;margin-bottom:3px">${p.name}</div>
+            <div style="font-size:13px;color:var(--text3);margin-bottom:8px">${p.brand}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <span class="tag">${p.cat}</span>
+              <div style="color:var(--warning);letter-spacing:2px">${stars(p.keto_score)}</div>
+              <span style="font-size:11px;color:var(--text3)">تقييم الكيتو: ${p.keto_score}/5</span>
+            </div>
+            ${p.notes?`<div style="margin-top:10px;font-size:12px;color:var(--text2);background:var(--surface2);padding:8px 10px;border-radius:var(--radius-sm)">${p.notes}</div>`:''}
+          </div>
+        </div>
+
+        <!-- Nutrition per 100g -->
+        <div class="card" style="margin:0 0 16px">
+          <div class="card-header"><div class="card-title">القيم الغذائية (لكل 100 غرام)</div></div>
+          ${[['الدهون',p.fat+'غ','var(--accent)'],['البروتين',p.prot+'غ','var(--info)'],['الكربوهيدرات',p.carb+'غ','var(--danger)']].map(([l,v,c])=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:13px;color:var(--text3)">${l}</span>
+            <span class="mono" style="color:${c};font-weight:600;font-size:15px">${v}</span>
+          </div>`).join('')}
+        </div>
+
+        <!-- Links -->
+        <div class="card" style="margin:0 0 16px">
+          <div class="card-header"><div class="card-title">🔗 روابط الشراء</div></div>
+          ${p.link?`<a href="${p.link}" target="_blank" rel="noopener noreferrer" class="btn primary sm" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:8px">🛒 شراء المنتج ↗</a>`:''}
+          ${p.link_amazon?`<a href="${p.link_amazon}" target="_blank" rel="noopener noreferrer" class="btn sm" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:8px">📦 أمازون ↗</a>`:''}
+          ${isAdmin?`
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">⬡ المدير — إدارة الروابط والصورة</div>
+            <div class="fg" style="margin-bottom:8px"><label style="font-size:11px">رابط المنتج الرئيسي</label><input id="pl-main-${p.id}" dir="ltr" placeholder="https://..." value="${p.link||''}"></div>
+            <div class="fg" style="margin-bottom:8px"><label style="font-size:11px">رابط أمازون</label><input id="pl-amz-${p.id}" dir="ltr" placeholder="https://amazon.sa/..." value="${p.link_amazon||''}"></div>
+            <div class="fg" style="margin-bottom:8px"><label style="font-size:11px">رابط الصورة</label><input id="pl-img-${p.id}" dir="ltr" placeholder="https://..." value="${p.img_url||''}"></div>
+            <button class="btn primary sm" onclick="saveProductLinks(${p.id})">حفظ الروابط والصورة</button>
+          </div>`:''}
+          ${!p.link&&!isAdmin?`<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لم يُضَف رابط بعد</div>`:''}
+        </div>
+      </div>
+
+      <div>
+        <!-- Dr note -->
+        ${p.doc_rec?`<div class="doc-note" style="margin-bottom:16px"><div class="doc-note-head">📋 توصية د. عمار</div>${p.doc_rec}</div>`:''}
+
+        <!-- Ratings -->
+        <div class="card" style="margin:0 0 16px">
+          <div class="card-header"><div class="card-title">⭐ تقييمات المستخدمين</div></div>
+          <div style="text-align:center;padding:8px 0 14px">
+            <div style="font-size:32px;font-weight:700;font-family:var(--mono);color:var(--warning)">${avgR>0?avgR:'—'}</div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${ratings.length} تقييم</div>
+            <div style="display:flex;justify-content:center;gap:4px;margin-bottom:6px">
+              ${[1,2,3,4,5].map(s=>`<span onclick="rateProduct(${p.id},${s})" style="font-size:26px;cursor:pointer;transition:transform .1s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">${s<=myR?'⭐':'☆'}</span>`).join('')}
+            </div>
+            ${myR>0?`<div style="font-size:12px;color:var(--accent)">تقييمك: ${myR}/5 ⭐</div>`:CU?`<div style="font-size:12px;color:var(--text3)">اضغط لتقييم المنتج</div>`:''}
+          </div>
+        </div>
+
+        <!-- Related foods -->
+        ${relFoods.length?`<div class="card" style="margin:0 0 16px">
+          <div class="card-header"><div class="card-title">🧬 أطعمة مشابهة</div></div>
+          ${relFoods.map(f=>`<div onclick="gp('foods')" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer">
+            <span style="font-size:13px">${f.name}</span>
+            <div style="font-size:11px;font-family:var(--mono);color:var(--text3)">${f.fat}د · ${f.protein}ب · ${f.net_carb}ك</div>
+          </div>`).join('')}
+        </div>`:''}
+
+        <!-- Related supplements -->
+        ${relSupps.length?`<div class="card" style="margin:0">
+          <div class="card-header"><div class="card-title">💊 مكملات ذات صلة</div></div>
+          ${relSupps.slice(0,3).map(s=>`<div onclick="showSuppDetail(${s.id})" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer">
+            <div><div style="font-size:13px;font-weight:500">${s.name}</div><div style="font-size:11px;color:var(--text3)">${s.eng}</div></div>
+            <span class="badge ${s.priority===1?'g':'b'}">${s.priority===1?'أساسي':'موصى به'}</span>
+          </div>`).join('')}
+        </div>`:''}
+      </div>
+    </div>`;
+}
+
+function hideProductDetail(){
+  document.getElementById('products-main-view').style.display='block';
+  document.getElementById('product-detail-view').style.display='none';
+}
+function toggleProductFav(pid){
+  if(!CU)return;
+  const p=PRODUCTS.find(x=>x.id===pid);if(!p)return;
+  if(!p.favorites)p.favorites=[];
+  const idx=p.favorites.indexOf(CU.id);
+  if(idx>-1)p.favorites.splice(idx,1);else p.favorites.push(CU.id);
+  if(document.getElementById('product-detail-view').style.display!=='none')showProductDetail(pid);
+  else rProducts();
+}
+function rateProduct(pid,score){
+  if(!CU)return;
+  const p=PRODUCTS.find(x=>x.id===pid);if(!p)return;
+  if(!p.ratings)p.ratings={};
+  p.ratings[CU.id]=score;
+  showProductDetail(pid);
+}
+function saveProductLinks(pid){
+  const p=PRODUCTS.find(x=>x.id===pid);if(!p)return;
+  const main=document.getElementById('pl-main-'+pid)?.value.trim();
+  const amz=document.getElementById('pl-amz-'+pid)?.value.trim();
+  const img=document.getElementById('pl-img-'+pid)?.value.trim();
+  if(main)p.link=main;
+  if(amz)p.link_amazon=amz;
+  if(img)p.img_url=img;
+  showProductDetail(pid);
+}
+function saveProd(){
+  const n=document.getElementById('pf-n').value.trim();if(!n){alert('أدخل الاسم');return;}
+  const sc=parseInt(document.getElementById('pf-sc').value);
+  PRODUCTS.push({id:PRODUCTS.length+1,name:n,brand:document.getElementById('pf-b').value,fat:parseFloat(document.getElementById('pf-f').value)||0,prot:parseFloat(document.getElementById('pf-p').value)||0,carb:parseFloat(document.getElementById('pf-c').value)||0,keto_score:sc,approved:sc>=3,notes:document.getElementById('pf-no').value,cat:document.getElementById('pf-cat').value,doc_rec:document.getElementById('pf-dr').value,link:document.getElementById('pf-lk').value,ratings:{},favorites:[],img_url:''});
+  tf('prod-form');rProducts();
+}
 function delProd(id){if(!confirm('حذف؟'))return;PRODUCTS.splice(PRODUCTS.findIndex(p=>p.id===id),1);rProducts();}
 
 /* ═══ SUPPLEMENTS ═══ */
-function rSupps(){document.getElementById('sg').innerHTML=SUPPLEMENTS.map(s=>`<div class="card" style="margin:0"><div style="margin-bottom:9px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px"><div><div style="font-weight:500;font-size:14px">${s.name}</div><div style="font-size:11px;color:var(--text3);font-style:italic">${s.eng}</div></div><span class="badge ${s.priority===1?'g':s.priority===2?'b':'y'}" style="flex-shrink:0">${s.priority===1?'أساسي':s.priority===2?'موصى به':'اختياري'}</span></div><div style="font-size:12px;color:var(--text2);margin-bottom:10px">${s.why}</div><div style="background:var(--accent-light);border-radius:6px;padding:10px;margin-bottom:10px"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">الجرعة الموصى بها</div><div style="font-size:13px;color:var(--accent);font-weight:500">${s.dose}</div></div>${s.doc_note?`<div class="doc-note" style="margin-bottom:10px"><div class="doc-note-head">📋 توصية د. عمار</div>${s.doc_note}</div>`:''}<div style="font-size:12px"><div style="margin-bottom:6px">${s.types.map(t=>`<span class="tag">${t}</span>`).join('')}</div>${s.caution?`<div style="color:var(--warning);font-size:11px;margin-top:4px">⚠ ${s.caution}</div>`:''}</div>${s.link?`<div style="margin-top:10px"><a href="${s.link}" target="_blank" class="supp-link">🔗 رابط المنتج الموصى به ↗</a></div>`:CU&&CU.role==='admin'?`<div style="margin-top:10px;display:flex;gap:6px;align-items:center"><input placeholder="أضف رابط المنتج..." dir="ltr" style="flex:1;font-size:12px" id="slnk-${s.id}"><button class="btn sm" onclick="saveSuppLink(${s.id})">حفظ</button></div>`:''}  </div>`).join('');}
+function rSupps(){
+  const pri=document.getElementById('supp-pri-fil')?.value||'';
+  const supps=SUPPLEMENTS.filter(s=>!pri||String(s.priority)===pri);
+  const g=document.getElementById('sg');if(!g)return;
+  g.innerHTML=supps.map(s=>{
+    const isFav=s.favorites&&CU&&s.favorites.includes(CU.id);
+    const ratings=s.ratings?Object.values(s.ratings):[];
+    const avgR=ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1):0;
+    return`<div class="card" style="margin:0;cursor:pointer" onclick="showSuppDetail(${s.id})">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div>
+          <div style="font-weight:600;font-size:14px">${s.name}</div>
+          <div style="font-size:11px;color:var(--text3);font-style:italic">${s.eng}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="badge ${s.priority===1?'g':s.priority===2?'b':'y'}">${s.priority===1?'أساسي':s.priority===2?'موصى به':'اختياري'}</span>
+          <button onclick="event.stopPropagation();toggleSuppFav(${s.id})" style="background:none;border:none;cursor:pointer;font-size:14px">${isFav?'❤️':'🤍'}</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">${s.why}</div>
+      <div style="background:var(--accent-light);border-radius:6px;padding:9px;margin-bottom:10px">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:2px">الجرعة الموصى بها</div>
+        <div style="font-size:13px;color:var(--accent);font-weight:500">${s.dose}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;flex-wrap:wrap;gap:4px">${s.types.map(t=>`<span class="tag" style="font-size:10px">${t}</span>`).join('')}</div>
+        <span style="font-size:11px;color:var(--text3)">${avgR>0?'⭐'+avgR:''}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showSuppDetail(sid){
+  const s=SUPPLEMENTS.find(x=>x.id===sid);if(!s)return;
+  document.getElementById('supps-main-view').style.display='none';
+  document.getElementById('supp-detail-view').style.display='block';
+  const isFav=s.favorites&&CU&&s.favorites.includes(CU.id);
+  const ratings=s.ratings?Object.values(s.ratings):[];
+  const avgR=ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1):0;
+  const myR=s.ratings&&CU?s.ratings[CU.id]||0:0;
+  const isAdmin=CU&&CU.role==='admin';
+
+  document.getElementById('supp-detail-content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+      <button class="btn sm" onclick="hideSuppDetail()">← رجوع</button>
+      <span style="color:var(--text3);font-size:13px">المكملات</span>
+      <span style="color:var(--text3)">›</span>
+      <span style="font-size:13px;font-weight:500">${s.name}</span>
+    </div>
+    <div class="two-col">
+      <div>
+        <div class="card" style="margin:0 0 16px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+            <div>
+              <div style="font-size:20px;font-weight:700">${s.name}</div>
+              <div style="font-size:13px;color:var(--text3);font-style:italic;margin-top:2px">${s.eng}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+              <span class="badge ${s.priority===1?'g':s.priority===2?'b':'y'}">${s.priority===1?'أساسي':s.priority===2?'موصى به':'اختياري'}</span>
+              <button onclick="toggleSuppFav(${s.id})" style="background:none;border:none;cursor:pointer;font-size:20px">${isFav?'❤️':'🤍'}</button>
+            </div>
+          </div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:14px">${s.why}</div>
+
+          <div style="background:var(--accent-light);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:4px">💊 الجرعة الموصى بها</div>
+            <div style="font-size:14px;color:var(--accent);font-weight:600">${s.dose}</div>
+          </div>
+
+          ${s.caution?`<div style="background:var(--warning-dim);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--warning);margin-bottom:12px">⚠️ ${s.caution}</div>`:''}
+
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+            ${s.types.map(t=>`<span class="tag">${t}</span>`).join('')}
+          </div>
+        </div>
+
+        ${s.doc_note?`<div class="doc-note" style="margin-bottom:16px"><div class="doc-note-head">📋 توصية د. عمار</div>${s.doc_note}</div>`:''}
+
+        <!-- Links -->
+        <div class="card" style="margin:0 0 16px">
+          <div class="card-header"><div class="card-title">🔗 روابط الشراء</div></div>
+          ${s.link?`<a href="${s.link}" target="_blank" rel="noopener noreferrer" class="btn primary sm" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:8px">🛒 شراء المكمل ↗</a>`:''}
+          ${s.link_amazon?`<a href="${s.link_amazon}" target="_blank" rel="noopener noreferrer" class="btn sm" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:8px">📦 أمازون ↗</a>`:''}
+          ${isAdmin?`
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">⬡ المدير — إدارة الروابط</div>
+            <div class="fg" style="margin-bottom:8px"><label style="font-size:11px">رابط المنتج الرئيسي</label><input id="sl-main-${s.id}" dir="ltr" placeholder="https://..." value="${s.link||''}"></div>
+            <div class="fg" style="margin-bottom:8px"><label style="font-size:11px">رابط أمازون</label><input id="sl-amz-${s.id}" dir="ltr" placeholder="https://amazon.sa/..." value="${s.link_amazon||''}"></div>
+            <button class="btn primary sm" onclick="saveSuppLinks(${s.id})">حفظ الروابط</button>
+          </div>`:(!s.link?`<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لم يُضَف رابط بعد</div>`:'')}
+        </div>
+      </div>
+
+      <div>
+        <!-- Ratings -->
+        <div class="card" style="margin:0 0 16px">
+          <div class="card-header"><div class="card-title">⭐ تقييمات المستخدمين</div></div>
+          <div style="text-align:center;padding:8px 0 14px">
+            <div style="font-size:32px;font-weight:700;font-family:var(--mono);color:var(--warning)">${avgR>0?avgR:'—'}</div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${ratings.length} تقييم</div>
+            <div style="display:flex;justify-content:center;gap:4px;margin-bottom:6px">
+              ${[1,2,3,4,5].map(sc=>`<span onclick="rateSupplement(${s.id},${sc})" style="font-size:26px;cursor:pointer;transition:transform .1s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">${sc<=myR?'⭐':'☆'}</span>`).join('')}
+            </div>
+            ${myR>0?`<div style="font-size:12px;color:var(--accent)">تقييمك: ${myR}/5 ⭐</div>`:CU?`<div style="font-size:12px;color:var(--text3)">اضغط لتقييم المكمل</div>`:''}
+          </div>
+        </div>
+
+        <!-- Related products -->
+        <div class="card" style="margin:0">
+          <div class="card-header"><div class="card-title">🛒 منتجات ذات صلة في السوق</div></div>
+          ${PRODUCTS.filter(p=>p.cat==='مكملات'||s.types.some(t=>p.name.includes(t))).slice(0,4).map(p=>`
+          <div onclick="showProductDetail(${p.id})" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer">
+            <div><div style="font-size:13px;font-weight:500">${p.name}</div><div style="font-size:11px;color:var(--text3)">${p.brand}</div></div>
+            <span class="badge ${p.approved?'g':'r'}">${p.approved?'متوافق':'بحذر'}</span>
+          </div>`).join('')||`<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لا توجد منتجات مرتبطة</div>`}
+        </div>
+      </div>
+    </div>`;
+}
+
+function hideSuppDetail(){
+  document.getElementById('supps-main-view').style.display='block';
+  document.getElementById('supp-detail-view').style.display='none';
+}
+function toggleSuppFav(sid){
+  if(!CU)return;
+  const s=SUPPLEMENTS.find(x=>x.id===sid);if(!s)return;
+  if(!s.favorites)s.favorites=[];
+  const idx=s.favorites.indexOf(CU.id);
+  if(idx>-1)s.favorites.splice(idx,1);else s.favorites.push(CU.id);
+  if(document.getElementById('supp-detail-view').style.display!=='none')showSuppDetail(sid);
+  else rSupps();
+}
+function rateSupplement(sid,score){
+  if(!CU)return;
+  const s=SUPPLEMENTS.find(x=>x.id===sid);if(!s)return;
+  if(!s.ratings)s.ratings={};
+  s.ratings[CU.id]=score;
+  showSuppDetail(sid);
+}
+function saveSuppLinks(sid){
+  const s=SUPPLEMENTS.find(x=>x.id===sid);if(!s)return;
+  const main=document.getElementById('sl-main-'+sid)?.value.trim();
+  const amz=document.getElementById('sl-amz-'+sid)?.value.trim();
+  if(main)s.link=main;
+  if(amz)s.link_amazon=amz;
+  showSuppDetail(sid);
+}
 function saveSuppLink(id){const inp=document.getElementById('slnk-'+id);if(!inp)return;const s=SUPPLEMENTS.find(x=>x.id===id);if(s&&inp.value.trim()){s.link=inp.value.trim();rSupps();}}
+
 
 /* ═══ CALCULATOR ═══ */
 function cAdd(){const fid=parseInt(document.getElementById('csel').value);const qty=parseFloat(document.getElementById('cqty').value);if(!fid||!qty){alert('اختر مكوناً وأدخل الكمية');return;}const ex=calcItems.find(i=>i.fid===fid);if(ex)ex.qty+=qty;else calcItems.push({fid,qty});document.getElementById('cqty').value='';renderCI();updateCR();}
@@ -2726,7 +3066,5 @@ window._fbReady = true;
 window.dispatchEvent(new Event('fbReady'));
 console.log("✅ Firebase connected — Keto Challenge 2026");
 </script>
-</body>
-</html>
 </body>
 </html>
