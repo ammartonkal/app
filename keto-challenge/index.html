@@ -1093,8 +1093,21 @@ function rDash(){
         <div class="stat-card"><div class="stat-label">نحو الهدف</div><div class="stat-val inf">${mem.start_weight&&mem.goal_weight?pct+'%':'—'}</div></div>`;
       document.getElementById('d-bottom').innerHTML=`
         <div class="card"><div class="card-header"><div class="card-title">تحدي الأسبوع</div><button class="btn sm" onclick="gp('challenge_personal')">متابعة ←</button></div>${miniChallenge()}</div>
-        <div class="card"><div class="card-header"><div class="card-title">آخر قياساتي</div></div>
-          ${PROGRESS.filter(p=>p.mid===mem.id).slice(-4).reverse().map(p=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3)">${p.date}</span><span class="mono" style="color:var(--accent)">${p.weight} كغ</span></div>`).join('')||'<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لا توجد قياسات بعد</div>'}
+        <div class="card">
+          <div class="card-header"><div class="card-title">تسجيل الوزن اليومي</div></div>
+          <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:14px">
+            <div class="fg" style="flex:1"><label>الوزن (كغ)</label><input type="number" step="0.1" id="dash-weight-input" placeholder="${mem.current_weight||'0.0'}" style="font-size:16px;padding:10px 12px"></div>
+            <div class="fg"><label>التاريخ</label><input type="date" id="dash-weight-date" value="${new Date().toISOString().split('T')[0]}"></div>
+            <button class="btn primary" onclick="dashAddWeight()" style="padding:10px 16px;white-space:nowrap">تسجيل ✓</button>
+          </div>
+          ${PROGRESS.filter(p=>p.mid===mem.id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5).map(p=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+              <span style="font-size:12px;color:var(--text3)">${p.date}</span>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span class="mono" style="color:var(--accent);font-size:13px">${p.weight} كغ</span>
+                <button class="btn sm dng" style="padding:2px 7px;font-size:11px" onclick="dashDeleteWeight('${p.date}',${mem.id})">✕</button>
+              </div>
+            </div>`).join('')||'<div style="color:var(--text3);font-size:13px;text-align:center;padding:12px 0">لا توجد قياسات بعد</div>'}
         </div>`;
     } else {
       document.getElementById('d-rbar').innerHTML=`⬡ أهلاً ${CU.name}`;
@@ -1674,15 +1687,10 @@ function rProfile(){
   const lost=mem.start_weight?(mem.start_weight-mem.current_weight).toFixed(1):'0';
   const pct=mem.start_weight&&mem.goal_weight?Math.min(100,Math.round(parseFloat(lost)/(mem.start_weight-mem.goal_weight)*100)):0;
   const jd=mem.join_date||mem.start_date;
-  const ch=WEEKLY_CHALLENGES.find(c=>c.active);
-  if(!CHALLENGE_PROGRESS[CU.id])CHALLENGE_PROGRESS[CU.id]={};
-  const cd=ch?ch.tasks.filter(t=>CHALLENGE_PROGRESS[CU.id][ch.id+'_'+t.id]).length:0;
-  const ct=ch?ch.tasks.length:0;
-  const cp=ct>0?Math.round(cd/ct*100):0;
+  const isAdmin=CU.role==='admin';
   const goalLabels={fat_loss:'⚖️ خسارة الدهون',health:'🫀 نمط حياة صحي',medical:'🩺 علاجي',recovery:'✨ استعادة الصحة'};
 
   el.innerHTML=`
-  <!-- Stats -->
   <div class="stats-grid">
     <div class="stat-card"><div class="stat-label">الوزن الحالي</div><div class="stat-val">${mem.current_weight?mem.current_weight+' كغ':'—'}</div></div>
     <div class="stat-card"><div class="stat-label">المفقود</div><div class="stat-val">${mem.start_weight?'−'+lost+' كغ':'—'}</div></div>
@@ -1692,7 +1700,7 @@ function rProfile(){
 
   <div class="two-col">
     <div>
-      <!-- Section: Personal Info -->
+      <!-- المعلومات الأساسية -->
       <div class="card" id="section-personal">
         <div class="card-header">
           <div><div class="card-title">المعلومات الأساسية</div></div>
@@ -1703,38 +1711,40 @@ function rProfile(){
           ${profileRow('الجنس', mem.gender||'—')}
           ${profileRow('تاريخ الميلاد', mem.dob||'—')}
           ${profileRow('العمر', mem.age?mem.age+' سنة':'—')}
-          ${profileRow('تاريخ الانضمام', jd)}
-          ${profileRow('مدة الاشتراك', `<strong style="color:var(--accent)">${dur(jd)}</strong>`)}
-          ${profileRow('بداية التحدي', mem.start_date)}
-          ${profileRow('مدة التحدي', `<strong style="color:var(--info)">${dur(mem.start_date)}</strong>`)}
+          ${profileRow('الطول', mem.height?mem.height+' سم':'—')}
+          <div style="height:8px;border-bottom:1px solid var(--border);margin-bottom:4px"></div>
+          ${profileRow('تاريخ الانضمام', jd, '', isAdmin)}
+          ${profileRow('مدة الاشتراك', `<strong style="color:var(--accent)">${dur(jd)}</strong>`, '', isAdmin)}
         </div>
         <div id="edit-personal" style="display:none">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px;padding:6px 8px;background:var(--accent-light);border-radius:var(--radius-sm)">يمكنك تعديل: الاسم، الجنس، تاريخ الميلاد، الطول</div>
           <div class="form-row"><div class="fg"><label>الاسم</label><input id="pe-name" value="${mem.name||''}"></div><div class="fg"><label>الجنس</label><select id="pe-gender"><option value="أنثى" ${mem.gender==='أنثى'?'selected':''}>أنثى</option><option value="ذكر" ${mem.gender==='ذكر'?'selected':''}>ذكر</option></select></div></div>
-          <div class="form-row"><div class="fg"><label>تاريخ الميلاد</label><input type="date" id="pe-dob" value="${mem.dob||''}"></div><div class="fg"><label>المرحلة</label><select id="pe-phase"><option value="1" ${mem.phase==1?'selected':''}>1 — التكيف</option><option value="2" ${mem.phase==2?'selected':''}>2 — الاستمرار</option><option value="3" ${mem.phase==3?'selected':''}>3 — الصيانة</option></select></div></div>
+          <div class="form-row"><div class="fg"><label>تاريخ الميلاد</label><input type="date" id="pe-dob" value="${mem.dob||''}"></div><div class="fg"><label>الطول (سم)</label><input type="number" id="pe-height" value="${mem.height||''}"></div></div>
+          ${isAdmin?`
+          <div style="font-size:11px;color:var(--text3);margin:10px 0 6px;padding:6px 8px;background:var(--warning-dim);border-radius:var(--radius-sm)">⬡ مدير — تعديل تاريخ الانضمام ومدة الاشتراك</div>
+          <div class="form-row"><div class="fg"><label>تاريخ الانضمام</label><input type="date" id="pe-jd" value="${jd||''}"></div><div class="fg"><label>المرحلة</label><select id="pe-phase"><option value="1" ${mem.phase==1?'selected':''}>1 — التكيف</option><option value="2" ${mem.phase==2?'selected':''}>2 — الاستمرار</option><option value="3" ${mem.phase==3?'selected':''}>3 — الصيانة</option></select></div></div>`:''}
           <div class="flex-end"><button class="btn sm" onclick="toggleProfileEdit('personal')">إلغاء</button><button class="btn primary sm" onclick="saveProfileSection('personal')">حفظ ✓</button></div>
         </div>
       </div>
 
-      <!-- Section: Body Data -->
+      <!-- البيانات الجسدية -->
       <div class="card" id="section-body">
         <div class="card-header">
           <div><div class="card-title">البيانات الجسدية</div></div>
           <button class="btn sm" onclick="toggleProfileEdit('body')">✏️ تعديل</button>
         </div>
         <div id="view-body">
-          ${profileRow('الطول', mem.height?mem.height+' سم':'—')}
           ${profileRow('وزن البداية', mem.start_weight?mem.start_weight+' كغ':'—')}
           ${profileRow('الوزن الحالي', mem.current_weight?mem.current_weight+' كغ':'—', 'var(--accent)')}
           ${profileRow('الوزن الهدف', mem.goal_weight?mem.goal_weight+' كغ':'—', 'var(--info)')}
         </div>
         <div id="edit-body" style="display:none">
-          <div class="form-row"><div class="fg"><label>الطول (سم)</label><input type="number" id="pe-height" value="${mem.height||''}"></div><div class="fg"><label>وزن البداية (كغ)</label><input type="number" step="0.1" id="pe-sw" value="${mem.start_weight||''}"></div></div>
-          <div class="form-row"><div class="fg"><label>الوزن الحالي (كغ)</label><input type="number" step="0.1" id="pe-cw" value="${mem.current_weight||''}"></div><div class="fg"><label>الوزن الهدف (كغ)</label><input type="number" step="0.1" id="pe-gw" value="${mem.goal_weight||''}"></div></div>
+          <div class="form-row"><div class="fg"><label>وزن البداية (كغ)</label><input type="number" step="0.1" id="pe-sw" value="${mem.start_weight||''}"></div><div class="fg"><label>الوزن الهدف (كغ)</label><input type="number" step="0.1" id="pe-gw" value="${mem.goal_weight||''}"></div></div>
           <div class="flex-end"><button class="btn sm" onclick="toggleProfileEdit('body')">إلغاء</button><button class="btn primary sm" onclick="saveProfileSection('body')">حفظ ✓</button></div>
         </div>
       </div>
 
-      <!-- Section: Goal -->
+      <!-- هدف الاشتراك -->
       <div class="card" id="section-goal">
         <div class="card-header">
           <div><div class="card-title">هدف الاشتراك</div></div>
@@ -1758,7 +1768,32 @@ function rProfile(){
     </div>
 
     <div>
-      <!-- Section: Health Notes -->
+      <!-- مسار الوزن — جراف -->
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">مسار الوزن</div></div>
+          <button class="btn sm" onclick="gp('dashboard')">+ إضافة قياس ←</button>
+        </div>
+        ${logs.length>=2?`
+        <div style="position:relative;height:160px;margin-bottom:8px">
+          <canvas id="weight-chart" style="width:100%;height:160px"></canvas>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:10px">
+          <span>${logs[0].date}</span>
+          <span>${logs[logs.length-1].date}</span>
+        </div>`
+        :`<div style="color:var(--text3);text-align:center;padding:20px 0;font-size:13px">${logs.length===1?'أضف قياساً ثانياً لعرض الجراف':'لا توجد قياسات بعد'}</div>`}
+        ${logs.slice(-5).reverse().map(l=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:12px;color:var(--text3)">${l.date}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="mono" style="color:var(--accent);font-size:13px">${l.weight} كغ</span>
+              ${isAdmin?`<button class="btn sm dng" style="padding:2px 7px;font-size:11px" onclick="deleteProgressEntry('${l.date}',${mem.id})">✕</button>`:''}
+            </div>
+          </div>`).join('')}
+      </div>
+
+      <!-- الملاحظات الصحية -->
       <div class="card" id="section-health">
         <div class="card-header">
           <div><div class="card-title">الملاحظات الصحية</div></div>
@@ -1775,7 +1810,7 @@ function rProfile(){
         </div>
       </div>
 
-      <!-- Section: Supplements -->
+      <!-- المكملات -->
       <div class="card" id="section-supps">
         <div class="card-header">
           <div><div class="card-title">المكملات المستخدمة</div></div>
@@ -1798,42 +1833,127 @@ function rProfile(){
           <div class="flex-end"><button class="btn sm" onclick="toggleProfileEdit('supps')">إلغاء</button><button class="btn primary sm" onclick="saveProfileSection('supps')">حفظ ✓</button></div>
         </div>
       </div>
-
-      <!-- Weight log -->
-      <div class="card">
-        <div class="card-header"><div class="card-title">مسار الوزن</div></div>
-        ${logs.length>0?logs.slice(-6).map(l=>`
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:12px;color:var(--text3)">${l.date}</span>
-            <span class="mono" style="color:var(--accent)">${l.weight} كغ</span>
-          </div>`).join(''):'<div style="color:var(--text3);text-align:center;padding:14px 0;font-size:13px">لا توجد قياسات بعد</div>'}
-      </div>
-
-      <!-- Challenge progress -->
-      <div class="card">
-        <div class="card-header"><div class="card-title">تحدي الأسبوع</div></div>
-        ${ch?`
-          <div style="font-size:13px;font-weight:500;margin-bottom:8px">${ch.title}</div>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-            <div class="kbar" style="flex:1;margin:0"><div class="kfill gr" style="width:${cp}%"></div></div>
-            <span class="mono" style="color:var(--accent);font-weight:600">${cp}%</span>
-          </div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:10px">${cd} من ${ct} مهام مكتملة</div>
-          <button class="btn sm" onclick="gp('challenge_personal')">متابعة التحدي ←</button>`
-        :'<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لا يوجد تحدي نشط</div>'}
-      </div>
     </div>
   </div>`;
 
-  // Track selected goal in edit mode
-  window._profileSelectedGoal = mem.ob_goal;
+  window._profileSelectedGoal=mem.ob_goal;
+
+  // Draw weight chart
+  if(logs.length>=2){
+    setTimeout(()=>drawWeightChart(logs),50);
+  }
 }
 
-function profileRow(label, value, color=''){
+function profileRow(label, value, color='', adminOnly=false){
+  const adminBadge=adminOnly?'<span style="font-size:9px;background:var(--warning-dim);color:var(--warning);padding:1px 5px;border-radius:3px;margin-right:4px">مدير</span>':'';
   return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-    <span style="color:var(--text3)">${label}</span>
+    <span style="color:var(--text3)">${adminBadge}${label}</span>
     <span${color?` style="color:${color};font-weight:500"`:''}}>${value}</span>
   </div>`;
+}
+
+function drawWeightChart(logs){
+  const canvas=document.getElementById('weight-chart');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.offsetWidth; const H=160;
+  canvas.width=W; canvas.height=H;
+
+  const weights=logs.map(l=>l.weight);
+  const minW=Math.min(...weights)-1;
+  const maxW=Math.max(...weights)+1;
+  const pad={t:10,r:10,b:10,l:30};
+  const cw=W-pad.l-pad.r;
+  const ch=H-pad.t-pad.b;
+
+  const xPos=(i)=>pad.l+i/(logs.length-1)*cw;
+  const yPos=(w)=>pad.t+(1-(w-minW)/(maxW-minW))*ch;
+
+  // Grid lines
+  ctx.strokeStyle='rgba(80,140,60,0.1)';ctx.lineWidth=1;
+  for(let i=0;i<4;i++){
+    const y=pad.t+i/3*ch;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+  }
+
+  // Y axis labels
+  ctx.fillStyle='#8aaa82';ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(let i=0;i<4;i++){
+    const w=maxW-(i/3*(maxW-minW));
+    const y=pad.t+i/3*ch;
+    ctx.fillText(w.toFixed(1),pad.l-3,y+3);
+  }
+
+  // Area fill
+  ctx.beginPath();
+  ctx.moveTo(xPos(0),yPos(weights[0]));
+  logs.forEach((_,i)=>{ if(i>0)ctx.lineTo(xPos(i),yPos(weights[i])); });
+  ctx.lineTo(xPos(logs.length-1),H-pad.b);
+  ctx.lineTo(xPos(0),H-pad.b);
+  ctx.closePath();
+  ctx.fillStyle='rgba(58,140,63,0.08)';ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(xPos(0),yPos(weights[0]));
+  logs.forEach((_,i)=>{ if(i>0)ctx.lineTo(xPos(i),yPos(weights[i])); });
+  ctx.strokeStyle='var(--accent)';ctx.lineWidth=2;ctx.stroke();
+
+  // Dots + values
+  logs.forEach((l,i)=>{
+    const x=xPos(i);const y=yPos(l.weight);
+    ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fillStyle='#fff';ctx.fill();
+    ctx.strokeStyle='var(--accent)';ctx.lineWidth=2;ctx.stroke();
+    // Value label on hover not feasible in canvas — show on key points
+    if(i===0||i===logs.length-1||i===Math.floor(logs.length/2)){
+      ctx.fillStyle='#3a8c3f';ctx.font='bold 10px sans-serif';ctx.textAlign='center';
+      ctx.fillText(l.weight,x,y-8);
+    }
+  });
+}
+
+function deleteProgressEntry(date, mid){
+  if(!confirm('حذف هذا القياس؟'))return;
+  const idx=PROGRESS.findIndex(p=>p.mid===mid&&p.date===date);
+  if(idx>-1){
+    PROGRESS.splice(idx,1);
+    const mem=MEMBERS.find(m=>m.id===mid);
+    if(mem){const rem=PROGRESS.filter(p=>p.mid===mid).sort((a,b)=>b.date.localeCompare(a.date));if(rem.length>0)mem.current_weight=rem[0].weight;}
+    rProfile();
+  }
+}
+
+function dashAddWeight(){
+  const w=parseFloat(document.getElementById('dash-weight-input')?.value);
+  const date=document.getElementById('dash-weight-date')?.value;
+  if(!w||!date){alert('أدخل الوزن والتاريخ');return;}
+  const mem=MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem){alert('لم يُربط حسابك بعد');return;}
+  // Remove duplicate for same date
+  const dupIdx=PROGRESS.findIndex(p=>p.mid===mem.id&&p.date===date);
+  if(dupIdx>-1) PROGRESS.splice(dupIdx,1);
+  // Add new entry
+  const entry={mid:mem.id,date,weight:w,waist:0,energy:3,notes:''};
+  PROGRESS.push(entry);
+  // Update current weight if this is latest
+  const latest=PROGRESS.filter(p=>p.mid===mem.id).sort((a,b)=>b.date.localeCompare(a.date))[0];
+  if(latest) mem.current_weight=latest.weight;
+  // Save to Firebase
+  if(window.DB){window.DB.saveProgress(entry);window.DB.saveMember(mem);}
+  document.getElementById('dash-weight-input').value='';
+  rDash();
+}
+
+function dashDeleteWeight(date, mid){
+  if(!confirm('حذف هذا القياس؟'))return;
+  const idx=PROGRESS.findIndex(p=>p.mid===mid&&p.date===date);
+  if(idx>-1){
+    PROGRESS.splice(idx,1);
+    const mem=MEMBERS.find(m=>m.id===mid);
+    if(mem){const rem=PROGRESS.filter(p=>p.mid===mid).sort((a,b)=>b.date.localeCompare(a.date));mem.current_weight=rem.length>0?rem[0].weight:mem.start_weight;if(window.DB)window.DB.saveMember(mem);}
+    rDash();
+  }
 }
 
 function toggleProfileEdit(section){
@@ -1858,19 +1978,22 @@ function selectProfileGoal(id){
 async function saveProfileSection(section){
   const mem=MEMBERS.find(m=>m.uid===CU.id);
   if(!mem)return;
+  const isAdmin=CU.role==='admin';
 
   if(section==='personal'){
     mem.name=document.getElementById('pe-name')?.value.trim()||mem.name;
     mem.gender=document.getElementById('pe-gender')?.value||mem.gender;
     mem.dob=document.getElementById('pe-dob')?.value||mem.dob;
     mem.age=mem.dob?Math.floor((new Date()-new Date(mem.dob))/31557600000):mem.age;
-    mem.phase=parseInt(document.getElementById('pe-phase')?.value)||mem.phase;
+    mem.height=parseFloat(document.getElementById('pe-height')?.value)||mem.height;
+    if(isAdmin){
+      mem.join_date=document.getElementById('pe-jd')?.value||mem.join_date;
+      mem.phase=parseInt(document.getElementById('pe-phase')?.value)||mem.phase;
+    }
     CU.name=mem.name;
     document.getElementById('sb-uname').textContent=mem.name;
   } else if(section==='body'){
-    mem.height=parseFloat(document.getElementById('pe-height')?.value)||mem.height;
     mem.start_weight=parseFloat(document.getElementById('pe-sw')?.value)||mem.start_weight;
-    mem.current_weight=parseFloat(document.getElementById('pe-cw')?.value)||mem.current_weight;
     mem.goal_weight=parseFloat(document.getElementById('pe-gw')?.value)||mem.goal_weight;
   } else if(section==='goal'){
     mem.ob_goal=window._profileSelectedGoal||mem.ob_goal;
@@ -1883,13 +2006,10 @@ async function saveProfileSection(section){
     mem.supplements_used=checked;
   }
 
-  // Save to Firebase
   if(window.DB){
     const ok=await window.DB.saveMember(mem);
     if(ok) console.log('✅ Profile saved to Firebase');
   }
-
-  // Re-render profile and dashboard
   rProfile();
   rDash();
 }
