@@ -819,19 +819,6 @@ let CHALLENGE_PROGRESS={};
 
 <script>
 /* ═══ HELPERS ═══ */
-// Process any queued login from before this script loaded
-(function(){
-  if(window._loginQueue){
-    var q=window._loginQueue; window._loginQueue=null;
-    var u=USERS.find(function(x){return x.email===q.e&&x.pass===q.p;});
-    if(u){localStorage.setItem('keto_session',JSON.stringify({email:u.email,pass:u.pass}));startSession(u);}
-  }
-  // Also check localStorage for auto-login
-  try{
-    var saved=localStorage.getItem('keto_session');
-    if(saved){var s=JSON.parse(saved);var u=USERS.find(function(x){return x.email===s.email&&x.pass===s.pass;});if(u){startSession(u);}}
-  }catch(e){localStorage.removeItem('keto_session');}
-})();
 let CU=null,rbItems=[],calcItems=[],editRid=null;
 function ks(fp,cg,pp){let s=0;if(fp>=70)s+=40;else if(fp>=60)s+=25;else if(fp>=50)s+=10;if(cg<=20)s+=40;else if(cg<=30)s+=25;else if(cg<=50)s+=10;if(pp>=20&&pp<=30)s+=20;else if(pp<20)s+=10;return Math.min(s,100);}
 function klbl(s){if(s>=80)return{l:"كيتو ممتاز ✓",c:"g"};if(s>=60)return{l:"كيتو جيد",c:"y"};if(s>=40)return{l:"حدودي",c:"y"};return{l:"غير كيتو",c:"r"};}
@@ -1230,6 +1217,26 @@ function gp(id){document.querySelectorAll('.panel').forEach(p=>p.classList.remov
 
 /* ═══ INIT ═══ */
 function initApp(){popSels();document.getElementById('pg-d').value=new Date().toISOString().split('T')[0];const t=new Date().toISOString().split('T')[0];document.getElementById('mf-jd').value=t;document.getElementById('mf-sd').value=t;}
+
+// ═══ AUTO-LOGIN — runs after all functions are defined ═══
+(function(){
+  // 1. Handle any button click that came before this script loaded
+  if(window._loginQueue){
+    const q=window._loginQueue; window._loginQueue=null;
+    const u=USERS.find(x=>x.email===q.e&&x.pass===q.p);
+    if(u){localStorage.setItem('keto_session',JSON.stringify({email:u.email,pass:u.pass}));startSession(u);return;}
+  }
+  // 2. Auto-login from saved session (page refresh)
+  try{
+    const saved=localStorage.getItem('keto_session');
+    if(saved){
+      const {email,pass}=JSON.parse(saved);
+      const u=USERS.find(x=>x.email===email&&x.pass===pass);
+      if(u){startSession(u);return;}
+      localStorage.removeItem('keto_session');
+    }
+  }catch(e){localStorage.removeItem('keto_session');}
+})();
 function popSels(){['rb-isel','csel'].forEach(sid=>{const s=document.getElementById(sid);if(!s)return;s.innerHTML='<option value="">اختر مكوناً...</option>';[...new Set(FOODS.map(f=>f.cat))].forEach(cat=>{const og=document.createElement('optgroup');og.label=cat;FOODS.filter(f=>f.cat===cat).forEach(f=>{const o=document.createElement('option');o.value=f.id;o.textContent=f.name;og.appendChild(o);});s.appendChild(og);});});const pm=document.getElementById('pg-m');if(pm){pm.innerHTML='';MEMBERS.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.name;pm.appendChild(o);});}const pgs=document.getElementById('pgsel');if(pgs){pgs.innerHTML='<option value="">كل المشتركين</option>';MEMBERS.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.name;pgs.appendChild(o);});}}
 
 /* ═══ DASHBOARD ═══ */
