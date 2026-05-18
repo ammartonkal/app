@@ -671,34 +671,51 @@ let CHALLENGE_PROGRESS={};
 
       <!-- RECIPES -->
       <div class="panel" id="panel-recipes">
-        <div class="sbar">
-          <div class="si-wrap"><input type="text" id="rsearch" placeholder="ابحث عن وصفة..." oninput="rRecipes()"><span class="si-icon">⌕</span></div>
-          <button class="btn primary" onclick="openRB(null)">+ وصفة جديدة</button>
-        </div>
-        <div id="rb" class="card" style="display:none">
-          <div class="card-header"><div><div class="card-title" id="rb-title">وصفة جديدة</div></div><button class="btn sm" onclick="closeRB()">✕</button></div>
-          <div class="two-col">
-            <div>
-              <div class="form-row f1"><div class="fg"><label>اسم الوصفة</label><input id="rb-n"></div></div>
-              <div class="form-row"><div class="fg"><label>الاسم بالإنجليزي</label><input id="rb-ne" dir="ltr"></div><div class="fg"><label>عدد الحصص</label><input type="number" id="rb-sv" value="1" min="1"></div></div>
-              <div class="form-row f1"><div class="fg"><label>الوصف</label><textarea id="rb-d"></textarea></div></div>
-              <div class="sep"></div>
-              <div style="font-size:13px;font-weight:500;margin-bottom:9px;color:var(--text2)">المكونات</div>
-              <div style="display:flex;gap:8px;margin-bottom:9px;flex-wrap:wrap">
-                <select id="rb-isel" style="flex:1;min-width:110px"></select>
-                <input type="number" id="rb-iqty" placeholder="كمية (غ)" style="width:95px">
-                <button class="btn primary sm" onclick="addRbI()">+</button>
+        <!-- Main recipes list view -->
+        <div id="recipes-main-view">
+          <div class="sbar">
+            <div class="si-wrap"><input type="text" id="rsearch" placeholder="ابحث عن وصفة..." oninput="rRecipes()"><span class="si-icon">⌕</span></div>
+            <select id="rcat-filter" onchange="rRecipes()" style="width:130px">
+              <option value="">كل الفئات</option>
+              <option>فطور</option><option>سلطات</option><option>أطباق رئيسية</option><option>وجبات خفيفة</option><option>حلويات كيتو</option>
+            </select>
+            <button class="btn primary" onclick="openRB(null)">+ وصفة جديدة</button>
+          </div>
+          <div id="rb" class="card" style="display:none">
+            <div class="card-header"><div><div class="card-title" id="rb-title">وصفة جديدة</div></div><button class="btn sm" onclick="closeRB()">✕</button></div>
+            <div class="two-col">
+              <div>
+                <div class="form-row f1"><div class="fg"><label>اسم الوصفة</label><input id="rb-n"></div></div>
+                <div class="form-row"><div class="fg"><label>الاسم بالإنجليزي</label><input id="rb-ne" dir="ltr"></div><div class="fg"><label>عدد الحصص</label><input type="number" id="rb-sv" value="1" min="1"></div></div>
+                <div class="form-row"><div class="fg"><label>الفئة</label><select id="rb-cat"><option>فطور</option><option>سلطات</option><option>أطباق رئيسية</option><option>وجبات خفيفة</option><option>حلويات كيتو</option></select></div><div class="fg"><label>الصعوبة</label><select id="rb-diff"><option>سهل جداً</option><option>سهل</option><option>متوسط</option><option>صعب</option></select></div></div>
+                <div class="form-row"><div class="fg"><label>وقت التحضير (دقيقة)</label><input type="number" id="rb-prep" value="10"></div><div class="fg"><label>وقت الطبخ (دقيقة)</label><input type="number" id="rb-cook" value="15"></div></div>
+                <div class="form-row f1"><div class="fg"><label>الوصف</label><textarea id="rb-d"></textarea></div></div>
+                <div class="sep"></div>
+                <div style="font-size:13px;font-weight:500;margin-bottom:9px;color:var(--text2)">المكونات</div>
+                <div style="display:flex;gap:8px;margin-bottom:9px;flex-wrap:wrap">
+                  <select id="rb-isel" style="flex:1;min-width:110px"></select>
+                  <input type="number" id="rb-iqty" placeholder="غرام" style="width:75px">
+                  <input type="text" id="rb-iqty_cup" placeholder="كوب/ملعقة" style="width:100px">
+                  <button class="btn primary sm" onclick="addRbI()">+</button>
+                </div>
+                <div id="rb-il"></div>
               </div>
-              <div id="rb-il"></div>
-            </div>
-            <div>
-              <div style="font-size:13px;font-weight:500;margin-bottom:11px;color:var(--text2)">المعادل الغذائي</div>
-              <div id="rb-m"></div>
-              <div class="flex-end"><button class="btn primary" onclick="saveRecipe()">حفظ الوصفة</button></div>
+              <div>
+                <div class="fg" style="margin-bottom:12px"><label>خطوات التحضير (كل سطر = خطوة)</label><textarea id="rb-steps" style="min-height:120px" placeholder="سخّن الزبدة في مقلاة&#10;أضف الدجاج وتبّله...&#10;اترك 10 دقائق..."></textarea></div>
+                <div class="fg" style="margin-bottom:12px"><label>توصية د. عمار (اختيارية)</label><textarea id="rb-docnote" placeholder="توجيه خاص لهذه الوصفة..."></textarea></div>
+                <div style="font-size:13px;font-weight:500;margin-bottom:11px;color:var(--text2)">المعادل الغذائي</div>
+                <div id="rb-m"></div>
+                <div class="flex-end"><button class="btn primary" onclick="saveRecipe()">حفظ الوصفة</button></div>
+              </div>
             </div>
           </div>
+          <div id="rg" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px"></div>
         </div>
-        <div id="rg" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:15px"></div>
+
+        <!-- Recipe detail view -->
+        <div id="recipe-detail-view" style="display:none">
+          <div id="recipe-detail-content"></div>
+        </div>
       </div>
 
       <!-- PRODUCTS -->
@@ -1617,14 +1634,281 @@ function saveFood(){const n=document.getElementById('ff-n').value.trim();if(!n){
 function useInCalc(fid){gp('calculator');document.getElementById('csel').value=fid;document.getElementById('cqty').focus();}
 
 /* ═══ RECIPES ═══ */
-function rRecipes(){const q=(document.getElementById('rsearch')?.value||'').toLowerCase();const recipes=RECIPES.filter(r=>!q||r.name.includes(q)||r.name_en.toLowerCase().includes(q));const g=document.getElementById('rg');if(!g)return;g.innerHTML=recipes.map(r=>{const m=cmac(r);const k=klbl(m.k);return`<div class="card" style="margin:0"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-weight:500;font-size:14px">${r.name}</div><div style="font-size:11px;color:var(--text3)">${r.name_en} · ${r.servings} حصة</div></div><span class="badge ${k.c}">${k.l}</span></div><div style="font-size:12px;color:var(--text2);margin-bottom:10px">${r.desc||''}</div><div style="display:flex;gap:6px;margin-bottom:10px"><div style="flex:1;text-align:center;background:var(--surface2);border-radius:6px;padding:7px"><div style="font-size:10px;color:var(--text3)">دهون</div><div style="font-size:14px;font-weight:600;color:var(--accent);font-family:var(--mono)">${Math.round(m.fp)}%</div></div><div style="flex:1;text-align:center;background:var(--surface2);border-radius:6px;padding:7px"><div style="font-size:10px;color:var(--text3)">بروتين</div><div style="font-size:14px;font-weight:600;color:var(--info);font-family:var(--mono)">${Math.round(m.pp)}%</div></div><div style="flex:1;text-align:center;background:var(--surface2);border-radius:6px;padding:7px"><div style="font-size:10px;color:var(--text3)">كربو</div><div style="font-size:14px;font-weight:600;color:var(--danger);font-family:var(--mono)">${m.nc.toFixed(1)}غ</div></div></div><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:var(--text3)">${Math.round(m.cal/r.servings)} سعر/حصة</span>${CU.role==='admin'?`<div style="display:flex;gap:5px"><button class="btn sm" onclick="openRB(${r.id})">تعديل</button><button class="btn sm dng" onclick="delRecipe(${r.id})">حذف</button></div>`:''}</div></div>`;}).join('');if(recipes.length===0)g.innerHTML='<div class="empty-state"><div class="empty-icon">◎</div><div>لا توجد وصفات</div></div>';}
-function openRB(id){rbItems=[];const b=document.getElementById('rb');if(id){editRid=id;const r=RECIPES.find(x=>x.id===id);document.getElementById('rb-title').textContent='تعديل الوصفة';document.getElementById('rb-n').value=r.name;document.getElementById('rb-ne').value=r.name_en||'';document.getElementById('rb-sv').value=r.servings;document.getElementById('rb-d').value=r.desc||'';rbItems=[...r.ingredients];}else{editRid=null;document.getElementById('rb-title').textContent='وصفة جديدة';['rb-n','rb-ne','rb-d'].forEach(id=>document.getElementById(id).value='');document.getElementById('rb-sv').value=1;}b.style.display='block';renderRbIL();updateRbM();b.scrollIntoView({behavior:'smooth'});}
+/* ═══ RECIPES ═══ */
+function rRecipes(){
+  const q=(document.getElementById('rsearch')?.value||'').toLowerCase();
+  const cat=document.getElementById('rcat-filter')?.value||'';
+  const recipes=RECIPES.filter(r=>(!q||r.name.includes(q)||r.name_en.toLowerCase().includes(q))&&(!cat||r.category===cat));
+  const g=document.getElementById('rg');if(!g)return;
+  if(!recipes.length){g.innerHTML='<div class="empty-state"><div class="empty-icon">◎</div><div>لا توجد وصفات</div></div>';return;}
+  g.innerHTML=recipes.map(r=>{
+    const m=cmac(r);const k=klbl(m.k);
+    const isFav=r.favorites&&CU&&r.favorites.includes(CU.id);
+    const ratings=r.ratings?Object.values(r.ratings):[];
+    const avgRating=ratings.length?Math.round(ratings.reduce((a,b)=>a+b,0)/ratings.length*10)/10:0;
+    const myRating=r.ratings&&CU?r.ratings[CU.id]||0:0;
+    return`<div class="card" style="margin:0;cursor:pointer" onclick="showRecipeDetail(${r.id})">
+      <div style="position:relative">
+        ${r.img_url?`<img src="${r.img_url}" style="width:100%;height:130px;object-fit:cover;border-radius:var(--radius-sm);margin-bottom:10px">`:`<div style="width:100%;height:80px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:10px;display:flex;align-items:center;justify-content:center;font-size:28px">🍳</div>`}
+        <button onclick="event.stopPropagation();toggleFavorite(${r.id})" style="position:absolute;top:6px;left:6px;background:rgba(255,255,255,.85);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">${isFav?'❤️':'🤍'}</button>
+        <span class="badge ${k.c}" style="position:absolute;top:6px;right:6px">${k.l}</span>
+      </div>
+      <div style="font-weight:600;font-size:14px;margin-bottom:3px">${r.name}</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${r.category||''} · ${r.prep_time?r.prep_time+'د تحضير':''} ${r.cook_time?'· '+r.cook_time+'د طبخ':''}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5">${r.desc||''}</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <div style="flex:1;text-align:center;background:var(--surface2);border-radius:6px;padding:6px"><div style="font-size:9px;color:var(--text3)">دهون</div><div style="font-size:13px;font-weight:600;color:var(--accent);font-family:var(--mono)">${Math.round(m.fp)}%</div></div>
+        <div style="flex:1;text-align:center;background:var(--surface2);border-radius:6px;padding:6px"><div style="font-size:9px;color:var(--text3)">بروتين</div><div style="font-size:13px;font-weight:600;color:var(--info);font-family:var(--mono)">${Math.round(m.pp)}%</div></div>
+        <div style="flex:1;text-align:center;background:var(--surface2);border-radius:6px;padding:6px"><div style="font-size:9px;color:var(--text3)">كربو</div><div style="font-size:13px;font-weight:600;color:var(--danger);font-family:var(--mono)">${m.nc.toFixed(1)}غ</div></div>
+        <div style="flex:1;text-align:center;background:var(--surface2);border-radius:6px;padding:6px"><div style="font-size:9px;color:var(--text3)">سعرات</div><div style="font-size:13px;font-weight:600;font-family:var(--mono)">${Math.round(m.cal/r.servings)}</div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:4px">
+          ${'⭐'.repeat(Math.round(avgRating))}${'☆'.repeat(5-Math.round(avgRating))}
+          <span style="font-size:11px;color:var(--text3)">${avgRating>0?avgRating+' ('+ratings.length+')':''}</span>
+        </div>
+        ${CU&&CU.role==='admin'?`<div style="display:flex;gap:4px" onclick="event.stopPropagation()"><button class="btn sm" onclick="openRB(${r.id})">تعديل</button><button class="btn sm dng" onclick="delRecipe(${r.id})">حذف</button></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showRecipeDetail(rid){
+  const r=RECIPES.find(x=>x.id===rid);if(!r)return;
+  document.getElementById('recipes-main-view').style.display='none';
+  document.getElementById('recipe-detail-view').style.display='block';
+  const m=cmac(r);const k=klbl(m.k);
+  const isFav=r.favorites&&CU&&r.favorites.includes(CU.id);
+  const ratings=r.ratings?Object.values(r.ratings):[];
+  const avgRating=ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1):0;
+  const myRating=r.ratings&&CU?r.ratings[CU.id]||0:0;
+  const isAdmin=CU&&CU.role==='admin';
+  const mem=CU?MEMBERS.find(m=>m.uid===CU.id):null;
+
+  document.getElementById('recipe-detail-content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+      <button class="btn sm" onclick="hideRecipeDetail()">← رجوع</button>
+      <span style="color:var(--text3);font-size:13px">الوصفات</span>
+      <span style="color:var(--text3)">›</span>
+      <span style="font-size:13px;font-weight:500">${r.name}</span>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <!-- Image -->
+        <div class="card" style="margin:0 0 16px;padding:0;overflow:hidden">
+          <div style="position:relative">
+            ${r.img_url
+              ?`<img src="${r.img_url}" style="width:100%;height:220px;object-fit:cover">`
+              :`<div style="width:100%;height:180px;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px"><div style="font-size:48px">🍳</div><div style="font-size:12px;color:var(--text3)">لا توجد صورة</div></div>`}
+            <button onclick="toggleFavorite(${r.id})" style="position:absolute;top:10px;left:10px;background:rgba(255,255,255,.9);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.15)">${isFav?'❤️':'🤍'}</button>
+          </div>
+          <div style="padding:14px 16px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+              <div>
+                <div style="font-size:20px;font-weight:700">${r.name}</div>
+                <div style="font-size:13px;color:var(--text3)">${r.name_en||''}</div>
+              </div>
+              <span class="badge ${k.c}">${k.l}</span>
+            </div>
+            <div style="font-size:13px;color:var(--text2);margin-bottom:12px">${r.desc||''}</div>
+            <!-- Meta info -->
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+              ${r.prep_time?`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)"><span>⏱️</span><span>${r.prep_time} د تحضير</span></div>`:''}
+              ${r.cook_time?`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)"><span>🔥</span><span>${r.cook_time} د طبخ</span></div>`:''}
+              ${r.difficulty?`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)"><span>📊</span><span>${r.difficulty}</span></div>`:''}
+              <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)"><span>🍽️</span><span>${r.servings} حصة</span></div>
+              ${r.category?`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)"><span>🏷️</span><span>${r.category}</span></div>`:''}
+            </div>
+          </div>
+        </div>
+
+        <!-- Ingredients -->
+        <div class="card" style="margin:0 0 16px">
+          <div class="card-header"><div class="card-title">🥩 المكونات والمقادير</div></div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px">لكل ${r.servings} حصة</div>
+          ${r.ingredients.map(ing=>{
+            const f=FOODS.find(x=>x.id===ing.fid);
+            if(!f)return'';
+            return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0"></div>
+                <div>
+                  <div style="font-size:13px;font-weight:500">${f.name}</div>
+                  ${ing.note?`<div style="font-size:11px;color:var(--text3)">${ing.note}</div>`:''}
+                </div>
+              </div>
+              <div style="text-align:left;flex-shrink:0">
+                <div class="mono" style="font-size:13px;color:var(--accent)">${ing.qty}غ</div>
+                ${ing.qty_cup?`<div style="font-size:11px;color:var(--text3)">${ing.qty_cup}</div>`:''}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+
+        <!-- Admin: image upload -->
+        ${isAdmin?`<div class="card" style="margin:0 0 16px">
+          <div class="card-header"><div class="card-title">📷 إدارة الصورة</div></div>
+          <div class="fg" style="margin-bottom:10px"><label>رابط الصورة</label><input id="recipe-img-url-${r.id}" dir="ltr" placeholder="https://..." value="${r.img_url||''}"></div>
+          <button class="btn primary sm" onclick="saveRecipeImage(${r.id})">حفظ الصورة</button>
+        </div>`:''}
+      </div>
+
+      <div>
+        <!-- Macro -->
+        <div class="card" style="margin:0 0 16px">
+          <div class="card-header"><div class="card-title">القيم الغذائية (لكل حصة)</div></div>
+          <div class="mrow" style="margin-bottom:12px">
+            <div class="mchip"><div class="mchip-l">دهون</div><div class="mchip-v f">${Math.round(m.fp)}</div><div class="mchip-u">%</div></div>
+            <div class="mchip"><div class="mchip-l">بروتين</div><div class="mchip-v p">${Math.round(m.pp)}</div><div class="mchip-u">%</div></div>
+            <div class="mchip"><div class="mchip-l">كربو</div><div class="mchip-v c">${Math.round(m.cp)}</div><div class="mchip-u">%</div></div>
+          </div>
+          <div style="height:8px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:14px">
+            <div style="width:${Math.round(m.fp)}%;background:var(--accent)"></div>
+            <div style="width:${Math.round(m.pp)}%;background:var(--info)"></div>
+            <div style="width:${Math.round(m.cp)}%;background:var(--danger)"></div>
+          </div>
+          ${[['السعرات',Math.round(m.cal/r.servings)+' ك.ح',''],['الدهون',(m.fat/r.servings).toFixed(1)+'غ','var(--accent)'],['البروتين',(m.prot/r.servings).toFixed(1)+'غ','var(--info)'],['الكربوهيدرات الصافية',(m.nc/r.servings).toFixed(1)+'غ','var(--danger)'],['الألياف',(m.fib/r.servings).toFixed(1)+'غ','']].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text3)">${l}</span><span class="mono"${c?` style="color:${c};font-weight:500"`:''}}>${v}</span></div>`).join('')}
+        </div>
+
+        <!-- Steps -->
+        ${r.steps&&r.steps.length?`<div class="card" style="margin:0 0 16px">
+          <div class="card-header"><div class="card-title">👨‍🍳 خطوات التحضير</div></div>
+          ${r.steps.map((step,i)=>`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0">${i+1}</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.6;padding-top:2px">${step}</div>
+          </div>`).join('')}
+        </div>`:''}
+
+        <!-- Dr. Ammar note -->
+        ${r.doc_note?`<div class="doc-note" style="margin-bottom:16px"><div class="doc-note-head">📋 توصية د. عمار</div>${r.doc_note}</div>`:''}
+
+        <!-- Ratings -->
+        <div class="card" style="margin:0 0 16px">
+          <div class="card-header"><div class="card-title">⭐ التقييم</div></div>
+          <div style="text-align:center;padding:8px 0 14px">
+            <div style="font-size:32px;font-weight:700;font-family:var(--mono);color:var(--warning)">${avgRating>0?avgRating:'—'}</div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${ratings.length} تقييم</div>
+            <div style="display:flex;justify-content:center;gap:4px;margin-bottom:4px">
+              ${[1,2,3,4,5].map(s=>`<span onclick="rateRecipe(${r.id},${s})" style="font-size:26px;cursor:pointer;transition:transform .1s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">${s<=myRating?'⭐':'☆'}</span>`).join('')}
+            </div>
+            ${myRating>0?`<div style="font-size:12px;color:var(--accent)">تقييمك: ${myRating}/5 ⭐</div>`:CU?`<div style="font-size:12px;color:var(--text3)">اضغط لتقييم الوصفة</div>`:''}
+          </div>
+        </div>
+
+        <!-- Tags -->
+        ${r.tags&&r.tags.length?`<div class="card" style="margin:0"><div class="card-header"><div class="card-title">🏷️ الوسوم</div></div><div style="display:flex;flex-wrap:wrap;gap:6px">${r.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div>`:''}
+      </div>
+    </div>`;
+}
+
+function hideRecipeDetail(){
+  document.getElementById('recipes-main-view').style.display='block';
+  document.getElementById('recipe-detail-view').style.display='none';
+}
+
+function toggleFavorite(rid){
+  if(!CU)return;
+  const r=RECIPES.find(x=>x.id===rid);if(!r)return;
+  if(!r.favorites)r.favorites=[];
+  const idx=r.favorites.indexOf(CU.id);
+  if(idx>-1)r.favorites.splice(idx,1);
+  else r.favorites.push(CU.id);
+  // Re-render whichever view is active
+  if(document.getElementById('recipe-detail-view').style.display!=='none') showRecipeDetail(rid);
+  else rRecipes();
+}
+
+function rateRecipe(rid,score){
+  if(!CU)return;
+  const r=RECIPES.find(x=>x.id===rid);if(!r)return;
+  if(!r.ratings)r.ratings={};
+  r.ratings[CU.id]=score;
+  showRecipeDetail(rid);
+}
+
+function saveRecipeImage(rid){
+  const url=document.getElementById('recipe-img-url-'+rid)?.value.trim();
+  const r=RECIPES.find(x=>x.id===rid);
+  if(r&&url){r.img_url=url;showRecipeDetail(rid);}
+}
+
+function openRB(id){
+  rbItems=[];
+  const b=document.getElementById('rb');
+  if(id){
+    editRid=id;const r=RECIPES.find(x=>x.id===id);
+    document.getElementById('rb-title').textContent='تعديل الوصفة';
+    document.getElementById('rb-n').value=r.name;
+    document.getElementById('rb-ne').value=r.name_en||'';
+    document.getElementById('rb-sv').value=r.servings;
+    document.getElementById('rb-d').value=r.desc||'';
+    document.getElementById('rb-prep').value=r.prep_time||10;
+    document.getElementById('rb-cook').value=r.cook_time||15;
+    if(document.getElementById('rb-cat'))document.getElementById('rb-cat').value=r.category||'أطباق رئيسية';
+    if(document.getElementById('rb-diff'))document.getElementById('rb-diff').value=r.difficulty||'سهل';
+    if(document.getElementById('rb-steps'))document.getElementById('rb-steps').value=(r.steps||[]).join('\n');
+    if(document.getElementById('rb-docnote'))document.getElementById('rb-docnote').value=r.doc_note||'';
+    rbItems=[...r.ingredients];
+  }else{
+    editRid=null;
+    document.getElementById('rb-title').textContent='وصفة جديدة';
+    ['rb-n','rb-ne','rb-d','rb-steps','rb-docnote'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    document.getElementById('rb-sv').value=1;
+    document.getElementById('rb-prep').value=10;
+    document.getElementById('rb-cook').value=15;
+  }
+  b.style.display='block';renderRbIL();updateRbM();b.scrollIntoView({behavior:'smooth'});
+}
 function closeRB(){document.getElementById('rb').style.display='none';}
-function addRbI(){const fid=parseInt(document.getElementById('rb-isel').value);const qty=parseFloat(document.getElementById('rb-iqty').value);if(!fid||!qty){alert('اختر المكون وأدخل الكمية');return;}const ex=rbItems.find(i=>i.fid===fid);if(ex)ex.qty+=qty;else rbItems.push({fid,qty});document.getElementById('rb-iqty').value='';renderRbIL();updateRbM();}
+
+function addRbI(){
+  const fid=parseInt(document.getElementById('rb-isel').value);
+  const qty=parseFloat(document.getElementById('rb-iqty').value);
+  const qty_cup=document.getElementById('rb-iqty_cup')?.value||'';
+  if(!fid||!qty){alert('اختر المكون وأدخل الكمية');return;}
+  const ex=rbItems.find(i=>i.fid===fid);
+  if(ex){ex.qty+=qty;}else{rbItems.push({fid,qty,qty_cup});}
+  document.getElementById('rb-iqty').value='';
+  if(document.getElementById('rb-iqty_cup'))document.getElementById('rb-iqty_cup').value='';
+  renderRbIL();updateRbM();
+}
 function remRbI(fid){rbItems=rbItems.filter(i=>i.fid!==fid);renderRbIL();updateRbM();}
-function renderRbIL(){const el=document.getElementById('rb-il');if(!rbItems.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:10px 0">لا توجد مكونات</div>';return;}el.innerHTML=rbItems.map(i=>{const f=FOODS.find(x=>x.id===i.fid);if(!f)return'';return`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px">${f.name}</span><div style="display:flex;align-items:center;gap:7px"><span class="mono" style="font-size:12px;color:var(--accent)">${i.qty}غ</span><button class="btn sm dng" onclick="remRbI(${f.id})">✕</button></div></div>`;}).join('');}
-function updateRbM(){const el=document.getElementById('rb-m');if(!rbItems.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:18px 0">أضف مكونات</div>';return;}const sv=parseInt(document.getElementById('rb-sv').value)||1;el.innerHTML=macHTML(cmac({ingredients:rbItems}),sv);}
-function saveRecipe(){const n=document.getElementById('rb-n').value.trim();if(!n){alert('أدخل الاسم');return;}if(!rbItems.length){alert('أضف مكوناً');return;}const r={name:n,name_en:document.getElementById('rb-ne').value,desc:document.getElementById('rb-d').value,servings:parseInt(document.getElementById('rb-sv').value)||1,ingredients:[...rbItems],approved:true};if(editRid){const idx=RECIPES.findIndex(x=>x.id===editRid);RECIPES[idx]={...RECIPES[idx],...r};}else{r.id=RECIPES.length+1;RECIPES.push(r);}closeRB();rRecipes();}
+function renderRbIL(){
+  const el=document.getElementById('rb-il');if(!rbItems.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:10px 0">لا توجد مكونات</div>';return;}
+  el.innerHTML=rbItems.map(i=>{const f=FOODS.find(x=>x.id===i.fid);if(!f)return'';return`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px">${f.name}</span><div style="display:flex;align-items:center;gap:7px"><span class="mono" style="font-size:12px;color:var(--accent)">${i.qty}غ</span>${i.qty_cup?`<span style="font-size:11px;color:var(--text3)">${i.qty_cup}</span>`:''}<button class="btn sm dng" onclick="remRbI(${f.id})">✕</button></div></div>`;}).join('');
+}
+function updateRbM(){
+  const el=document.getElementById('rb-m');if(!rbItems.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:18px 0">أضف مكونات</div>';return;}
+  const sv=parseInt(document.getElementById('rb-sv').value)||1;
+  el.innerHTML=macHTML(cmac({ingredients:rbItems}),sv);
+}
+function saveRecipe(){
+  const n=document.getElementById('rb-n').value.trim();
+  if(!n){alert('أدخل الاسم');return;}
+  if(!rbItems.length){alert('أضف مكوناً');return;}
+  const stepsRaw=document.getElementById('rb-steps')?.value||'';
+  const steps=stepsRaw.split('\n').map(s=>s.trim()).filter(Boolean);
+  const r={
+    name:n, name_en:document.getElementById('rb-ne').value,
+    desc:document.getElementById('rb-d').value,
+    servings:parseInt(document.getElementById('rb-sv').value)||1,
+    category:document.getElementById('rb-cat')?.value||'أطباق رئيسية',
+    difficulty:document.getElementById('rb-diff')?.value||'سهل',
+    prep_time:parseInt(document.getElementById('rb-prep')?.value)||10,
+    cook_time:parseInt(document.getElementById('rb-cook')?.value)||15,
+    steps, doc_note:document.getElementById('rb-docnote')?.value||'',
+    ingredients:[...rbItems], approved:true,
+  };
+  if(editRid){
+    const idx=RECIPES.findIndex(x=>x.id===editRid);
+    RECIPES[idx]={...RECIPES[idx],...r};
+  }else{
+    r.id=RECIPES.length+1;r.ratings={};r.favorites=[];r.img_url='';
+    RECIPES.push(r);
+  }
+  closeRB();rRecipes();
+}
 function delRecipe(id){if(!confirm('حذف هذه الوصفة؟'))return;RECIPES=RECIPES.filter(r=>r.id!==id);rRecipes();}
 
 /* ═══ PRODUCTS ═══ */
