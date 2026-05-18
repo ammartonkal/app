@@ -475,54 +475,157 @@ let CHALLENGE_PROGRESS={};
               <!-- ALLOWED -->
               <div class="card" style="margin:0;border-top:3px solid var(--accent)">
                 <div class="card-header"><div class="card-title" style="color:var(--accent)">✅ المسموح في الكيتو</div></div>
-                ${[
-                  {cat:'🥩 اللحوم والبروتين', items:['لحم بقر، خروف، دجاج، ديك رومي','سمك ومأكولات بحرية بجميع أنواعها','بيض كامل (أبيض وأصفر)','لحم مقدد وسجق (بدون حشو نشوي)','مأكولات البحر: روبيان، كالماري، بطلينوس']},
-                  {cat:'🥑 الدهون الصحية', items:['أفوكادو وزيت الأفوكادو','زيت زيتون بكر ممتاز','زبدة وسمنة','زيت جوز الهند وزيت MCT','دهون الحيوان (شحم، زبدة مصفاة)']},
-                  {cat:'🧀 الألبان الكاملة', items:['جبن شيدر، موزاريلا، بري','كريمة طازجة (هيفي كريم)','جبن كريمي، ماسكاربوني','قشطة حامضة كاملة الدسم','زبادي يوناني كامل الدسم (بكمية)']},
-                  {cat:'🥦 الخضار فوق الأرض', items:['سبانخ، كيل، ليتوس، جرجير','بروكلي، قرنبيط، كوسا، خيار','فلفل، ثوم (بكمية)، بصل (بكمية)','هليون، فطر، باذنجان','أفوكادو (فاكهة لكنه خضار كيتو)']},
-                  {cat:'🥜 المكسرات والبذور', items:['لوز، جوز، جوز برازيلي، بقان','بذور شيا، كتان، قنب، يقطين','زبدة اللوز والفول السوداني الطبيعية','ماكاديميا (الأعلى دهوناً والأقل كرباً)','بذور عباد الشمس (بكمية)']},
-                  {cat:'🍹 المشروبات', items:['ماء، ماء فوار، ماء معدني','قهوة بدون سكر (مع كريمة)','شاي أعشاب بدون سكر','مرق عظام (ممتاز للكيتو فلو)','ماء ليمون بدون سكر']},
-                ].map(g=>`
-                  <div style="margin-bottom:12px">
-                    <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:5px">${g.cat}</div>
-                    ${g.items.map(i=>`<div style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:var(--text2);padding:2px 0"><span style="color:var(--accent);flex-shrink:0">✓</span>${i}</div>`).join('')}
-                  </div>`).join('')}
+
+                <div style="margin-bottom:12px">
+                  <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:5px">🥩 اللحوم والبروتين</div>
+                  <div style="font-size:12px;color:var(--text2);line-height:1.9">
+                    <span style="color:var(--accent)">✓</span> لحم بقر، خروف، دجاج، ديك رومي<br>
+                    <span style="color:var(--accent)">✓</span> سمك ومأكولات بحرية بجميع أنواعها<br>
+                    <span style="color:var(--accent)">✓</span> بيض كامل (أبيض وأصفر)<br>
+                    <span style="color:var(--accent)">✓</span> لحم مقدد وسجق (بدون حشو نشوي)<br>
+                    <span style="color:var(--accent)">✓</span> مأكولات البحر: روبيان، كالماري، بطلينوس
+                  </div>
+                </div>
+
+                <div style="margin-bottom:12px">
+                  <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:5px">🥑 الدهون الصحية</div>
+                  <div style="font-size:12px;color:var(--text2);line-height:1.9">
+                    <span style="color:var(--accent)">✓</span> أفوكادو وزيت الأفوكادو<br>
+                    <span style="color:var(--accent)">✓</span> زيت زيتون بكر ممتاز<br>
+                    <span style="color:var(--accent)">✓</span> زبدة وسمنة<br>
+                    <span style="color:var(--accent)">✓</span> زيت جوز الهند وزيت MCT<br>
+                    <span style="color:var(--accent)">✓</span> دهون الحيوان (شحم، زبدة مصفاة)
+                  </div>
+                </div>
+
+                <div style="margin-bottom:12px">
+                  <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:5px">🧀 الألبان الكاملة</div>
+                  <div style="font-size:12px;color:var(--text2);line-height:1.9">
+                    <span style="color:var(--accent)">✓</span> جبن شيدر، موزاريلا، بري<br>
+                    <span style="color:var(--accent)">✓</span> كريمة طازجة (هيفي كريم)<br>
+                    <span style="color:var(--accent)">✓</span> جبن كريمي، ماسكاربوني<br>
+                    <span style="color:var(--accent)">✓</span> قشطة حامضة كاملة الدسم<br>
+                    <span style="color:var(--accent)">✓</span> زبادي يوناني كامل الدسم (بكمية)
+                  </div>
+                </div>
+
+                <div style="margin-bottom:12px">
+                  <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:5px">🥦 الخضار فوق الأرض</div>
+                  <div style="font-size:12px;color:var(--text2);line-height:1.9">
+                    <span style="color:var(--accent)">✓</span> سبانخ، كيل، ليتوس، جرجير<br>
+                    <span style="color:var(--accent)">✓</span> بروكلي، قرنبيط، كوسا، خيار<br>
+                    <span style="color:var(--accent)">✓</span> فلفل، ثوم (بكمية)، بصل (بكمية)<br>
+                    <span style="color:var(--accent)">✓</span> هليون، فطر، باذنجان<br>
+                    <span style="color:var(--accent)">✓</span> أفوكادو (فاكهة لكنه خضار كيتو)
+                  </div>
+                </div>
+
+                <div style="margin-bottom:12px">
+                  <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:5px">🥜 المكسرات والبذور</div>
+                  <div style="font-size:12px;color:var(--text2);line-height:1.9">
+                    <span style="color:var(--accent)">✓</span> لوز، جوز، جوز برازيلي، بقان<br>
+                    <span style="color:var(--accent)">✓</span> بذور شيا، كتان، قنب، يقطين<br>
+                    <span style="color:var(--accent)">✓</span> زبدة اللوز والفول السوداني الطبيعية<br>
+                    <span style="color:var(--accent)">✓</span> ماكاديميا (الأعلى دهوناً والأقل كرباً)<br>
+                    <span style="color:var(--accent)">✓</span> بذور عباد الشمس (بكمية)
+                  </div>
+                </div>
+
+                <div style="margin-bottom:12px">
+                  <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:5px">🍹 المشروبات</div>
+                  <div style="font-size:12px;color:var(--text2);line-height:1.9">
+                    <span style="color:var(--accent)">✓</span> ماء، ماء فوار، ماء معدني<br>
+                    <span style="color:var(--accent)">✓</span> قهوة بدون سكر (مع كريمة)<br>
+                    <span style="color:var(--accent)">✓</span> شاي أعشاب بدون سكر<br>
+                    <span style="color:var(--accent)">✓</span> مرق عظام (ممتاز للكيتو فلو)<br>
+                    <span style="color:var(--accent)">✓</span> ماء ليمون بدون سكر
+                  </div>
+                </div>
               </div>
 
               <!-- FORBIDDEN -->
               <div class="card" style="margin:0;border-top:3px solid var(--danger)">
                 <div class="card-header"><div class="card-title" style="color:var(--danger)">❌ الممنوع في الكيتو</div></div>
-                ${[
-                  {cat:'🍞 الحبوب والنشويات', items:['خبز بجميع أنواعه (أبيض، أسمر، توست)','أرز، مكرونة، شعيرية','دقيق قمح، ذرة، شوفان','بسكويت، كعك، فطائر','رقائق الذرة والبطاطس (شيبس)']},
-                  {cat:'🍬 السكريات والحلويات', items:['سكر أبيض وبني وعسل وشيرة','عصائر الفاكهة ومشروبات غازية','شوكولاتة الحليب والحلوى','آيسكريم وكاسترد وبودينغ','مربى، مارميلاد، صوص حلو']},
-                  {cat:'🍌 الفاكهة العالية بالسكر', items:['موز، عنب، بطيخ، شمام','مانجو، أناناس، كرز، تين','فراولة وتوت (بكميات كبيرة)','عصير أي فاكهة','فواكه مجففة (زبيب، تمر، مشمش)']},
-                  {cat:'🥔 خضار تحت الأرض', items:['بطاطس وبطاطا حلوة','جزر (بكميات كبيرة)','شوندر (بنجر)','لفت وفجل (بكميات كبيرة)','ذرة (تُصنَّف خضاراً لكنها نشوية)']},
-                  {cat:'🍺 الكحول والمشروبات', items:['بيرة (عالية الكربوهيدرات جداً)','عصائر مُعلبة ومشروبات طاقة','مشروبات رياضية محلاة','قهوة سكر وشاي بالسكر','حليب البقر (كميات كبيرة)']},
-                  {cat:'⚠️ منتجات تبدو صحية لكنها ممنوعة', items:['عسل النحل والشيرة الطبيعية','خبز الحبوب الكاملة','حليب اللوز المحلى','زبادي قليل الدسم (يحتوي سكراً)','صوص الكاتشب وكثير من التوابل الجاهزة']},
-                ].map(g=>`
-                  <div style="margin-bottom:12px">
-                    <div style="font-size:12px;font-weight:600;color:var(--danger);margin-bottom:5px">${g.cat}</div>
-                    ${g.items.map(i=>`<div style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:var(--text2);padding:2px 0"><span style="color:var(--danger);flex-shrink:0">✕</span>${i}</div>`).join('')}
-                  </div>`).join('')}
+
+                <div style="margin-bottom:12px">
+                  <div style="font-size:12px;font-weight:600;color:var(--danger);margin-bottom:5px">🍞 الحبوب والنشويات</div>
+                  <div style="font-size:12px;color:var(--text2);line-height:1.9">
+                    <span style="color:var(--danger)">✕</span> خبز بجميع أنواعه (أبيض، أسمر، توست)<br>
+                    <span style="color:var(--danger)">✕</span> أرز، مكرونة، شعيرية<br>
+                    <span style="color:var(--danger)">✕</span> دقيق قمح، ذرة، شوفان<br>
+                    <span style="color:var(--danger)">✕</span> بسكويت، كعك، فطائر<br>
+                    <span style="color:var(--danger)">✕</span> رقائق الذرة والبطاطس (شيبس)
+                  </div>
+                </div>
+
+                <div style="margin-bottom:12px">
+                  <div style="font-size:12px;font-weight:600;color:var(--danger);margin-bottom:5px">🍬 السكريات والحلويات</div>
+                  <div style="font-size:12px;color:var(--text2);line-height:1.9">
+                    <span style="color:var(--danger)">✕</span> سكر أبيض وبني وعسل وشيرة<br>
+                    <span style="color:var(--danger)">✕</span> عصائر الفاكهة ومشروبات غازية<br>
+                    <span style="color:var(--danger)">✕</span> شوكولاتة الحليب والحلوى<br>
+                    <span style="color:var(--danger)">✕</span> آيسكريم وكاسترد وبودينغ<br>
+                    <span style="color:var(--danger)">✕</span> مربى، مارميلاد، صوص حلو
+                  </div>
+                </div>
+
+                <div style="margin-bottom:12px">
+                  <div style="font-size:12px;font-weight:600;color:var(--danger);margin-bottom:5px">🍌 الفاكهة العالية بالسكر</div>
+                  <div style="font-size:12px;color:var(--text2);line-height:1.9">
+                    <span style="color:var(--danger)">✕</span> موز، عنب، بطيخ، شمام<br>
+                    <span style="color:var(--danger)">✕</span> مانجو، أناناس، كرز، تين<br>
+                    <span style="color:var(--danger)">✕</span> فراولة وتوت (بكميات كبيرة)<br>
+                    <span style="color:var(--danger)">✕</span> عصير أي فاكهة<br>
+                    <span style="color:var(--danger)">✕</span> فواكه مجففة (زبيب، تمر، مشمش)
+                  </div>
+                </div>
+
+                <div style="margin-bottom:12px">
+                  <div style="font-size:12px;font-weight:600;color:var(--danger);margin-bottom:5px">🥔 خضار تحت الأرض</div>
+                  <div style="font-size:12px;color:var(--text2);line-height:1.9">
+                    <span style="color:var(--danger)">✕</span> بطاطس وبطاطا حلوة<br>
+                    <span style="color:var(--danger)">✕</span> جزر (بكميات كبيرة)<br>
+                    <span style="color:var(--danger)">✕</span> شوندر (بنجر)<br>
+                    <span style="color:var(--danger)">✕</span> لفت وفجل (بكميات كبيرة)<br>
+                    <span style="color:var(--danger)">✕</span> ذرة (تُصنَّف خضاراً لكنها نشوية)
+                  </div>
+                </div>
+
+                <div style="margin-bottom:12px">
+                  <div style="font-size:12px;font-weight:600;color:var(--danger);margin-bottom:5px">🍺 الكحول والمشروبات</div>
+                  <div style="font-size:12px;color:var(--text2);line-height:1.9">
+                    <span style="color:var(--danger)">✕</span> بيرة (عالية الكربوهيدرات جداً)<br>
+                    <span style="color:var(--danger)">✕</span> عصائر مُعلبة ومشروبات طاقة<br>
+                    <span style="color:var(--danger)">✕</span> مشروبات رياضية محلاة<br>
+                    <span style="color:var(--danger)">✕</span> قهوة سكر وشاي بالسكر<br>
+                    <span style="color:var(--danger)">✕</span> حليب البقر (كميات كبيرة)
+                  </div>
+                </div>
+
+                <div style="margin-bottom:12px">
+                  <div style="font-size:12px;font-weight:600;color:var(--danger);margin-bottom:5px">⚠️ منتجات تبدو صحية لكنها ممنوعة</div>
+                  <div style="font-size:12px;color:var(--text2);line-height:1.9">
+                    <span style="color:var(--danger)">✕</span> عسل النحل والشيرة الطبيعية<br>
+                    <span style="color:var(--danger)">✕</span> خبز الحبوب الكاملة<br>
+                    <span style="color:var(--danger)">✕</span> حليب اللوز المحلى<br>
+                    <span style="color:var(--danger)">✕</span> زبادي قليل الدسم (يحتوي سكراً)<br>
+                    <span style="color:var(--danger)">✕</span> صوص الكاتشب وكثير من التوابل الجاهزة
+                  </div>
+                </div>
 
                 <!-- Substitutes -->
                 <div style="margin-top:6px;padding-top:12px;border-top:1px solid var(--border)">
                   <div style="font-size:12px;font-weight:600;color:var(--warning);margin-bottom:8px">🔄 البدائل الكيتونية</div>
-                  ${[
-                    ['دقيق القمح','دقيق اللوز / دقيق جوز الهند'],
-                    ['السكر الأبيض','إريثريتول / ستيفيا / مونك فروت'],
-                    ['الأرز','أرز القرنبيط (قرنبيط مبشور)'],
-                    ['المكرونة','كوسا مقطعة / شعيرية الكونجاك'],
-                    ['خبز التوست','خبز اللوز / خبز الجبن'],
-                    ['البطاطس المقلية','فطر / قرنبيط مقلي / فلفل'],
-                    ['الحليب العادي','كريمة ثقيلة مخففة / حليب جوز الهند'],
-                    ['الشوكولاتة','شوكولاتة داكنة 85%+ (بكمية)'],
-                  ].map(([fr,to])=>`
-                    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
-                      <span style="color:var(--danger);min-width:90px">${fr}</span>
-                      <span style="color:var(--text3)">→</span>
-                      <span style="color:var(--accent)">${to}</span>
-                    </div>`).join('')}
+                  <div style="font-size:12px">
+                    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--danger);min-width:100px">دقيق القمح</span><span style="color:var(--text3)">→</span><span style="color:var(--accent)">دقيق اللوز / دقيق جوز الهند</span></div>
+                    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--danger);min-width:100px">السكر الأبيض</span><span style="color:var(--text3)">→</span><span style="color:var(--accent)">إريثريتول / ستيفيا / مونك فروت</span></div>
+                    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--danger);min-width:100px">الأرز</span><span style="color:var(--text3)">→</span><span style="color:var(--accent)">أرز القرنبيط (قرنبيط مبشور)</span></div>
+                    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--danger);min-width:100px">المكرونة</span><span style="color:var(--text3)">→</span><span style="color:var(--accent)">كوسا مقطعة / شعيرية الكونجاك</span></div>
+                    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--danger);min-width:100px">خبز التوست</span><span style="color:var(--text3)">→</span><span style="color:var(--accent)">خبز اللوز / خبز الجبن</span></div>
+                    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--danger);min-width:100px">البطاطس المقلية</span><span style="color:var(--text3)">→</span><span style="color:var(--accent)">فطر / قرنبيط مقلي / فلفل</span></div>
+                    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--danger);min-width:100px">الحليب العادي</span><span style="color:var(--text3)">→</span><span style="color:var(--accent)">كريمة ثقيلة مخففة / حليب جوز الهند</span></div>
+                    <div style="display:flex;align-items:center;gap:8px;padding:5px 0"><span style="color:var(--danger);min-width:100px">الشوكولاتة</span><span style="color:var(--text3)">→</span><span style="color:var(--accent)">شوكولاتة داكنة 85%+ (بكمية)</span></div>
+                  </div>
                 </div>
               </div>
             </div>
