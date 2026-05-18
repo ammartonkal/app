@@ -460,21 +460,110 @@ let CHALLENGE_PROGRESS={};
 
       <!-- FOODS -->
       <div class="panel" id="panel-foods">
-        <div class="sbar">
-          <div class="si-wrap"><input type="text" id="fsearch" placeholder="ابحث عن طعام..." oninput="rFoods()"><span class="si-icon">⌕</span></div>
-          <select id="fcat" onchange="rFoods()" style="width:130px"><option value="">كل الفئات</option><option>بروتين</option><option>ألبان</option><option>دهون</option><option>خضار</option><option>مكسرات</option><option>بذور</option></select>
-          <button class="btn primary" id="add-food-btn" onclick="tf('food-form')">+ إضافة</button>
+        <div id="foods-main-view">
+          <!-- Tabs -->
+          <div class="tabs-bar" id="foods-tabs">
+            <div class="tab-item active" onclick="switchFoodsTab('allowed',this)">✅ المسموح والممنوع</div>
+            <div class="tab-item" onclick="switchFoodsTab('bycat',this)">🗂 حسب الفئة</div>
+            <div class="tab-item" onclick="switchFoodsTab('table',this)">📋 الجدول العام</div>
+          </div>
+
+          <!-- TAB 1: Allowed / Forbidden -->
+          <div id="ftab-allowed">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+              <!-- ALLOWED -->
+              <div class="card" style="margin:0;border-top:3px solid var(--accent)">
+                <div class="card-header"><div class="card-title" style="color:var(--accent)">✅ المسموح في الكيتو</div></div>
+                ${[
+                  {cat:'🥩 اللحوم والبروتين', items:['لحم بقر، خروف، دجاج، ديك رومي','سمك ومأكولات بحرية بجميع أنواعها','بيض كامل (أبيض وأصفر)','لحم مقدد وسجق (بدون حشو نشوي)','مأكولات البحر: روبيان، كالماري، بطلينوس']},
+                  {cat:'🥑 الدهون الصحية', items:['أفوكادو وزيت الأفوكادو','زيت زيتون بكر ممتاز','زبدة وسمنة','زيت جوز الهند وزيت MCT','دهون الحيوان (شحم، زبدة مصفاة)']},
+                  {cat:'🧀 الألبان الكاملة', items:['جبن شيدر، موزاريلا، بري','كريمة طازجة (هيفي كريم)','جبن كريمي، ماسكاربوني','قشطة حامضة كاملة الدسم','زبادي يوناني كامل الدسم (بكمية)']},
+                  {cat:'🥦 الخضار فوق الأرض', items:['سبانخ، كيل، ليتوس، جرجير','بروكلي، قرنبيط، كوسا، خيار','فلفل، ثوم (بكمية)، بصل (بكمية)','هليون، فطر، باذنجان','أفوكادو (فاكهة لكنه خضار كيتو)']},
+                  {cat:'🥜 المكسرات والبذور', items:['لوز، جوز، جوز برازيلي، بقان','بذور شيا، كتان، قنب، يقطين','زبدة اللوز والفول السوداني الطبيعية','ماكاديميا (الأعلى دهوناً والأقل كرباً)','بذور عباد الشمس (بكمية)']},
+                  {cat:'🍹 المشروبات', items:['ماء، ماء فوار، ماء معدني','قهوة بدون سكر (مع كريمة)','شاي أعشاب بدون سكر','مرق عظام (ممتاز للكيتو فلو)','ماء ليمون بدون سكر']},
+                ].map(g=>`
+                  <div style="margin-bottom:12px">
+                    <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:5px">${g.cat}</div>
+                    ${g.items.map(i=>`<div style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:var(--text2);padding:2px 0"><span style="color:var(--accent);flex-shrink:0">✓</span>${i}</div>`).join('')}
+                  </div>`).join('')}
+              </div>
+
+              <!-- FORBIDDEN -->
+              <div class="card" style="margin:0;border-top:3px solid var(--danger)">
+                <div class="card-header"><div class="card-title" style="color:var(--danger)">❌ الممنوع في الكيتو</div></div>
+                ${[
+                  {cat:'🍞 الحبوب والنشويات', items:['خبز بجميع أنواعه (أبيض، أسمر، توست)','أرز، مكرونة، شعيرية','دقيق قمح، ذرة، شوفان','بسكويت، كعك، فطائر','رقائق الذرة والبطاطس (شيبس)']},
+                  {cat:'🍬 السكريات والحلويات', items:['سكر أبيض وبني وعسل وشيرة','عصائر الفاكهة ومشروبات غازية','شوكولاتة الحليب والحلوى','آيسكريم وكاسترد وبودينغ','مربى، مارميلاد، صوص حلو']},
+                  {cat:'🍌 الفاكهة العالية بالسكر', items:['موز، عنب، بطيخ، شمام','مانجو، أناناس، كرز، تين','فراولة وتوت (بكميات كبيرة)','عصير أي فاكهة','فواكه مجففة (زبيب، تمر، مشمش)']},
+                  {cat:'🥔 خضار تحت الأرض', items:['بطاطس وبطاطا حلوة','جزر (بكميات كبيرة)','شوندر (بنجر)','لفت وفجل (بكميات كبيرة)','ذرة (تُصنَّف خضاراً لكنها نشوية)']},
+                  {cat:'🍺 الكحول والمشروبات', items:['بيرة (عالية الكربوهيدرات جداً)','عصائر مُعلبة ومشروبات طاقة','مشروبات رياضية محلاة','قهوة سكر وشاي بالسكر','حليب البقر (كميات كبيرة)']},
+                  {cat:'⚠️ منتجات تبدو صحية لكنها ممنوعة', items:['عسل النحل والشيرة الطبيعية','خبز الحبوب الكاملة','حليب اللوز المحلى','زبادي قليل الدسم (يحتوي سكراً)','صوص الكاتشب وكثير من التوابل الجاهزة']},
+                ].map(g=>`
+                  <div style="margin-bottom:12px">
+                    <div style="font-size:12px;font-weight:600;color:var(--danger);margin-bottom:5px">${g.cat}</div>
+                    ${g.items.map(i=>`<div style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:var(--text2);padding:2px 0"><span style="color:var(--danger);flex-shrink:0">✕</span>${i}</div>`).join('')}
+                  </div>`).join('')}
+
+                <!-- Substitutes -->
+                <div style="margin-top:6px;padding-top:12px;border-top:1px solid var(--border)">
+                  <div style="font-size:12px;font-weight:600;color:var(--warning);margin-bottom:8px">🔄 البدائل الكيتونية</div>
+                  ${[
+                    ['دقيق القمح','دقيق اللوز / دقيق جوز الهند'],
+                    ['السكر الأبيض','إريثريتول / ستيفيا / مونك فروت'],
+                    ['الأرز','أرز القرنبيط (قرنبيط مبشور)'],
+                    ['المكرونة','كوسا مقطعة / شعيرية الكونجاك'],
+                    ['خبز التوست','خبز اللوز / خبز الجبن'],
+                    ['البطاطس المقلية','فطر / قرنبيط مقلي / فلفل'],
+                    ['الحليب العادي','كريمة ثقيلة مخففة / حليب جوز الهند'],
+                    ['الشوكولاتة','شوكولاتة داكنة 85%+ (بكمية)'],
+                  ].map(([fr,to])=>`
+                    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+                      <span style="color:var(--danger);min-width:90px">${fr}</span>
+                      <span style="color:var(--text3)">→</span>
+                      <span style="color:var(--accent)">${to}</span>
+                    </div>`).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: By Category -->
+          <div id="ftab-bycat" style="display:none">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px" id="foods-bycat-grid"></div>
+          </div>
+
+          <!-- TAB 3: Full Table -->
+          <div id="ftab-table" style="display:none">
+            <div class="sbar">
+              <div class="si-wrap"><input type="text" id="fsearch" placeholder="ابحث عن طعام..." oninput="rFoodsTable()"><span class="si-icon">⌕</span></div>
+              <select id="fcat" onchange="rFoodsTable()" style="width:130px"><option value="">كل الفئات</option><option>بروتين</option><option>ألبان</option><option>دهون</option><option>خضار</option><option>مكسرات</option><option>بذور</option></select>
+              <select id="fpage-size" onchange="foodsPage=0;rFoodsTable()" style="width:100px"><option value="10">10 أصناف</option><option value="20" selected>20 صنف</option><option value="50">50 صنف</option></select>
+              <button class="btn primary" id="add-food-btn" onclick="tf('food-form')">+ إضافة</button>
+            </div>
+            <div id="food-form" class="card" style="display:none">
+              <div class="card-header"><div><div class="card-title">إضافة طعام جديد</div><div class="card-sub">القيم لكل 100 غرام</div></div><button class="btn sm" onclick="tf('food-form')">✕</button></div>
+              <div class="form-row"><div class="fg"><label>الاسم بالعربي</label><input id="ff-n"></div><div class="fg"><label>الاسم بالإنجليزي</label><input id="ff-ne" dir="ltr"></div></div>
+              <div class="form-row"><div class="fg"><label>الفئة</label><select id="ff-cat"><option>بروتين</option><option>ألبان</option><option>دهون</option><option>خضار</option><option>مكسرات</option><option>بذور</option><option>أخرى</option></select></div><div class="fg"><label>سعرات</label><input type="number" id="ff-cal"></div></div>
+              <div class="form-row t3"><div class="fg"><label>دهون (غ)</label><input type="number" id="ff-f"></div><div class="fg"><label>بروتين (غ)</label><input type="number" id="ff-p"></div><div class="fg"><label>كربوهيدرات (غ)</label><input type="number" id="ff-c"></div></div>
+              <div class="form-row t3"><div class="fg"><label>ألياف (غ)</label><input type="number" id="ff-fi"></div><div class="fg"><label>دهون مشبعة (غ)</label><input type="number" id="ff-sf"></div><div class="fg"><label>صوديوم (مغ)</label><input type="number" id="ff-s"></div></div>
+              <div class="form-row f1"><div class="fg"><label>توصية د. عمار</label><input id="ff-dr"></div></div>
+              <div class="flex-end"><button class="btn primary" onclick="saveFood()">حفظ</button></div>
+            </div>
+            <div class="card" style="padding:0">
+              <div class="tbl-wrap">
+                <table><thead><tr><th>الاسم</th><th>الفئة</th><th>سعرات</th><th>دهون</th><th>بروتين</th><th>كربو صافية</th><th>ألياف</th><th>كيتو</th></tr></thead>
+                <tbody id="foods-tbody"></tbody></table>
+              </div>
+              <div id="foods-pagination" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--border)"></div>
+            </div>
+          </div>
         </div>
-        <div id="food-form" class="card" style="display:none">
-          <div class="card-header"><div><div class="card-title">إضافة طعام جديد</div><div class="card-sub">القيم لكل 100 غرام</div></div><button class="btn sm" onclick="tf('food-form')">✕</button></div>
-          <div class="form-row"><div class="fg"><label>الاسم بالعربي</label><input id="ff-n"></div><div class="fg"><label>الاسم بالإنجليزي</label><input id="ff-ne" dir="ltr"></div></div>
-          <div class="form-row"><div class="fg"><label>الفئة</label><select id="ff-cat"><option>بروتين</option><option>ألبان</option><option>دهون</option><option>خضار</option><option>مكسرات</option><option>بذور</option><option>أخرى</option></select></div><div class="fg"><label>سعرات</label><input type="number" id="ff-cal"></div></div>
-          <div class="form-row t3"><div class="fg"><label>دهون (غ)</label><input type="number" id="ff-f"></div><div class="fg"><label>بروتين (غ)</label><input type="number" id="ff-p"></div><div class="fg"><label>كربوهيدرات (غ)</label><input type="number" id="ff-c"></div></div>
-          <div class="form-row t3"><div class="fg"><label>ألياف (غ)</label><input type="number" id="ff-fi"></div><div class="fg"><label>دهون مشبعة (غ)</label><input type="number" id="ff-sf"></div><div class="fg"><label>صوديوم (مغ)</label><input type="number" id="ff-s"></div></div>
-          <div class="form-row f1"><div class="fg"><label>توصية د. عمار (اختياري)</label><input id="ff-dr" placeholder="مثال: أفضل مصدر بروتين — موصى به للفطور"></div></div>
-          <div class="flex-end"><button class="btn primary" onclick="saveFood()">حفظ</button></div>
+
+        <!-- FOOD DETAIL PAGE -->
+        <div id="food-detail-view" style="display:none">
+          <div id="food-detail-content"></div>
         </div>
-        <div class="card" style="padding:0"><div class="tbl-wrap"><table><thead><tr><th>الاسم</th><th>الفئة</th><th>سعرات</th><th>دهون</th><th>بروتين</th><th>كربو صافية</th><th>ألياف</th><th>كيتو</th><th>توصية د. عمار</th><th></th></tr></thead><tbody id="foods-tbody"></tbody></table></div></div>
       </div>
 
       <!-- RECIPES -->
@@ -1284,8 +1373,137 @@ function saveGroupChallenge(){
 }
 
 /* ═══ FOODS ═══ */
-function rFoods(){const q=(document.getElementById('fsearch')?.value||'').toLowerCase();const cat=document.getElementById('fcat')?.value||'';const foods=FOODS.filter(f=>(!q||f.name.includes(q)||f.name_en.toLowerCase().includes(q))&&(!cat||f.cat===cat));const tb=document.getElementById('foods-tbody');if(!tb)return;tb.innerHTML=foods.length===0?'<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:22px">لا توجد نتائج</td></tr>':foods.map(f=>{const sc=ks((f.fat/(f.fat+f.protein+f.net_carb||1))*100,f.net_carb,(f.protein/(f.fat+f.protein+f.net_carb||1))*100);const k=klbl(sc);return`<tr><td><div style="font-weight:500;font-size:13px">${f.name}</div><div style="font-size:11px;color:var(--text3)">${f.name_en}</div></td><td><span class="tag">${f.cat}</span></td><td class="mono">${f.cal}</td><td class="mono" style="color:var(--accent)">${f.fat}غ</td><td class="mono" style="color:var(--info)">${f.protein}غ</td><td class="mono" style="color:var(--danger)">${f.net_carb}غ</td><td class="mono" style="color:var(--text3)">${f.fiber}غ</td><td><span class="badge ${k.c}">${k.l}</span></td><td style="max-width:160px">${f.doc_rec?`<span class="rec-badge">📋 ${f.doc_rec}</span>`:'<span style="color:var(--text3);font-size:11px">—</span>'}</td><td><button class="btn sm" onclick="useInCalc(${f.id})">+ حاسبة</button></td></tr>`;}).join('');}
-function saveFood(){const n=document.getElementById('ff-n').value.trim();if(!n){alert('أدخل الاسم');return;}const c=parseFloat(document.getElementById('ff-c').value)||0,fi=parseFloat(document.getElementById('ff-fi').value)||0;FOODS.push({id:FOODS.length+1,name:n,name_en:document.getElementById('ff-ne').value,cat:document.getElementById('ff-cat').value,cal:parseFloat(document.getElementById('ff-cal').value)||0,fat:parseFloat(document.getElementById('ff-f').value)||0,sat_fat:parseFloat(document.getElementById('ff-sf').value)||0,protein:parseFloat(document.getElementById('ff-p').value)||0,carb:c,fiber:fi,net_carb:Math.max(0,c-fi),sodium:parseFloat(document.getElementById('ff-s').value)||0,potassium:0,doc_rec:document.getElementById('ff-dr').value});tf('food-form');popSels();rFoods();}
+/* ═══ FOODS ═══ */
+let foodsPage=0;
+const CAT_ICONS={'بروتين':'🥩','ألبان':'🧀','دهون':'🥑','خضار':'🥦','مكسرات':'🥜','بذور':'🌱','أخرى':'🍽️'};
+const CAT_DOMINANT={'بروتين':'prot','ألبان':'fat','دهون':'fat','خضار':'carb','مكسرات':'fat','بذور':'fat'};
+
+function rFoods(){switchFoodsTab('allowed',document.querySelector('#foods-tabs .tab-item'));}
+
+function switchFoodsTab(tab,el){
+  document.querySelectorAll('#foods-tabs .tab-item').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('ftab-allowed').style.display=tab==='allowed'?'block':'none';
+  document.getElementById('ftab-bycat').style.display=tab==='bycat'?'block':'none';
+  document.getElementById('ftab-table').style.display=tab==='table'?'block':'none';
+  if(tab==='bycat')rFoodsByCategory();
+  if(tab==='table')rFoodsTable();
+}
+
+function rFoodsByCategory(){
+  const cats=[...new Set(FOODS.map(f=>f.cat))];
+  const grid=document.getElementById('foods-bycat-grid');
+  if(!grid)return;
+  grid.innerHTML=cats.map(cat=>{
+    const foods=FOODS.filter(f=>f.cat===cat);
+    const icon=CAT_ICONS[cat]||'🍽️';
+    const dom=CAT_DOMINANT[cat]||'fat';
+    const domLabel={'prot':'بروتين','fat':'دهون','carb':'كربوهيدرات'}[dom];
+    const domColor={'prot':'var(--info)','fat':'var(--accent)','carb':'var(--danger)'}[dom];
+    return `<div class="card" style="margin:0"><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><div style="width:40px;height:40px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${icon}</div><div><div style="font-weight:600;font-size:14px">${cat}</div><div style="font-size:11px;color:var(--text3)">${foods.length} صنف · المغذي الرئيسي: <span style="color:${domColor}">${domLabel}</span></div></div></div><div style="display:flex;flex-direction:column;gap:4px">${foods.slice(0,5).map(f=>`<div onclick="showFoodDetail(${f.id})" style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:var(--radius-sm);background:var(--surface2);cursor:pointer;transition:all .15s" onmouseover="this.style.background='var(--accent-light)'" onmouseout="this.style.background='var(--surface2)'"><span style="font-size:13px">${f.name}</span><div style="display:flex;gap:8px;font-size:11px;font-family:var(--mono)"><span style="color:var(--accent)">${f.fat}د</span><span style="color:var(--info)">${f.protein}ب</span><span style="color:var(--danger)">${f.net_carb}ك</span></div></div>`).join('')}${foods.length>5?`<div onclick="switchFoodsTabToFilter('${cat}')" style="text-align:center;font-size:12px;color:var(--accent);cursor:pointer;padding:6px">عرض كل ${foods.length} أصناف ←</div>`:''}</div></div>`;
+  }).join('');
+}
+
+function switchFoodsTabToFilter(cat){
+  const tabs=document.querySelectorAll('#foods-tabs .tab-item');
+  switchFoodsTab('table',tabs[2]);
+  setTimeout(()=>{const sel=document.getElementById('fcat');if(sel){sel.value=cat;rFoodsTable();}},50);
+}
+
+function rFoodsTable(){
+  const q=(document.getElementById('fsearch')?.value||'').toLowerCase();
+  const cat=document.getElementById('fcat')?.value||'';
+  const pageSize=parseInt(document.getElementById('fpage-size')?.value)||20;
+  let foods=FOODS.filter(f=>(!q||f.name.includes(q)||f.name_en.toLowerCase().includes(q))&&(!cat||f.cat===cat));
+  const total=foods.length;
+  const totalPages=Math.ceil(total/pageSize)||1;
+  if(foodsPage>=totalPages)foodsPage=0;
+  const paged=foods.slice(foodsPage*pageSize,(foodsPage+1)*pageSize);
+  const tb=document.getElementById('foods-tbody');
+  if(!tb)return;
+  tb.innerHTML=paged.length===0?`<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:22px">لا توجد نتائج</td></tr>`:paged.map(f=>{
+    const sc=ks((f.fat/(f.fat+f.protein+f.net_carb||1))*100,f.net_carb,(f.protein/(f.fat+f.protein+f.net_carb||1))*100);
+    const k=klbl(sc);
+    return`<tr onclick="showFoodDetail(${f.id})" style="cursor:pointer"><td><div style="font-weight:500;font-size:13px">${f.name}</div><div style="font-size:11px;color:var(--text3)">${f.name_en}</div></td><td><span class="tag">${CAT_ICONS[f.cat]||''} ${f.cat}</span></td><td class="mono">${f.cal}</td><td class="mono" style="color:var(--accent)">${f.fat}غ</td><td class="mono" style="color:var(--info)">${f.protein}غ</td><td class="mono" style="color:var(--danger)">${f.net_carb}غ</td><td class="mono" style="color:var(--text3)">${f.fiber}غ</td><td><span class="badge ${k.c}">${k.l}</span></td></tr>`;
+  }).join('');
+  const pg=document.getElementById('foods-pagination');
+  if(pg){pg.innerHTML=`<div style="font-size:12px;color:var(--text3)">${total} صنف · صفحة ${foodsPage+1} من ${totalPages}</div><div style="display:flex;gap:6px">${foodsPage>0?`<button class="btn sm" onclick="foodsPage=${foodsPage-1};rFoodsTable()">→ السابق</button>`:''}<button class="btn sm primary">${foodsPage+1}</button>${foodsPage<totalPages-1?`<button class="btn sm" onclick="foodsPage=${foodsPage+1};rFoodsTable()">التالي ←</button>`:''}</div>`;}
+}
+
+function showFoodDetail(fid){
+  const f=FOODS.find(x=>x.id===fid);if(!f)return;
+  document.getElementById('foods-main-view').style.display='none';
+  document.getElementById('food-detail-view').style.display='block';
+  const sc=ks((f.fat/(f.fat+f.protein+f.net_carb||1))*100,f.net_carb,(f.protein/(f.fat+f.protein+f.net_carb||1))*100);
+  const k=klbl(sc);
+  const totCal=f.fat*9+f.protein*4+f.net_carb*4||1;
+  const fp=Math.round(f.fat*9/totCal*100);
+  const pp=Math.round(f.protein*4/totCal*100);
+  const cp=Math.round(f.net_carb*4/totCal*100);
+  const relRecipes=RECIPES.filter(r=>r.ingredients.some(i=>i.fid===fid));
+  const relProducts=PRODUCTS.filter(p=>p.name.includes(f.name.split(' ')[0])||f.name.includes(p.name.split(' ')[0]));
+  const isAdmin=CU&&CU.role==='admin';
+  document.getElementById('food-detail-content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+      <button class="btn sm" onclick="hideFoodDetail()">← رجوع</button>
+      <span style="color:var(--text3);font-size:13px">الأطعمة</span><span style="color:var(--text3)">›</span>
+      <span style="font-size:13px;font-weight:500">${f.name}</span>
+    </div>
+    <div class="two-col">
+      <div>
+        <div class="card" style="margin:0 0 16px">
+          <div style="width:100%;height:160px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:14px;display:flex;align-items:center;justify-content:center;border:2px dashed var(--border);position:relative;overflow:hidden">
+            ${f.img_url?`<img src="${f.img_url}" style="width:100%;height:100%;object-fit:cover">`:`<div style="text-align:center;color:var(--text3)"><div style="font-size:32px;margin-bottom:6px">${CAT_ICONS[f.cat]||'🍽️'}</div><div style="font-size:12px">لا توجد صورة</div></div>`}
+            ${isAdmin?`<button onclick="uploadFoodImage(${fid})" class="btn sm" style="position:absolute;bottom:8px;left:8px;font-size:11px">📷 تحديث</button>`:''}
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-size:18px;font-weight:600">${f.name}</div>
+              <div style="font-size:13px;color:var(--text3);margin-top:2px">${f.name_en}</div>
+              <div style="margin-top:6px"><span class="tag">${CAT_ICONS[f.cat]||''} ${f.cat}</span><span class="badge ${k.c}" style="margin-right:6px">${k.l}</span></div>
+            </div>
+            <div style="text-align:center;background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px">
+              <div style="font-size:11px;color:var(--text3)">سعرات/100غ</div>
+              <div style="font-size:24px;font-weight:700;font-family:var(--mono)">${f.cal}</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin:0 0 16px">
+          <div class="card-header"><div class="card-title">توزيع الماكرو (لكل 100 غرام)</div></div>
+          <div class="mrow">
+            <div class="mchip"><div class="mchip-l">دهون</div><div class="mchip-v f">${fp}</div><div class="mchip-u">% · ${f.fat}غ</div></div>
+            <div class="mchip"><div class="mchip-l">بروتين</div><div class="mchip-v p">${pp}</div><div class="mchip-u">% · ${f.protein}غ</div></div>
+            <div class="mchip"><div class="mchip-l">كربو</div><div class="mchip-v c">${cp}</div><div class="mchip-u">% · ${f.net_carb}غ</div></div>
+          </div>
+          <div style="height:10px;border-radius:5px;overflow:hidden;display:flex;margin-bottom:14px">
+            <div style="width:${fp}%;background:var(--accent)"></div>
+            <div style="width:${pp}%;background:var(--info)"></div>
+            <div style="width:${cp}%;background:var(--danger)"></div>
+          </div>
+          ${[['الدهون الكلية',f.fat+'غ','var(--accent)'],['الدهون المشبعة',(f.sat_fat||0)+'غ',''],['البروتين',f.protein+'غ','var(--info)'],['الكربوهيدرات الكلية',f.carb+'غ',''],['الألياف',f.fiber+'غ',''],['الكربوهيدرات الصافية',f.net_carb+'غ','var(--danger)'],['الصوديوم',(f.sodium||0)+'مغ',''],['البوتاسيوم',(f.potassium||0)+'مغ','']].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text3)">${l}</span><span class="mono"${c?` style="color:${c};font-weight:500"`:''}}>${v}</span></div>`).join('')}
+        </div>
+      </div>
+      <div>
+        ${f.doc_rec?`<div class="doc-note" style="margin-bottom:16px"><div class="doc-note-head">📋 توصية د. عمار</div>${f.doc_rec}</div>`:''}
+        <div class="card" style="margin:0 0 16px">
+          <div class="card-header"><div class="card-title">🍳 وصفات تحتوي على هذا الصنف</div></div>
+          ${relRecipes.length>0?relRecipes.map(r=>{const m=cmac(r);const k2=klbl(m.k);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="gp('recipes')"><div><div style="font-size:13px;font-weight:500">${r.name}</div><div style="font-size:11px;color:var(--text3)">${Math.round(m.cal/r.servings)} سعر/حصة</div></div><span class="badge ${k2.c}">${k2.l}</span></div>`;}).join(''):`<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لا توجد وصفات مرتبطة</div>`}
+          <button class="btn sm" style="margin-top:10px;width:100%;justify-content:center" onclick="addToCalc(${fid})">+ أضف للحاسبة</button>
+        </div>
+        <div class="card" style="margin:0 0 16px">
+          <div class="card-header"><div class="card-title">🛒 منتجات مشابهة</div></div>
+          ${relProducts.length>0?relProducts.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px;font-weight:500">${p.name}</div><div style="font-size:11px;color:var(--text3)">${p.brand}</div></div><span class="badge ${p.approved?'g':'r'}">${p.approved?'متوافق':'بحذر'}</span></div>`).join(''):`<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لا توجد منتجات مشابهة</div>`}
+        </div>
+        ${isAdmin?`<div class="card" style="margin:0"><div class="card-header"><div class="card-title">📷 إدارة الصورة</div></div><div class="fg" style="margin-bottom:10px"><label>رابط الصورة</label><input id="food-img-url-${fid}" dir="ltr" placeholder="https://..." value="${f.img_url||''}"></div><button class="btn primary sm" onclick="saveFoodImage(${fid})">حفظ الصورة</button></div>`:''}
+      </div>
+    </div>`;
+}
+
+function hideFoodDetail(){document.getElementById('foods-main-view').style.display='block';document.getElementById('food-detail-view').style.display='none';}
+function addToCalc(fid){gp('calculator');document.getElementById('csel').value=fid;document.getElementById('cqty').focus();}
+function saveFoodImage(fid){const url=document.getElementById('food-img-url-'+fid)?.value.trim();const f=FOODS.find(x=>x.id===fid);if(f&&url){f.img_url=url;showFoodDetail(fid);}}
+function uploadFoodImage(fid){const url=prompt('أدخل رابط الصورة (URL):','https://');if(url){const f=FOODS.find(x=>x.id===fid);if(f){f.img_url=url;showFoodDetail(fid);}}}
+function saveFood(){const n=document.getElementById('ff-n').value.trim();if(!n){alert('أدخل الاسم');return;}const c=parseFloat(document.getElementById('ff-c').value)||0,fi=parseFloat(document.getElementById('ff-fi').value)||0;FOODS.push({id:FOODS.length+1,name:n,name_en:document.getElementById('ff-ne').value,cat:document.getElementById('ff-cat').value,cal:parseFloat(document.getElementById('ff-cal').value)||0,fat:parseFloat(document.getElementById('ff-f').value)||0,sat_fat:parseFloat(document.getElementById('ff-sf').value)||0,protein:parseFloat(document.getElementById('ff-p').value)||0,carb:c,fiber:fi,net_carb:Math.max(0,c-fi),sodium:parseFloat(document.getElementById('ff-s').value)||0,potassium:0,doc_rec:document.getElementById('ff-dr').value});tf('food-form');popSels();rFoodsTable();}
 function useInCalc(fid){gp('calculator');document.getElementById('csel').value=fid;document.getElementById('cqty').focus();}
 
 /* ═══ RECIPES ═══ */
