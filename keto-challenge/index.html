@@ -1678,8 +1678,6 @@ function showFoodDetail(fid){
       </div>
     </div>`;}
 
-}
-
 function hideFoodDetail(){document.getElementById('foods-main-view').style.display='block';document.getElementById('food-detail-view').style.display='none';}
 function addToCalc(fid){gp('calculator');document.getElementById('csel').value=fid;document.getElementById('cqty').focus();}
 function saveFoodImage(fid){const url=document.getElementById('food-img-url-'+fid)?.value.trim();const f=FOODS.find(x=>x.id===fid);if(f&&url){f.img_url=url;showFoodDetail(fid);}}
