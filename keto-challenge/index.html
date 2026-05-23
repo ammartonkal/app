@@ -1271,9 +1271,26 @@ function openSb(){document.getElementById('sb').classList.add('open');document.g
 function closeSb(){document.getElementById('sb').classList.remove('open');document.getElementById('sov').style.display='none';}
 
 /* ═══ NAV ═══ */
-const TITLES={dashboard:'لوحة التحكم',challenge_personal:'تحديي الشخصي',challenge_group:'التحدي العام',schedule:'جدول الأسبوع',foods:'الأطعمة والمغذيات',recipes:'الوصفات الكيتونية',products:'منتجات السوق',supplements:'المكملات الغذائية',restaurants:'المطاعم الكيتو-فريندلي',stores:'المتاجر وأماكن التسوق',devices:'الأجهزة والمعدات الموصى بها',calculator:'حاسبة الوصفة',needs:'حاسبة الاحتياج اليومي',members:'المشتركون',progress:'سجل التقدم',profile:'ملفي الشخصي',addmember:'تسجيل مشترك جديد'};
-const RNDS={dashboard:rDash,phases:rPhases,challenge_personal:rPersonalChallenge,challenge_group:rGroupChallenge,schedule:rSchedule,foods:rFoods,recipes:rRecipes,products:rProducts,supplements:rSupps,restaurants:rRestaurants,stores:rStores,devices:rDevices,members:rMembers,progress:rProgress,profile:rProfile,addmember:rAddMember};
-function gp(id){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.getElementById('panel-'+id).classList.add('active');const ni=document.getElementById('nav-'+id);if(ni)ni.classList.add('active');document.getElementById('ptitle').textContent=TITLES[id]||'';if(RNDS[id])RNDS[id]();closeSb();}
+const TITLES={dashboard:'لوحة التحكم',phases:'المراحل والبروتوكول',challenge_personal:'تحديي الشخصي',challenge_group:'التحدي العام',schedule:'جدول الأسبوع',foods:'الأطعمة والمغذيات',recipes:'الوصفات الكيتونية',products:'منتجات السوق',supplements:'المكملات الغذائية',restaurants:'المطاعم الكيتو-فريندلي',stores:'المتاجر وأماكن التسوق',devices:'الأجهزة والمعدات الموصى بها',calculator:'حاسبة الوصفة',needs:'حاسبة الاحتياج اليومي',members:'المشتركون',progress:'سجل التقدم',profile:'ملفي الشخصي',addmember:'تسجيل مشترك جديد'};
+function gp(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const panel=document.getElementById('panel-'+id);
+  if(panel) panel.classList.add('active');
+  const ni=document.getElementById('nav-'+id);
+  if(ni) ni.classList.add('active');
+  document.getElementById('ptitle').textContent=TITLES[id]||'';
+  const renderers={
+    dashboard:rDash, phases:rPhases,
+    challenge_personal:rPersonalChallenge, challenge_group:rGroupChallenge,
+    schedule:rSchedule, foods:rFoods, recipes:rRecipes, products:rProducts,
+    supplements:rSupps, restaurants:rRestaurants, stores:rStores,
+    devices:rDevices, members:rMembers, progress:rProgress,
+    profile:rProfile, addmember:rAddMember
+  };
+  if(renderers[id]) renderers[id]();
+  closeSb();
+}
 
 /* ═══ INIT ═══ */
 function initApp(){popSels();document.getElementById('pg-d').value=new Date().toISOString().split('T')[0];const t=new Date().toISOString().split('T')[0];document.getElementById('mf-jd').value=t;document.getElementById('mf-sd').value=t;}
