@@ -421,6 +421,7 @@ let CHALLENGE_PROGRESS={};
     <nav>
       <div class="nav-section">الرئيسية</div>
       <div class="nav-item active" onclick="gp('dashboard')" id="nav-dashboard"><span class="nav-icon">◈</span>لوحة التحكم</div>
+      <div class="nav-item" onclick="gp('phases')" id="nav-phases"><span class="nav-icon">🗺️</span>المراحل والبروتوكول</div>
       <div class="nav-section">التحديات</div>
       <div class="nav-item" onclick="gp('challenge_personal')" id="nav-challenge_personal"><span class="nav-icon">🎯</span>تحديي الشخصي</div>
       <div class="nav-item" onclick="gp('challenge_group')" id="nav-challenge_group"><span class="nav-icon">🏆</span>التحدي العام</div>
@@ -464,6 +465,9 @@ let CHALLENGE_PROGRESS={};
         <div class="stats-grid" id="d-stats"></div>
         <div class="two-col" id="d-bottom"></div>
       </div>
+
+      <!-- PHASES -->
+      <div class="panel" id="panel-phases"><div id="phases-content"></div></div>
 
       <!-- PERSONAL CHALLENGE -->
       <div class="panel" id="panel-challenge_personal"><div id="personal-ch-content"></div></div>
@@ -1268,7 +1272,7 @@ function closeSb(){document.getElementById('sb').classList.remove('open');docume
 
 /* ═══ NAV ═══ */
 const TITLES={dashboard:'لوحة التحكم',challenge_personal:'تحديي الشخصي',challenge_group:'التحدي العام',schedule:'جدول الأسبوع',foods:'الأطعمة والمغذيات',recipes:'الوصفات الكيتونية',products:'منتجات السوق',supplements:'المكملات الغذائية',restaurants:'المطاعم الكيتو-فريندلي',stores:'المتاجر وأماكن التسوق',devices:'الأجهزة والمعدات الموصى بها',calculator:'حاسبة الوصفة',needs:'حاسبة الاحتياج اليومي',members:'المشتركون',progress:'سجل التقدم',profile:'ملفي الشخصي',addmember:'تسجيل مشترك جديد'};
-const RNDS={dashboard:rDash,challenge_personal:rPersonalChallenge,challenge_group:rGroupChallenge,schedule:rSchedule,foods:rFoods,recipes:rRecipes,products:rProducts,supplements:rSupps,restaurants:rRestaurants,stores:rStores,devices:rDevices,members:rMembers,progress:rProgress,profile:rProfile,addmember:rAddMember};
+const RNDS={dashboard:rDash,phases:rPhases,challenge_personal:rPersonalChallenge,challenge_group:rGroupChallenge,schedule:rSchedule,foods:rFoods,recipes:rRecipes,products:rProducts,supplements:rSupps,restaurants:rRestaurants,stores:rStores,devices:rDevices,members:rMembers,progress:rProgress,profile:rProfile,addmember:rAddMember};
 function gp(id){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.getElementById('panel-'+id).classList.add('active');const ni=document.getElementById('nav-'+id);if(ni)ni.classList.add('active');document.getElementById('ptitle').textContent=TITLES[id]||'';if(RNDS[id])RNDS[id]();closeSb();}
 
 /* ═══ INIT ═══ */
@@ -1328,7 +1332,7 @@ function rDash(){
   document.getElementById('d-rbar').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:12px;flex-wrap:wrap">
       <div><div style="font-size:11px;color:var(--text3);margin-bottom:1px">مساء الخير،</div><div style="font-size:16px;font-weight:600;color:var(--text)">${CU.name} 👋</div></div>
-      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 13px;text-align:center;flex-shrink:0">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 13px;text-align:center;flex-shrink:0;cursor:pointer" onclick="gp('phases')" title="اضغط لعرض المراحل">
         <div style="font-size:9px;color:var(--text3)">المرحلة</div>
         <div style="font-size:13px;font-weight:700;color:var(--accent)">المرحلة ${getPhaseLabel(phase)}</div>
         <div style="font-size:9px;color:var(--text3)">اليوم ${phDay} · ${getPhaseName(phase)}</div>
@@ -1345,6 +1349,585 @@ function rDash(){
   document.getElementById('d-stats').innerHTML=`<div class="stat-card"><div class="stat-label">وزن البداية</div><div class="stat-val warn">${mem.start_weight?mem.start_weight+' كغ':'—'}</div></div><div class="stat-card"><div class="stat-label">الوزن الحالي</div><div class="stat-val">${mem.current_weight?mem.current_weight+' كغ':'—'}</div></div><div class="stat-card"><div class="stat-label">المفقود</div><div class="stat-val">${mem.start_weight?lost+' كغ':'—'}</div></div><div class="stat-card"><div class="stat-label">نحو الهدف</div><div class="stat-val inf">${mem.start_weight&&mem.goal_weight?pctGoal+'%':'—'}</div></div>`;
   document.getElementById('d-bottom').innerHTML=`<div>${ratioSection}${macroSection}${suggSection}</div><div><div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">⚖️ تسجيل الوزن اليومي</div></div><div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:14px"><div class="fg" style="flex:1"><label>الوزن (كغ)</label><input type="number" step="0.1" id="dash-weight-input" placeholder="${mem.current_weight||'0.0'}" style="font-size:16px;padding:10px 12px"></div><div class="fg"><label>التاريخ</label><input type="date" id="dash-weight-date" value="${new Date().toISOString().split('T')[0]}"></div><button class="btn primary" onclick="dashAddWeight()" style="padding:10px 16px;white-space:nowrap">تسجيل ✓</button></div>${PROGRESS.filter(p=>p.mid===mem.id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5).map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3)">${p.date}</span><div style="display:flex;align-items:center;gap:10px"><span class="mono" style="color:var(--accent);font-size:13px">${p.weight} كغ</span><button class="btn sm dng" style="padding:2px 7px;font-size:11px" onclick="dashDeleteWeight('${p.date}',${mem.id})">✕</button></div></div>`).join('')||'<div style="color:var(--text3);font-size:13px;text-align:center;padding:12px 0">لا توجد قياسات بعد</div>'}</div><div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">🏆 تحدي الأسبوع</div><button class="btn sm" onclick="gp('challenge_personal')">متابعة ←</button></div>${miniChallenge()}</div><div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">🎯 تحديي الشخصي</div><button class="btn sm" onclick="gp('challenge_personal')">عرض ←</button></div>${(()=>{const ch=typeof WEEKLY_CHALLENGES!=='undefined'?WEEKLY_CHALLENGES.find(c=>c.active&&c.uid===CU.id):null;if(!ch)return`<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">لا يوجد تحدٍّ شخصي نشط</div><button class="btn sm" style="width:100%;justify-content:center;margin-top:8px" onclick="gp('challenge_personal')">إنشاء تحدٍّ جديد +</button>`;const done=ch.tasks.filter(t=>CHALLENGE_PROGRESS[CU.id]?.[ch.id+'_'+t.id]).length;const pct=Math.round(done/ch.tasks.length*100);return`<div style="font-size:13px;font-weight:500;margin-bottom:6px">${ch.title}</div><div style="display:flex;align-items:center;gap:10px"><div class="kbar" style="flex:1;margin:0"><div class="kfill gr" style="width:${pct}%"></div></div><span class="mono" style="color:var(--accent);font-weight:600">${pct}%</span></div><div style="font-size:11px;color:var(--text3);margin-top:4px">${done} من ${ch.tasks.length} مهام مكتملة</div>`;})()}</div><div class="card"><div class="card-header"><div class="card-title">🏅 التحدي العام</div><button class="btn sm" onclick="gp('challenge_group')">عرض ←</button></div>${(()=>{const ch=typeof GROUP_CHALLENGES!=='undefined'?GROUP_CHALLENGES.find(c=>c.active):null;if(!ch)return'<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">لا يوجد تحدٍّ عام نشط حالياً</div>';const prog=GROUP_CHALLENGE_PROGRESS[CU.id]?.[ch.id]||{};const done=ch.tasks.filter(t=>prog[t.id]).length;const pts=ch.tasks.filter(t=>prog[t.id]).reduce((s,t)=>s+t.points,0);const totalPts=ch.tasks.reduce((s,t)=>s+t.points,0);const pct=Math.round(done/ch.tasks.length*100);return`<div style="font-size:13px;font-weight:500;margin-bottom:6px">${ch.title}</div><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><div class="kbar" style="flex:1;margin:0"><div class="kfill gr" style="width:${pct}%"></div></div><span class="mono" style="color:var(--accent);font-weight:600">${pct}%</span></div><div style="font-size:11px;color:var(--text3)">${done} من ${ch.tasks.length} مهام · <strong style="color:var(--warning);font-family:var(--mono)">${pts}</strong> من ${totalPts} نقطة</div>`;})()}</div></div>`;
 }
+/* ═══════════════════════════════════════════
+   صفحة المراحل والبروتوكول
+═══════════════════════════════════════════ */
+
+const PHASES_DATA = {
+  0: {
+    id:0, name:"التمهيدية", label:"تهيئة واستعداد", icon:"🌱",
+    color:"#8aaa82", duration:"مرنة — حتى الاستعداد الكامل",
+    carb_range:null, fat_range:null,
+    tagline:"أهم مرحلة — تحدد الوجهة وتزيد فرصة النجاح",
+    overview:"مرحلة التهيئة النفسية والجسدية والمعلوماتية قبل البدء. جودتها تحدد سلاسة كل ما يليها.",
+    goals:["قراءة الدليل كاملاً قبل البدء","التهيئة النفسية وتجنب الشعور بالحرمان","تقليل اعتمادية السكريات تدريجياً","استشارة الطبيب إذا كانت هناك أمراض مزمنة","تحديد موعد البدء بالالتزام"],
+    allowed:["سلطة ورقيات بزيت الزيتون يومياً","فراولة وتوت أزرق وجوافة كبديل للحلويات","مكسرات كوجبة خفيفة","استبدال المقلي بالهوائية","تقليل المعجنات والمخبوزات تدريجياً"],
+    avoid:["السكريات المضافة بشكل مفاجئ — اتركها تدريجياً","بدء الكيتو الكامل مع توتر عالٍ","قطع كل شيء دفعة واحدة"],
+    next_when:["انخفاض الاعتمادية على السكريات","تقليل الكارب >50% لـ 5 أيام بلا أعراض","الاستعداد لزيادة النشاط البدني","التشبع المعلوماتي بالبروتوكول"],
+    tip:"تذكر: الاستعداد الجيد = 80% من نجاح الرحلة"
+  },
+  1: {
+    id:1, name:"الأولى", label:"دخول الكيتوز", icon:"🔥",
+    color:"#3a8c3f", duration:"2 – 7 أيام",
+    carb_range:"أقل من 15 جرام/يوم", fat_range:"أكثر من 100 جرام/يوم",
+    tagline:"الجسم يحوّل مصدر طاقته من الجلوكوز إلى الدهون",
+    overview:"أول مرحلة حقيقية في الكيتو. المدة تعتمد على مرونة جسمك ومستوى الكارب السابق. الجسم يعيد برمجة نفسه.",
+    goals:["دخول الحالة الكيتونية (كيتون الدم >0.5 ملمول/لتر)","استقرار مصادر الطاقة الجديدة","التخلص من مخازن الجلايكوجين"],
+    macros:{carb:"<5% من السعرات · <15 جرام/يوم", fat:">75% · >100 جرام/يوم", protein:"المتبقي حسب الاحتياج"},
+    allowed:["البيض بالزبدة والجبن — أساس الفطور","اللحوم والدواجن والأسماك","الأجبان والقشطة والكريمة","الأفوكادو والزيتون","الخضار الورقية بزيت الزيتون","مرق العظام يومياً","القهوة السادة أو بالكريمة"],
+    avoid:["أي كارب فوق 15 جرام","الصيام أكثر من 12 ساعة","النشاط البدني الشديد غير الاعتيادي","تقليل كميات الأكل"],
+    symptoms:["صداع — نقص صوديوم، أضف ملح هيمالايا","تعب — انسحاب السكريات، طبيعي ومؤقت","تشنجات — نقص ماغنيسيوم أو بوتاسيوم","غثيان — مبالغة في الدهون المشبعة، خففها"],
+    next_when:["مستوى كيتون >0.5 ملمول/لتر في الدم","أو ظهور العلامات الإيجابية: صفاء ذهني + نشاط + تنظيم شهية"],
+    tip:"لا تفكر في الوزن الآن — الخسارة 1-3 كج معظمها سوائل"
+  },
+  2: {
+    id:2, name:"الثانية", label:"Keto Adaptation", icon:"⚡",
+    color:"#2d7032", duration:"21 يوماً كحد أدنى (إجمالي 4-6 أسابيع من البداية)",
+    carb_range:"20 – 30 جرام/يوم (زيادة تدريجية)", fat_range:"65 – 75%",
+    tagline:"الدماغ والعضلات يتأقلمان مع الكيتون كمصدر أساسي للطاقة",
+    overview:"المرحلة التي تشعر فيها بفارق حقيقي — طاقة مستدامة، صفاء ذهني، شهية منتظمة. جسمك يعيد بناء آلياته.",
+    goals:["تأقلم الدماغ على طاقة الكيتون حتى نسبة مرتفعة","استقرار الطاقة طوال اليوم","معدل خسارة دهون 500-1000 جرام/أسبوع"],
+    macros:{carb:"زيادة +5 جرام/أسبوع حتى 20-30 جرام", fat:"65-75% (انخفاض تدريجي)", protein:"حسب النشاط البدني"},
+    allowed:["كل المسموح في المرحلة الأولى","زيادة تدريجية في الخضار","إدخال الصيام المتقطع (12-16 ساعة)","توسيع القائمة الغذائية"],
+    avoid:["تجاوز 10 جرام كارب في وجبة واحدة","المبالغة في الصيام","قلة كميات الأكل التي تُقرّب من التجويع"],
+    next_when:["بعد 4-6 أسابيع من بداية المرحلة الأولى","عند الشعور بالملل البسيط أو الرغبة في تغيير الروتين","أو الانتقال مباشرة للمرحلة الرابعة إذا لم تشعر بالحاجة للثالثة"],
+    tip:"الطاقة الفائضة — استثمرها في النشاط البدني وبناء عادات جديدة"
+  },
+  3: {
+    id:3, name:"الثالثة", label:"خروج مؤقت", icon:"🔄",
+    color:"#a07010", duration:"1 – 3 أيام كحد أقصى",
+    carb_range:"حتى 100 جرام (جزئي) أو أكثر من 130 (كامل)", fat_range:"مرنة",
+    tagline:"زيادة المرونة الأيضية — ليست وجبة مفتوحة",
+    overview:"محطة مقصودة لزيادة المرونة الأيضية. الجسم يُعيد ملء مخازن الجلايكوجين. الزيادة في الوزن مؤقتة (سوائل).",
+    goals:["زيادة المرونة الأيضية","إعادة ملء مخازن الجلايكوجين","تجنب الدخول للحالة الكيتونية التجويعية"],
+    macros:{carb:"حتى 100 جرام (جزئي) أو >130 (كامل)", fat:"تناول سعرات الثبات أو أعلى", protein:"تغطية كافية"},
+    allowed:["مصادر كارب صحية: رز أسمر، حبوب كاملة","فاكهة متنوعة بكميات معتدلة","بطاطا حلوة","وجبة واحدة خارج النطاق الصحي بكميات صغيرة"],
+    avoid:["مراقبة الوزن خلال هذه الأيام","الإفراط في السكريات والكارب المكرر","تقليل السعرات","وجبة واحدة ضخمة جداً"],
+    next_when:["عند الشعور بالاكتفاء والرغبة في العودة","أو بمرور 3 أيام كحد أقصى"],
+    tip:"للنساء: يُفضَّل توقيتها مع مرحلة ما قبل الدورة الشهرية"
+  },
+  4: {
+    id:4, name:"الرابعة", label:"Fat Adaptation", icon:"💪",
+    color:"#1a6fa8", duration:"6 – 8 أسابيع (قابلة للتمديد)",
+    carb_range:"تبدأ <30 جرام وتزيد تدريجياً حتى 40 جرام", fat_range:"65 – 75%",
+    tagline:"الدهون الحرة مصدر الطاقة — بدون الحاجة لكيتون مرتفع",
+    overview:"المرحلة التي يصل فيها الجسم للمرونة الأيضية الكاملة. مستوى الكيتون ينخفض — وهذه علامة إيجابية لا فشل.",
+    goals:["اعتماد الجسم على الدهون الحرة مباشرة","الدماغ يصل لـ75% اعتماد على الكيتون","إعادة بناء الكتلة العضلية مع البروتين الكافي"],
+    macros:{carb:"<30 جرام تزيد تدريجياً", fat:"65-75%", protein:"مرتفع لدعم بناء العضل"},
+    allowed:["توسيع الخضار تدريجياً","زيادة تدريجية في النشاط البدني المكثف","تمارين المقاومة لبناء العضل","صيام متقطع حسب الراحة"],
+    avoid:["قائمة غذائية صارمة جداً — الملل يضر","إهمال النشاط البدني","المبالغة في ساعات الصيام (وجبة واحدة يومياً خطأ)"],
+    next_when:["بعد 6-8 أسابيع من الانتظام في هذه المرحلة","يمكن التمديد إذا شعرت بالارتياح"],
+    tip:"انخفاض الكيتون في الدم = Fat Adaptation ناجح، ليس فشلاً"
+  },
+  5: {
+    id:5, name:"الخامسة", label:"الاستمرارية", icon:"🎯",
+    color:"#3a8c3f", duration:"حتى الوصول للهدف الصحي (قد تتجاوز سنة)",
+    carb_range:"تدوير بين المرحلة 3 و4", fat_range:"مرنة",
+    tagline:"التدوير المستمر بين الخروج المؤقت وFat Adaptation للوصول للهدف",
+    overview:"أطول مرحلة وأكثرها نضجاً. جسمك يعرف كيف يتعامل مع الكيتو — أنت تضبط الإيقاع.",
+    goals:["الوصول للهدف الصحي","تطوير المرونة الأيضية","بناء نمط حياة كيتوني مستدام"],
+    schedule_example:[
+      {day:"اليوم 1", meals:3, cal:1800, window:"8-10 ساعات"},
+      {day:"اليوم 2", meals:3, cal:1600, window:"8-10 ساعات"},
+      {day:"اليوم 3", meals:2, cal:1400, window:"8-10 ساعات"},
+      {day:"اليوم 4", meals:1, cal:1000, window:"6-8 ساعات"},
+      {day:"اليوم 5", meals:2, cal:1200, window:"3-4 ساعات"},
+      {day:"اليوم 6", meals:2, cal:1400, window:"6-8 ساعات"},
+      {day:"اليوم 7", meals:3, cal:1600, window:"6-8 ساعات"},
+    ],
+    next_when:["عند الوصول للهدف الصحي المطلوب","تقييم الوضع شهرياً أو كل 3 أشهر"],
+    tip:"ثبات الوزن لأسابيع طبيعي — الجسم يعيد ضبط نفسه ثم يعود للخسارة"
+  },
+  6: {
+    id:6, name:"السادسة", label:"تثبيت النتائج", icon:"🏆",
+    color:"#2d7032", duration:"مرنة — حتى ثبات المكتسبات",
+    carb_range:"حسب الخيار المختار (كيتو / low carb / سعرات)", fat_range:"مرنة",
+    tagline:"وصلت للهدف — الآن نثبّت ونُبرمج من جديد",
+    overview:"مرحلة إعادة البرمجة. الوصول للوزن المثالي إنجاز — لكن تثبيته كنمط حياة هو الأعظم.",
+    options:[
+      {name:"الاستمرار في الكيتو", desc:"الانتقال للمرحلة السابعة — الأفضل للحالات المرضية", carb:"< 50 جرام/يوم"},
+      {name:"Low Carb", desc:"مرونة أكبر — قد لا يصل لكيتوز كامل", carb:"< 130 جرام/يوم أو <25% من السعرات"},
+      {name:"حساب السعرات", desc:"مرونة أكبر مع الحفاظ على جودة المصادر", carb:"حسب الهدف"},
+    ],
+    next_when:["استشارة طبية لتقييم الحالة الصحية","تحديد الهدف القادم وطبيعة الحياة"],
+    tip:"الاختيار الصحيح يعتمد على: حالتك الصحية + أهدافك القادمة + طبيعة حياتك"
+  },
+  7: {
+    id:7, name:"السابعة", label:"نمط حياة", icon:"✨",
+    color:"#1a6fa8", duration:"دائمة — كيتو كنمط حياة مرن ومستدام",
+    carb_range:"20 – 50 جرام/يوم (مرن حسب الجسم)", fat_range:"50% فأكثر",
+    tagline:"الكيتو ليس نظاماً — هو طريقة حياة",
+    overview:"المرحلة النهائية. أنت الآن تعرف جسمك وكيف يستجيب. الكيتو أصبح جزءاً طبيعياً من يومك.",
+    conditions:["تطبيق النظام بدون صعوبات تذكر","فهم الفوائد الصحية وآلية الجسم","القدرة على تصميم برنامج غذائي ملائم","تغطية الاحتياج من المغذيات الكبرى والصغرى","تفادي الحالة الكيتونية التجويعية","متابعة طبية دورية للأمراض المزمنة"],
+    tip:"الكيتو آمن طويل الأمد — دراسات تمتد 150 سنة تدعم ذلك"
+  }
+};
+
+const ONBOARDING_QUESTIONS = [
+  {
+    id:'q1', text:'هل جربت الكيتو من قبل؟',
+    options:[
+      {value:'never', label:'لا، هذه المرة الأولى'},
+      {value:'tried', label:'جربته لفترة قصيرة ووقفت'},
+      {value:'experienced', label:'جربته لفترة طويلة وأنا على دراية به'},
+    ]
+  },
+  {
+    id:'q2', text:'ما مستوى اعتمادك الحالي على السكريات والكارب؟',
+    options:[
+      {value:'high', label:'مرتفع جداً — لا أتخيل يومي بدونها'},
+      {value:'medium', label:'متوسط — أستطيع الاستغناء عنها لأيام'},
+      {value:'low', label:'منخفض — لدي سيطرة على شهوة السكر'},
+    ]
+  },
+  {
+    id:'q3', text:'هل تعاني من أي أمراض مزمنة أو تأخذ أدوية منتظمة؟',
+    options:[
+      {value:'yes_critical', label:'نعم — سكري أو ضغط أو إنسولين'},
+      {value:'yes_other', label:'نعم — حالة أخرى'},
+      {value:'no', label:'لا، صحتي جيدة'},
+    ]
+  },
+  {
+    id:'q4', text:'ما مستوى نشاطك البدني الحالي؟',
+    options:[
+      {value:'sedentary', label:'خامل — جلوس معظم اليوم'},
+      {value:'light', label:'خفيف — حركة يومية بسيطة'},
+      {value:'active', label:'نشط — رياضة منتظمة'},
+    ]
+  },
+  {
+    id:'q5', text:'ما هدفك الرئيسي من الكيتو؟',
+    options:[
+      {value:'weight', label:'خسارة الوزن والدهون'},
+      {value:'health', label:'تحسين الصحة والمؤشرات (سكر، ضغط، طاقة)'},
+      {value:'lifestyle', label:'نمط حياة صحي مستدام'},
+      {value:'medical', label:'علاج حالة صحية محددة'},
+    ]
+  }
+];
+
+function determinePhase(answers){
+  const {q1,q2,q3,q4} = answers;
+  if(q1==='experienced') return 2;
+  if(q2==='high') return 0;
+  if(q1==='tried'&&q2!=='high') return 1;
+  return 0;
+}
+
+function rPhases(){
+  const el = document.getElementById('phases-content');
+  if(!el) return;
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  const modeEnabled = mem?.keto_mode === 'protocol';
+  const currentPhase = mem?.phase || null;
+
+  el.innerHTML = `
+    <!-- وضع الكيتو -->
+    <div class="card" style="margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px">🗺️ وضع تطبيق الكيتو</div>
+          <div style="font-size:12px;color:var(--text3)">اختر طريقة تطبيقك للكيتو في هذا التطبيق</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button onclick="setKetoMode('free')" class="btn${modeEnabled?'':' primary'}" style="${!modeEnabled?'':'background:var(--surface2);color:var(--text2);border-color:var(--border)'}">
+            🌿 الطريقة العامة
+          </button>
+          <button onclick="setKetoMode('protocol')" class="btn${modeEnabled?' primary':''}">
+            🗺️ بروتوكول د. عمار
+          </button>
+        </div>
+      </div>
+      ${modeEnabled?`
+        <div style="margin-top:14px;padding:12px;background:var(--accent-light);border-radius:var(--radius-sm);border:1px solid rgba(58,140,63,.2)">
+          <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:6px">✅ وضع البروتوكول مفعّل</div>
+          <div style="font-size:11px;color:var(--text2)">الجداول والوصفات والاقتراحات تعمل حسب مرحلتك الحالية. يمكنك دائماً الخروج منها بضغطة زر.</div>
+        </div>`:
+        `<div style="margin-top:14px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+          <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">الوضع الحالي: الطريقة العامة</div>
+          <div style="font-size:11px;color:var(--text3)">جميع الأطعمة والوصفات متاحة بدون تصفية. فعّل بروتوكول د. عمار للحصول على توجيه مخصص حسب مرحلتك.</div>
+        </div>`
+      }
+    </div>
+
+    ${modeEnabled ? `
+    <!-- المرحلة الحالية -->
+    ${currentPhase !== null ? `
+    <div class="card" style="margin-bottom:20px;border-right:4px solid ${PHASES_DATA[currentPhase]?.color||'var(--accent)'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:3px">مرحلتك الحالية</div>
+          <div style="font-size:20px;font-weight:700">${PHASES_DATA[currentPhase]?.icon} المرحلة ${PHASES_DATA[currentPhase]?.name}</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:3px">${PHASES_DATA[currentPhase]?.label}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:5px">⏱ ${PHASES_DATA[currentPhase]?.duration}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+          <button class="btn sm primary" onclick="openPhaseDetail(${currentPhase})">تفاصيل مرحلتي ←</button>
+          <button class="btn sm" onclick="openPhaseAssessment()">إعادة تقييم المرحلة</button>
+        </div>
+      </div>
+    </div>` : `
+    <div class="card" style="margin-bottom:20px;border-right:4px solid var(--warning)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px">📋 تحديد مرحلتك</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px">لم يتم تحديد مرحلتك بعد. أجب على بعض الأسئلة لنحدد المرحلة المناسبة لك.</div>
+      <button class="btn primary" onclick="openPhaseAssessment()">ابدأ تقييم المرحلة 🎯</button>
+    </div>
+    `}
+
+    <!-- رحلة المراحل -->
+    <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px">رحلة المراحل الكاملة</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+      ${Object.values(PHASES_DATA).map(ph=>{
+        const isCurrent = ph.id === currentPhase;
+        const isDone = currentPhase !== null && ph.id < currentPhase;
+        return `<div onclick="openPhaseDetail(${ph.id})" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid ${isCurrent?ph.color:'var(--border)'};border-right-width:4px;border-right-color:${ph.color};border-radius:var(--radius);cursor:pointer;transition:all .15s${isDone?';opacity:.7':''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='var(--surface)'">
+          <div style="font-size:22px;flex-shrink:0">${ph.icon}</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-size:13px;font-weight:600">المرحلة ${ph.name}</span>
+              ${isCurrent?`<span style="font-size:10px;background:${ph.color};color:#fff;padding:2px 8px;border-radius:100px;font-weight:600">● مرحلتك الحالية</span>`:''}
+              ${isDone?`<span style="font-size:10px;color:var(--text3)">✓ منتهية</span>`:''}
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">${ph.label}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">⏱ ${ph.duration}</div>
+          </div>
+          <div style="font-size:18px;color:var(--text3)">›</div>
+        </div>`;
+      }).join('')}
+    </div>` :
+    `<!-- وضع عام - عرض مبسط -->
+    <div class="card" style="margin-bottom:20px;border:2px dashed var(--border)">
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:36px;margin-bottom:10px">🗺️</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px">تريد توجيهاً مخصصاً؟</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:16px">فعّل بروتوكول د. عمار للحصول على اقتراحات وجداول وتوجيه مبني على مرحلتك.</div>
+        <button class="btn primary" onclick="setKetoMode('protocol')">تفعيل البروتوكول</button>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px">نظرة عامة على المراحل</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
+      ${Object.values(PHASES_DATA).map(ph=>`
+        <div onclick="openPhaseDetail(${ph.id})" style="background:var(--surface);border:1px solid var(--border);border-top:3px solid ${ph.color};border-radius:var(--radius);padding:14px;cursor:pointer;transition:all .15s" onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
+          <div style="font-size:22px;margin-bottom:8px">${ph.icon}</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px">المرحلة ${ph.name}</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">${ph.label}</div>
+          <div style="font-size:10px;color:var(--text3)">${ph.duration}</div>
+        </div>`).join('')}
+    </div>
+    `}
+
+    <!-- نافذة تقييم المرحلة -->
+    <div id="phase-assessment-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center;padding:20px">
+      <div style="background:var(--surface);border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+        <div id="assessment-content"></div>
+      </div>
+    </div>
+
+    <!-- نافذة تفاصيل المرحلة -->
+    <div id="phase-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+      <div style="background:var(--surface);border-radius:16px;width:100%;max-width:600px;box-shadow:0 8px 40px rgba(0,0,0,.18);margin:auto">
+        <div id="phase-detail-content"></div>
+      </div>
+    </div>`;
+}
+
+function setKetoMode(mode){
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem){ alert('لم يتم العثور على ملفك الشخصي'); return; }
+  mem.keto_mode = mode;
+  rPhases();
+  rDash();
+  if(mode==='protocol' && mem.phase === null){
+    setTimeout(()=>openPhaseAssessment(), 400);
+  }
+}
+
+function openPhaseAssessment(){
+  const modal = document.getElementById('phase-assessment-modal');
+  if(!modal) return;
+  modal.style.display = 'flex';
+  showAssessmentStep(0, {});
+}
+
+function closePhaseAssessment(){
+  const modal = document.getElementById('phase-assessment-modal');
+  if(modal) modal.style.display = 'none';
+}
+
+function showAssessmentStep(stepIndex, answers){
+  const content = document.getElementById('assessment-content');
+  if(!content) return;
+  if(stepIndex >= ONBOARDING_QUESTIONS.length){
+    // نهاية الأسئلة — عرض النتيجة
+    const suggestedPhase = determinePhase(answers);
+    const ph = PHASES_DATA[suggestedPhase];
+    content.innerHTML = `
+      <div style="padding:24px">
+        <div style="text-align:center;margin-bottom:20px">
+          <div style="font-size:44px;margin-bottom:10px">${ph.icon}</div>
+          <div style="font-size:17px;font-weight:700;margin-bottom:6px">مرحلتك المقترحة: المرحلة ${ph.name}</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:4px">${ph.label}</div>
+          <div style="font-size:12px;color:var(--text3)">${ph.tagline}</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:20px;font-size:12px;color:var(--text2);line-height:1.7">${ph.overview}</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:12px">اختر طريقة البدء:</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+          <button onclick="applyPhase(${suggestedPhase},'restart')" class="btn primary" style="justify-content:flex-start;padding:14px 16px;text-align:right">
+            <div>
+              <div style="font-size:13px;font-weight:600">🚀 ابدأ من المرحلة الأولى</div>
+              <div style="font-size:11px;opacity:.8;margin-top:2px">ابدأ رحلة منظمة كاملة من البداية</div>
+            </div>
+          </button>
+          <button onclick="applyPhase(${suggestedPhase},'continue')" class="btn" style="justify-content:flex-start;padding:14px 16px;text-align:right;background:var(--surface2)">
+            <div>
+              <div style="font-size:13px;font-weight:600">📍 أكمل من المرحلة ${ph.name}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">واصل من حيث أنت الآن</div>
+            </div>
+          </button>
+        </div>
+        <button onclick="closePhaseAssessment()" class="btn sm" style="width:100%;justify-content:center">رجوع</button>
+      </div>`;
+    return;
+  }
+
+  const q = ONBOARDING_QUESTIONS[stepIndex];
+  const progress = Math.round((stepIndex / ONBOARDING_QUESTIONS.length) * 100);
+
+  content.innerHTML = `
+    <div style="padding:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600">تحديد المرحلة</div>
+        <button onclick="closePhaseAssessment()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3)">✕</button>
+      </div>
+      <div style="height:4px;background:var(--surface2);border-radius:2px;margin-bottom:20px">
+        <div style="height:100%;width:${progress}%;background:var(--accent);border-radius:2px;transition:width .3s"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">سؤال ${stepIndex+1} من ${ONBOARDING_QUESTIONS.length}</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:18px;line-height:1.5">${q.text}</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${q.options.map(opt=>`
+          <button onclick='(function(){var a=Object.assign({},${JSON.stringify(answers)},{"${q.id}":"${opt.value}"});showAssessmentStep(${stepIndex+1},a)})()' 
+            style="display:flex;align-items:center;gap:12px;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;font-size:13px;text-align:right;font-family:inherit;transition:all .15s;width:100%" 
+            onmouseover="this.style.borderColor='var(--accent)';this.style.background='var(--accent-light)'" 
+            onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface2)'">
+            ${opt.label}
+          </button>`).join('')}
+      </div>
+      ${stepIndex>0?`<button onclick='showAssessmentStep(${stepIndex-1},${JSON.stringify(answers)})' class="btn sm" style="margin-top:14px;color:var(--text3)">← رجوع</button>`:''}
+    </div>`;
+}
+
+function applyPhase(phase, mode){
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem) return;
+  if(mode==='restart') mem.phase = 1;
+  else mem.phase = phase;
+  mem.keto_mode = 'protocol';
+  mem.phase_start = new Date().toISOString().split('T')[0];
+  closePhaseAssessment();
+  rPhases();
+  rDash();
+}
+
+function openPhaseDetail(phaseId){
+  const ph = PHASES_DATA[phaseId];
+  if(!ph) return;
+  const modal = document.getElementById('phase-detail-modal');
+  const content = document.getElementById('phase-detail-content');
+  if(!modal||!content) return;
+  modal.style.display = 'flex';
+
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  const currentPhase = mem?.phase;
+  const isCurrent = phaseId === currentPhase;
+
+  const tabs = ['overview','allowed','timing'];
+  const tabLabels = {overview:'نظرة عامة', allowed:'المسموح والممنوع', timing:'متى أنتقل؟'};
+
+  content.innerHTML = `
+    <div style="background:${ph.color};padding:20px 24px 16px;border-radius:16px 16px 0 0;color:#fff">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:28px;margin-bottom:6px">${ph.icon}</div>
+          <div style="font-size:18px;font-weight:700">المرحلة ${ph.name}</div>
+          <div style="font-size:13px;opacity:.9">${ph.label}</div>
+        </div>
+        <button onclick="closePhaseDetail()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
+      </div>
+      <div style="margin-top:10px;font-size:11px;opacity:.8">⏱ ${ph.duration}</div>
+      ${ph.carb_range?`<div style="margin-top:6px;display:flex;gap:10px;flex-wrap:wrap">
+        <span style="background:rgba(255,255,255,.2);border-radius:100px;padding:3px 10px;font-size:11px">🥬 كارب: ${ph.carb_range}</span>
+        ${ph.fat_range?`<span style="background:rgba(255,255,255,.2);border-radius:100px;padding:3px 10px;font-size:11px">🥑 دهون: ${ph.fat_range}</span>`:''}
+      </div>`:''}
+    </div>
+
+    <!-- تبويبات -->
+    <div style="display:flex;border-bottom:1px solid var(--border)">
+      ${tabs.map((t,i)=>`<button id="ph-tab-${t}" onclick="switchPhaseTab('${t}')" style="flex:1;padding:12px 8px;border:none;border-bottom:2px solid ${i===0?ph.color:'transparent'};background:none;font-family:inherit;font-size:12px;cursor:pointer;color:${i===0?ph.color:'var(--text3)'};font-weight:${i===0?'600':'400'};transition:all .2s">${tabLabels[t]}</button>`).join('')}
+    </div>
+
+    <!-- المحتوى -->
+    <div id="ph-tab-content" style="padding:20px">
+      ${renderPhaseTab('overview', ph, isCurrent)}
+    </div>
+
+    <!-- تذييل -->
+    <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
+      ${isCurrent?`<span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:4px 12px;border-radius:100px;font-weight:600">● مرحلتك الحالية</span>`:''}
+      ${mem?.keto_mode==='protocol'&&!isCurrent?`<button onclick="jumpToPhase(${phaseId})" class="btn sm">الانتقال لهذه المرحلة</button>`:''}
+      <a href="#" onclick="event.preventDefault()" style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;margin-right:auto">📚 المزيد في البرنامج التدريبي</a>
+    </div>`;
+}
+
+function switchPhaseTab(tab){
+  const phId = parseInt(document.getElementById('phase-detail-content').querySelector('[style*="border-bottom:2px solid"]')?.id?.replace('ph-tab-','') || '0');
+  // Get current phase from modal context
+  const content = document.getElementById('ph-tab-content');
+  const modal = document.getElementById('phase-detail-modal');
+  // Find which phase is shown
+  const header = modal.querySelector('[style*="background:"]');
+  // Use stored phase id from data attribute
+  const phaseId = parseInt(modal.getAttribute('data-phase') || '0');
+  const ph = PHASES_DATA[phaseId];
+  if(!ph) return;
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  const isCurrent = phaseId === mem?.phase;
+
+  // Update tab styles
+  ['overview','allowed','timing'].forEach(t=>{
+    const btn = document.getElementById('ph-tab-'+t);
+    if(btn){
+      btn.style.borderBottomColor = t===tab ? ph.color : 'transparent';
+      btn.style.color = t===tab ? ph.color : 'var(--text3)';
+      btn.style.fontWeight = t===tab ? '600' : '400';
+    }
+  });
+  if(content) content.innerHTML = renderPhaseTab(tab, ph, isCurrent);
+}
+
+function renderPhaseTab(tab, ph, isCurrent){
+  if(tab==='overview'){
+    return `
+      <div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:16px">${ph.overview}</div>
+      ${ph.tip?`<div style="background:var(--accent-light);border-right:3px solid var(--accent);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:16px">💡 ${ph.tip}</div>`:''}
+      ${ph.goals?`
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">أهداف المرحلة</div>
+        ${ph.goals.map(g=>`<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--accent);flex-shrink:0">✓</span>${g}</div>`).join('')}
+      `:''}
+      ${ph.macros?`
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin:14px 0 8px">النسب الغذائية</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${Object.entries(ph.macros).map(([k,v])=>{const icons={carb:'🥬',fat:'🥑',protein:'🥩'};return`<div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px"><span style="color:var(--text2)">${icons[k]||''} ${k==='carb'?'الكارب الصافي':k==='fat'?'الدهون':'البروتين'}</span><span style="font-weight:600;color:var(--text)">${v}</span></div>`;}).join('')}
+        </div>
+      `:''}
+      ${ph.options?`
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin:14px 0 8px">خياراتك في هذه المرحلة</div>
+        ${ph.options.map(o=>`<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px"><div style="font-size:13px;font-weight:600;margin-bottom:4px">${o.name}</div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">${o.desc}</div><div style="font-size:10px;color:var(--text3)">🥬 الكارب: ${o.carb}</div></div>`).join('')}
+      `:''}
+      ${ph.conditions?`
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin:14px 0 8px">شروط الاستمرار</div>
+        ${ph.conditions.map((c,i)=>`<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="background:var(--accent);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">${i+1}</span>${c}</div>`).join('')}
+      `:''}
+      ${ph.schedule_example?`
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin:14px 0 8px">مثال على روتين أسبوعي (1600 سعرة)</div>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead><tr style="background:var(--surface2)">${['اليوم','الوجبات','السعرات','نافذة الأكل'].map(h=>`<th style="padding:8px;text-align:center;color:var(--text3)">${h}</th>`).join('')}</tr></thead>
+          <tbody>${ph.schedule_example.map(d=>`<tr style="border-bottom:1px solid var(--border)">${[d.day,d.meals+' وجبة',d.cal+' ك.ح',d.window].map(v=>`<td style="padding:8px;text-align:center;font-family:var(--mono)">${v}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table></div>
+      `:''}`;
+  }
+  if(tab==='allowed'){
+    return `
+      ${ph.allowed?`
+        <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px">✅ المسموح به</div>
+        <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:18px">
+          ${ph.allowed.map(a=>`<div style="display:flex;gap:10px;padding:8px 12px;background:var(--accent-light);border-radius:var(--radius-sm);font-size:12px"><span style="color:var(--accent)">✓</span>${a}</div>`).join('')}
+        </div>
+      `:''}
+      ${ph.avoid?`
+        <div style="font-size:12px;font-weight:600;color:var(--danger);margin-bottom:10px">⛔ يُتجنب</div>
+        <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:18px">
+          ${ph.avoid.map(a=>`<div style="display:flex;gap:10px;padding:8px 12px;background:var(--danger-dim);border-radius:var(--radius-sm);font-size:12px"><span style="color:var(--danger)">✗</span>${a}</div>`).join('')}
+        </div>
+      `:''}
+      ${ph.symptoms?`
+        <div style="font-size:12px;font-weight:600;color:var(--warning);margin-bottom:10px">⚠️ أعراض شائعة وحلولها</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          ${ph.symptoms.map(s=>{const[sym,...sol]=s.split('—');return`<div style="padding:10px 12px;background:var(--warning-dim);border-radius:var(--radius-sm);font-size:12px"><div style="font-weight:600;color:var(--warning);margin-bottom:3px">${sym.trim()}</div><div style="color:var(--text2)">${sol.join('—').trim()}</div></div>`;}).join('')}
+        </div>
+      `:''}`;
+  }
+  if(tab==='timing'){
+    return `
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:12px">📍 متى أنتقل للمرحلة التالية؟</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+        ${(ph.next_when||[]).map((n,i)=>`<div style="display:flex;gap:12px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm)"><div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0">${i+1}</div><div style="font-size:12px;line-height:1.6">${n}</div></div>`).join('')}
+      </div>
+      ${ph.tip?`<div style="background:var(--info-dim);border-right:3px solid var(--info);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:var(--info)">💡 ${ph.tip}</div>`:''}
+      <div style="margin-top:20px;padding:14px;background:var(--surface2);border-radius:var(--radius-sm)">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px">تذكر دائماً:</div>
+        <div style="font-size:11px;color:var(--text3);line-height:1.8">كل جسم مختلف. الأوقات المذكورة مرجعية — استمع لجسمك واستشر المختص عند الحاجة.</div>
+      </div>`;
+  }
+  return '';
+}
+
+function closePhaseDetail(){
+  const modal = document.getElementById('phase-detail-modal');
+  if(modal) modal.style.display = 'none';
+}
+
+function jumpToPhase(phaseId){
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem) return;
+  if(!confirm(`هل تريد الانتقال للمرحلة ${PHASES_DATA[phaseId]?.name}؟`)) return;
+  mem.phase = phaseId;
+  mem.phase_start = new Date().toISOString().split('T')[0];
+  closePhaseDetail();
+  rPhases();
+  rDash();
+}
+
+function openPhaseDetail(phaseId){
+  const ph = PHASES_DATA[phaseId];
+  if(!ph) return;
+  const modal = document.getElementById('phase-detail-modal');
+  if(!modal) return;
+  modal.setAttribute('data-phase', phaseId);
+  modal.style.display = 'flex';
+  const content = document.getElementById('phase-detail-content');
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  const isCurrent = phaseId === mem?.phase;
+  content.innerHTML = `
+    <div style="background:${ph.color};padding:20px 24px 16px;border-radius:16px 16px 0 0;color:#fff">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:28px;margin-bottom:6px">${ph.icon}</div>
+          <div style="font-size:18px;font-weight:700">المرحلة ${ph.name}</div>
+          <div style="font-size:13px;opacity:.9">${ph.label}</div>
+        </div>
+        <button onclick="closePhaseDetail()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
+      </div>
+      <div style="margin-top:10px;font-size:11px;opacity:.8">⏱ ${ph.duration}</div>
+      ${ph.carb_range?`<div style="margin-top:6px;display:flex;gap:10px;flex-wrap:wrap">
+        <span style="background:rgba(255,255,255,.2);border-radius:100px;padding:3px 10px;font-size:11px">🥬 ${ph.carb_range}</span>
+        ${ph.fat_range?`<span style="background:rgba(255,255,255,.2);border-radius:100px;padding:3px 10px;font-size:11px">🥑 ${ph.fat_range}</span>`:''}
+      </div>`:''}
+    </div>
+    <div style="display:flex;border-bottom:1px solid var(--border)">
+      ${['overview','allowed','timing'].map((t,i)=>{const labels={overview:'نظرة عامة',allowed:'المسموح والممنوع',timing:'متى أنتقل؟'};return`<button id="ph-tab-${t}" onclick="switchPhaseTab('${t}')" style="flex:1;padding:12px 8px;border:none;border-bottom:2px solid ${i===0?ph.color:'transparent'};background:none;font-family:inherit;font-size:12px;cursor:pointer;color:${i===0?ph.color:'var(--text3)'};font-weight:${i===0?'600':'400'};transition:all .2s">${labels[t]}</button>`;}).join('')}
+    </div>
+    <div id="ph-tab-content" style="padding:20px">${renderPhaseTab('overview',ph,isCurrent)}</div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      ${isCurrent?`<span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:4px 12px;border-radius:100px;font-weight:600">● مرحلتك الحالية</span>`:''}
+      ${mem?.keto_mode==='protocol'&&!isCurrent?`<button onclick="jumpToPhase(${phaseId})" class="btn sm">الانتقال لهذه المرحلة</button>`:''}
+      <div style="margin-right:auto;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)">📚 <span>المزيد في البرنامج التدريبي</span></div>
+    </div>`;
+}
+
+/* ═══ END PHASES ═══ */
+
 function miniChallenge(){const ch=WEEKLY_CHALLENGES.find(c=>c.active);if(!ch)return'<div style="color:var(--text3);font-size:13px;text-align:center;padding:14px 0">لا يوجد تحدي نشط</div>';if(!CHALLENGE_PROGRESS[CU.id])CHALLENGE_PROGRESS[CU.id]={};const done=ch.tasks.filter(t=>CHALLENGE_PROGRESS[CU.id][ch.id+'_'+t.id]).length;const pct=Math.round(done/ch.tasks.length*100);return`<div style="font-size:13px;font-weight:500;margin-bottom:6px">${ch.title}</div><div style="display:flex;align-items:center;gap:10px"><div class="kbar" style="flex:1;margin:0"><div class="kfill gr" style="width:${pct}%"></div></div><span class="mono" style="color:var(--accent);font-weight:600">${pct}%</span></div><div style="font-size:11px;color:var(--text3);margin-top:4px">${done} من ${ch.tasks.length} مهام مكتملة</div>`;}
 
 /* ═══ PERSONAL CHALLENGE ═══ */
