@@ -1323,15 +1323,22 @@ function rDash(){
   if(!mem.start_weight||mem.start_weight===0)missing.push({label:'الوزن الحالي',icon:'⚖️'});
   if(!mem.goal_weight||mem.goal_weight===0)missing.push({label:'وزن الهدف',icon:'🏁'});
   if(!mem.height||mem.height===0)missing.push({label:'الطول',icon:'📏'});
-  const phase=mem.phase||1;
-  const phDay=mem.challenge_start?Math.floor((new Date()-new Date(mem.challenge_start))/86400000)+1:1;
+  const phase=mem.phase!==undefined&&mem.phase!==null?mem.phase:1;
+  /* حساب عدد الأيام — يعتمد على phase_start أولاً ثم challenge_start */
+  const startDate = mem.phase_start || mem.challenge_start || null;
+  const phDay = startDate
+    ? Math.max(1, Math.floor((new Date() - new Date(startDate)) / 86400000) + 1)
+    : 1;
+  /* تحية حسب وقت اليوم */
+  const hr = new Date().getHours();
+  const greeting = hr < 12 ? 'صباح الخير،' : hr < 18 ? 'مساء الخير،' : 'مساء النور،';
   const rem=getDayRemaining(mem);
   const ratio=getDayKetoRatio(mem);
   const ratioColor=ratio.type==='positive'?'var(--accent)':ratio.type==='neutral'?'var(--warning)':'var(--danger)';
   const ratioFill=Math.min(100,(ratio.advanced/4)*100);
   document.getElementById('d-rbar').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:12px;flex-wrap:wrap">
-      <div><div style="font-size:11px;color:var(--text3);margin-bottom:1px">مساء الخير،</div><div style="font-size:16px;font-weight:600;color:var(--text)">${CU.name} 👋</div></div>
+      <div><div style="font-size:11px;color:var(--text3);margin-bottom:1px">${greeting}</div><div style="font-size:16px;font-weight:600;color:var(--text)">${CU.name} 👋</div></div>
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 13px;text-align:center;flex-shrink:0;cursor:pointer" onclick="gp('phases')" title="اضغط لعرض المراحل">
         <div style="font-size:9px;color:var(--text3)">المرحلة</div>
         <div style="font-size:13px;font-weight:700;color:var(--accent)">المرحلة ${getPhaseLabel(phase)}</div>
@@ -1361,10 +1368,18 @@ const PHASES_DATA = {
     tagline:"أهم مرحلة — تحدد الوجهة وتزيد فرصة النجاح",
     overview:"مرحلة التهيئة النفسية والجسدية والمعلوماتية قبل البدء. جودتها تحدد سلاسة كل ما يليها.",
     goals:["قراءة الدليل كاملاً قبل البدء","التهيئة النفسية وتجنب الشعور بالحرمان","تقليل اعتمادية السكريات تدريجياً","استشارة الطبيب إذا كانت هناك أمراض مزمنة","تحديد موعد البدء بالالتزام"],
-    allowed:["سلطة ورقيات بزيت الزيتون يومياً","فراولة وتوت أزرق وجوافة كبديل للحلويات","مكسرات كوجبة خفيفة","استبدال المقلي بالهوائية","تقليل المعجنات والمخبوزات تدريجياً"],
-    avoid:["السكريات المضافة بشكل مفاجئ — اتركها تدريجياً","بدء الكيتو الكامل مع توتر عالٍ","قطع كل شيء دفعة واحدة"],
-    next_when:["انخفاض الاعتمادية على السكريات","تقليل الكارب >50% لـ 5 أيام بلا أعراض","الاستعداد لزيادة النشاط البدني","التشبع المعلوماتي بالبروتوكول"],
-    tip:"تذكر: الاستعداد الجيد = 80% من نجاح الرحلة"
+    program:[
+      {icon:"🍓", text:"استبدال الحلويات والسكريات بالفاكهة الكيتو-فريندلي (فراولة، توت أزرق، جوافة) — تجنب الموز والمانجو والكرز والأناناس"},
+      {icon:"🥜", text:"استبدال الوجبات الخفيفة بالمكسرات أو الفشار بكميات ملائمة"},
+      {icon:"🥗", text:"تناول سلطة ورقيات خضراء بزيت الزيتون بشكل شبه يومي"},
+      {icon:"🥤", text:"استبدال المشروبات الغازية المحلاة بغازية خالية السعرات (مع خطة للتخلص منها تدريجياً)"},
+      {icon:"🍞", text:"تقليل تدريجي من المعجنات والمخبوزات — استبعادها عدة أيام في الأسبوع أولاً"},
+      {icon:"🍗", text:"استبدال المقلي بالقلاية الهوائية — الدجاج المغلف بالبقسماط مشتق من الدقيق الأبيض"},
+      {icon:"🏠", text:"تقليل مطاعم الوجبات السريعة وزيادة الوعي بتحضير الأكل الصحي في المنزل"},
+      {icon:"📖", text:"البدء بقراءة القيم الغذائية ومكونات المنتجات الجاهزة"},
+    ],
+    next_when:["القدرة على قطع السكريات شبه كاملاً مع انخفاض الاشتهاء","تقليل الكربوهيدرات لأكثر من 50% لمدة 5 أيام متواصلة بلا أعراض","الاستعداد لزيادة النشاط البدني","التشبع المعلوماتي بالبروتوكول"],
+    tip:"استعن بالله، اقرأ، هيّئ نفسك، غيّر بالتدريج، استشر"
   },
   1: {
     id:1, name:"الأولى", label:"دخول الكيتوز", icon:"🔥",
@@ -1561,10 +1576,12 @@ function rPhases(){
           <div style="font-size:20px;font-weight:700">${PHASES_DATA[currentPhase]?.icon} المرحلة ${PHASES_DATA[currentPhase]?.name}</div>
           <div style="font-size:13px;color:var(--text2);margin-top:3px">${PHASES_DATA[currentPhase]?.label}</div>
           <div style="font-size:11px;color:var(--text3);margin-top:5px">⏱ ${PHASES_DATA[currentPhase]?.duration}</div>
+          ${mem?.phase_start?`<div style="font-size:11px;color:var(--text3);margin-top:3px">📅 بدأت: ${mem.phase_start} · اليوم ${Math.max(1,Math.floor((new Date()-new Date(mem.phase_start))/86400000)+1)}</div>`:''}
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
           <button class="btn sm primary" onclick="openPhaseDetail(${currentPhase})">تفاصيل مرحلتي ←</button>
           <button class="btn sm" onclick="openPhaseAssessment()">إعادة تقييم المرحلة</button>
+          <button class="btn sm" onclick="editPhaseStartDate()">📅 تعديل تاريخ البدء</button>
         </div>
       </div>
     </div>` : `
@@ -1721,10 +1738,83 @@ function showAssessmentStep(stepIndex, answers){
 function applyPhase(phase, mode){
   const mem = MEMBERS.find(m=>m.uid===CU.id);
   if(!mem) return;
-  if(mode==='restart') mem.phase = 1;
-  else mem.phase = phase;
+  const targetPhase = mode==='restart' ? (phase===0?0:1) : phase;
+  /* نافذة تأكيد تاريخ البدء */
+  const content = document.getElementById('assessment-content');
+  const today = new Date().toISOString().split('T')[0];
+  const ph = PHASES_DATA[targetPhase];
+  content.innerHTML = `
+    <div style="padding:24px">
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="font-size:32px;margin-bottom:8px">${ph.icon}</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">تأكيد تاريخ البدء</div>
+        <div style="font-size:12px;color:var(--text2)">المرحلة ${ph.name} — ${ph.label}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px">متى بدأت هذه المرحلة؟</div>
+        <div class="fg" style="margin-bottom:0">
+          <label style="font-size:12px">تاريخ البدء</label>
+          <input type="date" id="phase-start-date" value="${today}" max="${today}" style="font-size:14px">
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px">يمكنك إدخال تاريخ البدء الفعلي حتى لو كان في الماضي</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button onclick="confirmPhaseStart(${targetPhase})" class="btn primary" style="justify-content:center">تأكيد البدء ✓</button>
+        <button onclick="closePhaseAssessment()" class="btn sm" style="justify-content:center">إلغاء</button>
+      </div>
+    </div>`;
+}
+
+function confirmPhaseStart(targetPhase){
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem) return;
+  const dateInput = document.getElementById('phase-start-date');
+  const chosenDate = dateInput?.value || new Date().toISOString().split('T')[0];
+  mem.phase = targetPhase;
+  mem.phase_start = chosenDate;
   mem.keto_mode = 'protocol';
-  mem.phase_start = new Date().toISOString().split('T')[0];
+  closePhaseAssessment();
+  rPhases();
+  rDash();
+}
+
+function editPhaseStartDate(){
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem) return;
+  const modal = document.getElementById('phase-assessment-modal');
+  const content = document.getElementById('assessment-content');
+  if(!modal||!content) return;
+  modal.style.display = 'flex';
+  const ph = PHASES_DATA[mem.phase||0];
+  const today = new Date().toISOString().split('T')[0];
+  content.innerHTML = `
+    <div style="padding:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:14px;font-weight:600">📅 تعديل تاريخ البدء</div>
+        <button onclick="closePhaseAssessment()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3)">✕</button>
+      </div>
+      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px">المرحلة الحالية</div>
+        <div style="font-size:14px;font-weight:600">${ph?.icon} المرحلة ${ph?.name} — ${ph?.label}</div>
+      </div>
+      <div class="fg" style="margin-bottom:18px">
+        <label>تاريخ البدء الفعلي</label>
+        <input type="date" id="edit-phase-date" value="${mem.phase_start||today}" max="${today}" style="font-size:14px">
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">يُستخدم لحساب عدد الأيام في المرحلة</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="savePhaseStartDate()" class="btn primary" style="flex:1;justify-content:center">حفظ ✓</button>
+        <button onclick="closePhaseAssessment()" class="btn" style="flex:1;justify-content:center">إلغاء</button>
+      </div>
+    </div>`;
+}
+
+function savePhaseStartDate(){
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem) return;
+  const val = document.getElementById('edit-phase-date')?.value;
+  if(!val){ alert('اختر تاريخاً صحيحاً'); return; }
+  mem.phase_start = val;
   closePhaseAssessment();
   rPhases();
   rDash();
@@ -1743,7 +1833,7 @@ function openPhaseDetail(phaseId){
   const isCurrent = phaseId === currentPhase;
 
   const tabs = ['overview','allowed','timing'];
-  const tabLabels = {overview:'نظرة عامة', allowed:'المسموح والممنوع', timing:'متى أنتقل؟'};
+  const tabLabels = {overview:'نظرة عامة', allowed: ph.id===0?'البرنامج المقترح':'المسموح والممنوع', timing:'متى أنتقل؟'};
 
   content.innerHTML = `
     <div style="background:${ph.color};padding:20px 24px 16px;border-radius:16px 16px 0 0;color:#fff">
@@ -1838,6 +1928,22 @@ function renderPhaseTab(tab, ph, isCurrent){
       `:''}`;
   }
   if(tab==='allowed'){
+    /* المرحلة التمهيدية — تعرض البرنامج المقترح بدل المسموح والممنوع */
+    if(ph.id===0 && ph.program){
+      return `
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:12px">📋 البرنامج المقترح للمرحلة التمهيدية</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.6">هذه التغييرات تدريجية — لا تتركها دفعة واحدة. ابدأ بالأسهل عليك.</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${ph.program.map((p,i)=>`
+            <div style="display:flex;gap:12px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);border-right:3px solid ${ph.color}">
+              <div style="font-size:20px;flex-shrink:0">${p.icon}</div>
+              <div>
+                <div style="font-size:10px;color:var(--text3);margin-bottom:3px">خطوة ${i+1}</div>
+                <div style="font-size:12px;color:var(--text2);line-height:1.6">${p.text}</div>
+              </div>
+            </div>`).join('')}
+        </div>`;
+    }
     return `
       ${ph.allowed?`
         <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px">✅ المسموح به</div>
@@ -1881,12 +1987,18 @@ function closePhaseDetail(){
 function jumpToPhase(phaseId){
   const mem = MEMBERS.find(m=>m.uid===CU.id);
   if(!mem) return;
-  if(!confirm(`هل تريد الانتقال للمرحلة ${PHASES_DATA[phaseId]?.name}؟`)) return;
-  mem.phase = phaseId;
-  mem.phase_start = new Date().toISOString().split('T')[0];
+  const ph = PHASES_DATA[phaseId];
+  const today = new Date().toISOString().split('T')[0];
+  /* نافذة تأكيد مصغرة */
+  const confirmed = confirm(`الانتقال للمرحلة ${ph?.name}؟\n\nسيتم طلب تاريخ البدء بعد التأكيد.`);
+  if(!confirmed) return;
   closePhaseDetail();
-  rPhases();
-  rDash();
+  /* نفتح assessment modal لتأكيد التاريخ */
+  const modal = document.getElementById('phase-assessment-modal');
+  if(modal){
+    modal.style.display = 'flex';
+    applyPhase(phaseId, 'continue');
+  }
 }
 
 function openPhaseDetail(phaseId){
@@ -1916,7 +2028,7 @@ function openPhaseDetail(phaseId){
       </div>`:''}
     </div>
     <div style="display:flex;border-bottom:1px solid var(--border)">
-      ${['overview','allowed','timing'].map((t,i)=>{const labels={overview:'نظرة عامة',allowed:'المسموح والممنوع',timing:'متى أنتقل؟'};return`<button id="ph-tab-${t}" onclick="switchPhaseTab('${t}')" style="flex:1;padding:12px 8px;border:none;border-bottom:2px solid ${i===0?ph.color:'transparent'};background:none;font-family:inherit;font-size:12px;cursor:pointer;color:${i===0?ph.color:'var(--text3)'};font-weight:${i===0?'600':'400'};transition:all .2s">${labels[t]}</button>`;}).join('')}
+      ${['overview','allowed','timing'].map((t,i)=>{const labels={overview:'نظرة عامة',allowed:phaseId===0?'البرنامج المقترح':'المسموح والممنوع',timing:'متى أنتقل؟'};return`<button id="ph-tab-${t}" onclick="switchPhaseTab('${t}')" style="flex:1;padding:12px 8px;border:none;border-bottom:2px solid ${i===0?ph.color:'transparent'};background:none;font-family:inherit;font-size:12px;cursor:pointer;color:${i===0?ph.color:'var(--text3)'};font-weight:${i===0?'600':'400'};transition:all .2s">${labels[t]}</button>`;}).join('')}
     </div>
     <div id="ph-tab-content" style="padding:20px">${renderPhaseTab('overview',ph,isCurrent)}</div>
     <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
