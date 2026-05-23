@@ -1280,15 +1280,16 @@ function gp(id){
   const ni=document.getElementById('nav-'+id);
   if(ni) ni.classList.add('active');
   document.getElementById('ptitle').textContent=TITLES[id]||'';
-  const renderers={
-    dashboard:rDash, phases:rPhases,
-    challenge_personal:rPersonalChallenge, challenge_group:rGroupChallenge,
-    schedule:rSchedule, foods:rFoods, recipes:rRecipes, products:rProducts,
-    supplements:rSupps, restaurants:rRestaurants, stores:rStores,
-    devices:rDevices, members:rMembers, progress:rProgress,
-    profile:rProfile, addmember:rAddMember
+  const fnMap={
+    dashboard:'rDash', phases:'rPhases',
+    challenge_personal:'rPersonalChallenge', challenge_group:'rGroupChallenge',
+    schedule:'rSchedule', foods:'rFoods', recipes:'rRecipes', products:'rProducts',
+    supplements:'rSupps', restaurants:'rRestaurants', stores:'rStores',
+    devices:'rDevices', members:'rMembers', progress:'rProgress',
+    profile:'rProfile', addmember:'rAddMember'
   };
-  if(renderers[id]) renderers[id]();
+  const fn = fnMap[id];
+  if(fn && typeof window[fn]==='function') window[fn]();
   closeSb();
 }
 
