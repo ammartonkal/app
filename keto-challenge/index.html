@@ -1480,248 +1480,146 @@ const PHASES_DATA = {
 
 const ONBOARDING_QUESTIONS = [
   {
-    id:'q1', text:'هل جربت الكيتو من قبل؟',
+    id:'q0', text:'هل أنت حالياً تطبق الكيتو؟',
     options:[
-      {value:'never', label:'لا، هذه المرة الأولى'},
-      {value:'tried', label:'جربته لفترة قصيرة ووقفت'},
+      {value:'yes_active',  label:'نعم — أنا على الكيتو الآن'},
+      {value:'yes_paused',  label:'كنت أطبقه وتوقفت مؤخراً'},
+      {value:'no',          label:'لا، لم أبدأ بعد'},
+    ]
+  },
+  {
+    id:'q_ready', text:'هل أنت مستعد للبدء أو الاستمرار الآن؟',
+    options:[
+      {value:'ready',    label:'نعم — مستعد تماماً وعندي الوقت والالتزام'},
+      {value:'almost',   label:'تقريباً — أحتاج بعض التحضير'},
+      {value:'not_yet',  label:'لا — أريد أن أتعرف على البروتوكول أولاً'},
+    ]
+  },
+  {
+    id:'q1', text:'ما خبرتك السابقة مع الكيتو؟',
+    options:[
+      {value:'never',       label:'هذه المرة الأولى تماماً'},
+      {value:'tried',       label:'جربته لفترة قصيرة ووقفت'},
       {value:'experienced', label:'جربته لفترة طويلة وأنا على دراية به'},
     ]
   },
   {
     id:'q2', text:'ما مستوى اعتمادك الحالي على السكريات والكارب؟',
     options:[
-      {value:'high', label:'مرتفع جداً — لا أتخيل يومي بدونها'},
+      {value:'high',   label:'مرتفع جداً — لا أتخيل يومي بدونها'},
       {value:'medium', label:'متوسط — أستطيع الاستغناء عنها لأيام'},
-      {value:'low', label:'منخفض — لدي سيطرة على شهوة السكر'},
+      {value:'low',    label:'منخفض — لدي سيطرة على شهوة السكر'},
     ]
   },
   {
     id:'q3', text:'هل تعاني من أي أمراض مزمنة أو تأخذ أدوية منتظمة؟',
     options:[
       {value:'yes_critical', label:'نعم — سكري أو ضغط أو إنسولين'},
-      {value:'yes_other', label:'نعم — حالة أخرى'},
-      {value:'no', label:'لا، صحتي جيدة'},
+      {value:'yes_other',    label:'نعم — حالة أخرى'},
+      {value:'no',           label:'لا، صحتي جيدة'},
     ]
   },
   {
     id:'q4', text:'ما مستوى نشاطك البدني الحالي؟',
     options:[
       {value:'sedentary', label:'خامل — جلوس معظم اليوم'},
-      {value:'light', label:'خفيف — حركة يومية بسيطة'},
-      {value:'active', label:'نشط — رياضة منتظمة'},
+      {value:'light',     label:'خفيف — حركة يومية بسيطة'},
+      {value:'active',    label:'نشط — رياضة منتظمة'},
     ]
   },
   {
     id:'q5', text:'ما هدفك الرئيسي من الكيتو؟',
     options:[
-      {value:'weight', label:'خسارة الوزن والدهون'},
-      {value:'health', label:'تحسين الصحة والمؤشرات (سكر، ضغط، طاقة)'},
+      {value:'weight',    label:'خسارة الوزن والدهون'},
+      {value:'health',    label:'تحسين الصحة والمؤشرات (سكر، ضغط، طاقة)'},
       {value:'lifestyle', label:'نمط حياة صحي مستدام'},
-      {value:'medical', label:'علاج حالة صحية محددة'},
+      {value:'medical',   label:'علاج حالة صحية محددة'},
     ]
   }
 ];
 
 function determinePhase(answers){
-  const {q1,q2,q3,q4} = answers;
-  if(q1==='experienced') return 2;
-  if(q2==='high') return 0;
-  if(q1==='tried'&&q2!=='high') return 1;
+  const {q0, q_ready, q1, q2} = answers;
+  if(q_ready === 'not_yet') return 0;
+  if(q0 === 'yes_active' && q1 === 'experienced') return 2;
+  if(q0 === 'yes_active' && q1 === 'tried') return 1;
+  if(q0 === 'yes_paused' && q1 === 'experienced') return 1;
+  if(q2 === 'high') return 0;
+  if(q_ready === 'almost') return 0;
+  if(q1 === 'tried') return 1;
   return 0;
-}
-
-function rPhases(){
-  const el = document.getElementById('phases-content');
-  if(!el) return;
-  const mem = MEMBERS.find(m=>m.uid===CU.id);
-  const modeEnabled = mem?.keto_mode === 'protocol';
-  const currentPhase = mem?.phase || null;
-
-  el.innerHTML = `
-    <!-- وضع الكيتو -->
-    <div class="card" style="margin-bottom:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-        <div>
-          <div style="font-size:15px;font-weight:600;margin-bottom:4px">🗺️ وضع تطبيق الكيتو</div>
-          <div style="font-size:12px;color:var(--text3)">اختر طريقة تطبيقك للكيتو في هذا التطبيق</div>
-        </div>
-        <div style="display:flex;gap:10px">
-          <button onclick="setKetoMode('free')" class="btn${modeEnabled?'':' primary'}" style="${!modeEnabled?'':'background:var(--surface2);color:var(--text2);border-color:var(--border)'}">
-            🌿 الطريقة العامة
-          </button>
-          <button onclick="setKetoMode('protocol')" class="btn${modeEnabled?' primary':''}">
-            🗺️ بروتوكول د. عمار
-          </button>
-        </div>
-      </div>
-      ${modeEnabled?`
-        <div style="margin-top:14px;padding:12px;background:var(--accent-light);border-radius:var(--radius-sm);border:1px solid rgba(58,140,63,.2)">
-          <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:6px">✅ وضع البروتوكول مفعّل</div>
-          <div style="font-size:11px;color:var(--text2)">الجداول والوصفات والاقتراحات تعمل حسب مرحلتك الحالية. يمكنك دائماً الخروج منها بضغطة زر.</div>
-        </div>`:
-        `<div style="margin-top:14px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)">
-          <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">الوضع الحالي: الطريقة العامة</div>
-          <div style="font-size:11px;color:var(--text3)">جميع الأطعمة والوصفات متاحة بدون تصفية. فعّل بروتوكول د. عمار للحصول على توجيه مخصص حسب مرحلتك.</div>
-        </div>`
-      }
-    </div>
-
-    ${modeEnabled ? `
-    <!-- المرحلة الحالية -->
-    ${currentPhase !== null ? `
-    <div class="card" style="margin-bottom:20px;border-right:4px solid ${PHASES_DATA[currentPhase]?.color||'var(--accent)'}">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-        <div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:3px">مرحلتك الحالية</div>
-          <div style="font-size:20px;font-weight:700">${PHASES_DATA[currentPhase]?.icon} المرحلة ${PHASES_DATA[currentPhase]?.name}</div>
-          <div style="font-size:13px;color:var(--text2);margin-top:3px">${PHASES_DATA[currentPhase]?.label}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:5px">⏱ ${PHASES_DATA[currentPhase]?.duration}</div>
-          ${mem?.phase_start?`<div style="font-size:11px;color:var(--text3);margin-top:3px">📅 بدأت: ${mem.phase_start} · اليوم ${Math.max(1,Math.floor((new Date()-new Date(mem.phase_start))/86400000)+1)}</div>`:''}
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
-          <button class="btn sm primary" onclick="openPhaseDetail(${currentPhase})">تفاصيل مرحلتي ←</button>
-          <button class="btn sm" onclick="openPhaseAssessment()">إعادة تقييم المرحلة</button>
-          <button class="btn sm" onclick="editPhaseStartDate()">📅 تعديل تاريخ البدء</button>
-        </div>
-      </div>
-    </div>` : `
-    <div class="card" style="margin-bottom:20px;border-right:4px solid var(--warning)">
-      <div style="font-size:14px;font-weight:600;margin-bottom:8px">📋 تحديد مرحلتك</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:14px">لم يتم تحديد مرحلتك بعد. أجب على بعض الأسئلة لنحدد المرحلة المناسبة لك.</div>
-      <button class="btn primary" onclick="openPhaseAssessment()">ابدأ تقييم المرحلة 🎯</button>
-    </div>
-    `}
-
-    <!-- رحلة المراحل -->
-    <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px">رحلة المراحل الكاملة</div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
-      ${Object.values(PHASES_DATA).map(ph=>{
-        const isCurrent = ph.id === currentPhase;
-        const isDone = currentPhase !== null && ph.id < currentPhase;
-        return `<div onclick="openPhaseDetail(${ph.id})" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid ${isCurrent?ph.color:'var(--border)'};border-right-width:4px;border-right-color:${ph.color};border-radius:var(--radius);cursor:pointer;transition:all .15s${isDone?';opacity:.7':''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='var(--surface)'">
-          <div style="font-size:22px;flex-shrink:0">${ph.icon}</div>
-          <div style="flex:1">
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <span style="font-size:13px;font-weight:600">المرحلة ${ph.name}</span>
-              ${isCurrent?`<span style="font-size:10px;background:${ph.color};color:#fff;padding:2px 8px;border-radius:100px;font-weight:600">● مرحلتك الحالية</span>`:''}
-              ${isDone?`<span style="font-size:10px;color:var(--text3)">✓ منتهية</span>`:''}
-            </div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">${ph.label}</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">⏱ ${ph.duration}</div>
-          </div>
-          <div style="font-size:18px;color:var(--text3)">›</div>
-        </div>`;
-      }).join('')}
-    </div>` :
-    `<!-- وضع عام - عرض مبسط -->
-    <div class="card" style="margin-bottom:20px;border:2px dashed var(--border)">
-      <div style="text-align:center;padding:20px 0">
-        <div style="font-size:36px;margin-bottom:10px">🗺️</div>
-        <div style="font-size:14px;font-weight:600;margin-bottom:8px">تريد توجيهاً مخصصاً؟</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:16px">فعّل بروتوكول د. عمار للحصول على اقتراحات وجداول وتوجيه مبني على مرحلتك.</div>
-        <button class="btn primary" onclick="setKetoMode('protocol')">تفعيل البروتوكول</button>
-      </div>
-    </div>
-    <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px">نظرة عامة على المراحل</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
-      ${Object.values(PHASES_DATA).map(ph=>`
-        <div onclick="openPhaseDetail(${ph.id})" style="background:var(--surface);border:1px solid var(--border);border-top:3px solid ${ph.color};border-radius:var(--radius);padding:14px;cursor:pointer;transition:all .15s" onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
-          <div style="font-size:22px;margin-bottom:8px">${ph.icon}</div>
-          <div style="font-size:13px;font-weight:600;margin-bottom:4px">المرحلة ${ph.name}</div>
-          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">${ph.label}</div>
-          <div style="font-size:10px;color:var(--text3)">${ph.duration}</div>
-        </div>`).join('')}
-    </div>
-    `}
-
-    <!-- نافذة تقييم المرحلة -->
-    <div id="phase-assessment-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center;padding:20px">
-      <div style="background:var(--surface);border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.18)">
-        <div id="assessment-content"></div>
-      </div>
-    </div>
-
-    <!-- نافذة تفاصيل المرحلة -->
-    <div id="phase-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
-      <div style="background:var(--surface);border-radius:16px;width:100%;max-width:600px;box-shadow:0 8px 40px rgba(0,0,0,.18);margin:auto">
-        <div id="phase-detail-content"></div>
-      </div>
-    </div>`;
-}
-
-function setKetoMode(mode){
-  const mem = MEMBERS.find(m=>m.uid===CU.id);
-  if(!mem){ alert('لم يتم العثور على ملفك الشخصي'); return; }
-  mem.keto_mode = mode;
-  if(window.DB) window.DB.saveMember(mem);
-  rPhases();
-  rDash();
-  if(mode==='protocol' && (mem.phase===null||mem.phase===undefined)){
-    setTimeout(()=>openPhaseAssessment(), 400);
-  }
-}
-
-function openPhaseAssessment(){
-  const modal = document.getElementById('phase-assessment-modal');
-  if(!modal) return;
-  modal.style.display = 'flex';
-  showAssessmentStep(0, {});
-}
-
-function closePhaseAssessment(){
-  const modal = document.getElementById('phase-assessment-modal');
-  if(modal) modal.style.display = 'none';
 }
 
 function showAssessmentStep(stepIndex, answers){
   const content = document.getElementById('assessment-content');
   if(!content) return;
-  if(stepIndex >= ONBOARDING_QUESTIONS.length){
-    // نهاية الأسئلة — عرض النتيجة
+  const total = ONBOARDING_QUESTIONS.length;
+
+  if(stepIndex >= total){
     const suggestedPhase = determinePhase(answers);
     const ph = PHASES_DATA[suggestedPhase];
+    const evalPoints = [];
+    if(answers.q0==='yes_active')   evalPoints.push({icon:'✅', text:'أنت تطبق الكيتو حالياً'});
+    if(answers.q0==='yes_paused')   evalPoints.push({icon:'⏸️', text:'توقفت مؤخراً عن الكيتو'});
+    if(answers.q0==='no')           evalPoints.push({icon:'🌱', text:'ستبدأ رحلة جديدة'});
+    if(answers.q2==='high')         evalPoints.push({icon:'⚠️', text:'اعتمادية عالية على السكر — التدرج مهم'});
+    if(answers.q2==='low')          evalPoints.push({icon:'💪', text:'سيطرة جيدة على شهوة السكر'});
+    if(answers.q3==='yes_critical') evalPoints.push({icon:'🏥', text:'حالة طبية — استشر طبيبك قبل البدء'});
+    if(answers.q4==='active')       evalPoints.push({icon:'🏃', text:'نشاط بدني جيد — يدعم الكيتو'});
+    if(answers.q_ready==='not_yet') evalPoints.push({icon:'📚', text:'استكشاف البروتوكول أولاً — قرار ذكي'});
+
+    const answersJson = JSON.stringify(answers).replace(/"/g,'&quot;');
     content.innerHTML = `
       <div style="padding:24px">
-        <div style="text-align:center;margin-bottom:20px">
-          <div style="font-size:44px;margin-bottom:10px">${ph.icon}</div>
-          <div style="font-size:17px;font-weight:700;margin-bottom:6px">مرحلتك المقترحة: المرحلة ${ph.name}</div>
-          <div style="font-size:13px;color:var(--text2);margin-bottom:4px">${ph.label}</div>
-          <div style="font-size:12px;color:var(--text3)">${ph.tagline}</div>
+        <div style="text-align:center;margin-bottom:16px">
+          <div style="font-size:38px;margin-bottom:8px">${ph.icon}</div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:6px">مرحلتك المقترحة</div>
+          <div style="display:inline-flex;align-items:center;gap:8px;background:${ph.color}22;border:1px solid ${ph.color}55;border-radius:100px;padding:6px 16px;margin-bottom:5px">
+            <span style="font-size:13px;font-weight:700;color:${ph.color}">المرحلة ${ph.name}</span>
+            <span style="font-size:11px;color:${ph.color}99">${ph.label}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3)">${ph.tagline}</div>
         </div>
-        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:20px;font-size:12px;color:var(--text2);line-height:1.7">${ph.overview}</div>
-        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:12px">اختر طريقة البدء:</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
-          <button onclick="applyPhase(${suggestedPhase},'restart')" class="btn primary" style="justify-content:flex-start;padding:14px 16px;text-align:right">
-            <div>
-              <div style="font-size:13px;font-weight:600">🚀 ابدأ من المرحلة الأولى</div>
-              <div style="font-size:11px;opacity:.8;margin-top:2px">ابدأ رحلة منظمة كاملة من البداية</div>
-            </div>
-          </button>
-          <button onclick="applyPhase(${suggestedPhase},'continue')" class="btn" style="justify-content:flex-start;padding:14px 16px;text-align:right;background:var(--surface2)">
-            <div>
-              <div style="font-size:13px;font-weight:600">📍 أكمل من المرحلة ${ph.name}</div>
-              <div style="font-size:11px;color:var(--text3);margin-top:2px">واصل من حيث أنت الآن</div>
-            </div>
-          </button>
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px">
+          <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:8px">ملخص تقييمك</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            ${evalPoints.map(p=>`<div style="display:flex;gap:8px;font-size:12px;color:var(--text2)"><span>${p.icon}</span><span>${p.text}</span></div>`).join('')}
+          </div>
         </div>
-        <button onclick="closePhaseAssessment()" class="btn sm" style="width:100%;justify-content:center">رجوع</button>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:16px;padding:10px 14px;border-right:3px solid ${ph.color};background:var(--surface2);border-radius:0 var(--radius-sm) var(--radius-sm) 0">${ph.overview}</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">اختر طريقة البدء:</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+          <button onclick="applyPhase(0,'start_prep')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;text-align:right;width:100%;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.background='var(--accent-light)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface2)'">
+            <span style="font-size:20px;flex-shrink:0">🌱</span>
+            <div><div style="font-size:13px;font-weight:600">ابدأ من المرحلة التمهيدية</div><div style="font-size:11px;color:var(--text3);margin-top:2px">تهيئة ودراسة البروتوكول قبل الكيتو الفعلي</div></div>
+          </button>
+          <button onclick="applyPhase(1,'start_phase1')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;background:var(--accent);border:1px solid var(--accent);border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;text-align:right;color:#fff;width:100%;transition:all .15s" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+            <span style="font-size:20px;flex-shrink:0">🚀</span>
+            <div><div style="font-size:13px;font-weight:600">ابدأ من المرحلة الأولى</div><div style="font-size:11px;opacity:.85;margin-top:2px">دخول الكيتوز مباشرة — للمستعد والمعتاد</div></div>
+          </button>
+          ${suggestedPhase >= 2 ? `
+          <button onclick="applyPhase(${suggestedPhase},'continue')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;background:var(--surface2);border:2px dashed ${ph.color};border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;text-align:right;width:100%;transition:all .15s" onmouseover="this.style.background='${ph.color}11'" onmouseout="this.style.background='var(--surface2)'">
+            <span style="font-size:20px;flex-shrink:0">${ph.icon}</span>
+            <div><div style="font-size:13px;font-weight:600;color:${ph.color}">أكمل من المرحلة ${ph.name} (المقترحة)</div><div style="font-size:11px;color:var(--text3);margin-top:2px">واصل من حيث أنت الآن</div></div>
+          </button>` : ''}
+        </div>
+        <button onclick="showAssessmentStep(${total-1},JSON.parse(atob('${btoa(unescape(encodeURIComponent(JSON.stringify(answers))))}')))" class="btn sm" style="width:100%;justify-content:center;color:var(--text3)">← رجوع للسؤال السابق</button>
       </div>`;
     return;
   }
 
   const q = ONBOARDING_QUESTIONS[stepIndex];
-  const progress = Math.round((stepIndex / ONBOARDING_QUESTIONS.length) * 100);
-
+  const progress = Math.round((stepIndex / total) * 100);
   content.innerHTML = `
     <div style="padding:24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <div style="font-size:13px;font-weight:600">تحديد المرحلة</div>
         <button onclick="closePhaseAssessment()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3)">✕</button>
       </div>
-      <div style="height:4px;background:var(--surface2);border-radius:2px;margin-bottom:20px">
-        <div style="height:100%;width:${progress}%;background:var(--accent);border-radius:2px;transition:width .3s"></div>
+      <div style="height:4px;background:var(--surface2);border-radius:2px;margin-bottom:18px">
+        <div style="height:100%;width:${progress}%;background:var(--accent);border-radius:2px;transition:width .4s"></div>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">سؤال ${stepIndex+1} من ${ONBOARDING_QUESTIONS.length}</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px">${stepIndex+1} من ${total}</div>
       <div style="font-size:15px;font-weight:600;margin-bottom:18px;line-height:1.5">${q.text}</div>
       <div style="display:flex;flex-direction:column;gap:8px">
         ${q.options.map(opt=>`
@@ -1739,7 +1637,13 @@ function showAssessmentStep(stepIndex, answers){
 function applyPhase(phase, mode){
   const mem = MEMBERS.find(m=>m.uid===CU.id);
   if(!mem) return;
-  const targetPhase = mode==='restart' ? (phase===0?0:1) : phase;
+  /* تحديد المرحلة المستهدفة حسب الوضع */
+  let targetPhase;
+  if(mode === 'start_prep')   targetPhase = 0;          // التمهيدية
+  else if(mode === 'start_phase1') targetPhase = 1;     // الأولى
+  else if(mode === 'continue') targetPhase = phase;     // المرحلة المقترحة
+  else if(mode === 'restart')  targetPhase = phase===0?0:1;
+  else targetPhase = phase;
   /* نافذة تأكيد تاريخ البدء */
   const content = document.getElementById('assessment-content');
   const today = new Date().toISOString().split('T')[0];
