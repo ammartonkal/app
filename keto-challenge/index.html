@@ -1653,9 +1653,10 @@ function setKetoMode(mode){
   const mem = MEMBERS.find(m=>m.uid===CU.id);
   if(!mem){ alert('لم يتم العثور على ملفك الشخصي'); return; }
   mem.keto_mode = mode;
+  if(window.DB) window.DB.saveMember(mem);
   rPhases();
   rDash();
-  if(mode==='protocol' && mem.phase === null){
+  if(mode==='protocol' && (mem.phase===null||mem.phase===undefined)){
     setTimeout(()=>openPhaseAssessment(), 400);
   }
 }
@@ -1773,6 +1774,7 @@ function confirmPhaseStart(targetPhase){
   mem.phase = targetPhase;
   mem.phase_start = chosenDate;
   mem.keto_mode = 'protocol';
+  if(window.DB) window.DB.saveMember(mem);
   closePhaseAssessment();
   rPhases();
   rDash();
@@ -1815,6 +1817,7 @@ function savePhaseStartDate(){
   const val = document.getElementById('edit-phase-date')?.value;
   if(!val){ alert('اختر تاريخاً صحيحاً'); return; }
   mem.phase_start = val;
+  if(window.DB) window.DB.saveMember(mem);
   closePhaseAssessment();
   rPhases();
   rDash();
@@ -1988,12 +1991,9 @@ function jumpToPhase(phaseId){
   const mem = MEMBERS.find(m=>m.uid===CU.id);
   if(!mem) return;
   const ph = PHASES_DATA[phaseId];
-  const today = new Date().toISOString().split('T')[0];
-  /* نافذة تأكيد مصغرة */
   const confirmed = confirm(`الانتقال للمرحلة ${ph?.name}؟\n\nسيتم طلب تاريخ البدء بعد التأكيد.`);
   if(!confirmed) return;
   closePhaseDetail();
-  /* نفتح assessment modal لتأكيد التاريخ */
   const modal = document.getElementById('phase-assessment-modal');
   if(modal){
     modal.style.display = 'flex';
