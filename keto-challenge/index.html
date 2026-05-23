@@ -1280,16 +1280,27 @@ function gp(id){
   const ni=document.getElementById('nav-'+id);
   if(ni) ni.classList.add('active');
   document.getElementById('ptitle').textContent=TITLES[id]||'';
-  const fnMap={
-    dashboard:'rDash', phases:'rPhases',
-    challenge_personal:'rPersonalChallenge', challenge_group:'rGroupChallenge',
-    schedule:'rSchedule', foods:'rFoods', recipes:'rRecipes', products:'rProducts',
-    supplements:'rSupps', restaurants:'rRestaurants', stores:'rStores',
-    devices:'rDevices', members:'rMembers', progress:'rProgress',
-    profile:'rProfile', addmember:'rAddMember'
-  };
-  const fn = fnMap[id];
-  if(fn && typeof window[fn]==='function') window[fn]();
+  /* الدوال تُحلّ lazily — لا تُقيَّم إلا عند الاستدعاء */
+  const lookup=()=>({
+    dashboard:typeof rDash!=='undefined'?rDash:null,
+    phases:typeof rPhases!=='undefined'?rPhases:null,
+    challenge_personal:typeof rPersonalChallenge!=='undefined'?rPersonalChallenge:null,
+    challenge_group:typeof rGroupChallenge!=='undefined'?rGroupChallenge:null,
+    schedule:typeof rSchedule!=='undefined'?rSchedule:null,
+    foods:typeof rFoods!=='undefined'?rFoods:null,
+    recipes:typeof rRecipes!=='undefined'?rRecipes:null,
+    products:typeof rProducts!=='undefined'?rProducts:null,
+    supplements:typeof rSupps!=='undefined'?rSupps:null,
+    restaurants:typeof rRestaurants!=='undefined'?rRestaurants:null,
+    stores:typeof rStores!=='undefined'?rStores:null,
+    devices:typeof rDevices!=='undefined'?rDevices:null,
+    members:typeof rMembers!=='undefined'?rMembers:null,
+    progress:typeof rProgress!=='undefined'?rProgress:null,
+    profile:typeof rProfile!=='undefined'?rProfile:null,
+    addmember:typeof rAddMember!=='undefined'?rAddMember:null,
+  });
+  const fn=lookup()[id];
+  if(fn) fn();
   closeSb();
 }
 
@@ -1652,6 +1663,153 @@ function showAssessmentStep(stepIndex, answers){
     </div>`;
 }
 
+function rPhases(){
+  const el = document.getElementById('phases-content');
+  if(!el) return;
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  const modeEnabled = !!(mem?.keto_mode === 'protocol');
+  const currentPhase = (mem?.phase !== undefined && mem?.phase !== null) ? mem.phase : null;
+  const phData = typeof PHASES_DATA !== 'undefined' ? PHASES_DATA : {};
+
+  /* -- بطاقة وضع الكيتو -- */
+  let html = `<div class="card" style="margin-bottom:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px">🗺️ وضع تطبيق الكيتو</div>
+        <div style="font-size:12px;color:var(--text3)">اختر طريقة تطبيقك للكيتو في هذا التطبيق</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button onclick="setKetoMode('free')" class="btn${modeEnabled?'':' primary'}" ${modeEnabled?'style="background:var(--surface2);color:var(--text2);border-color:var(--border)"':''}>🌿 الطريقة العامة</button>
+        <button onclick="setKetoMode('protocol')" class="btn${modeEnabled?' primary':''}">🗺️ بروتوكول د. عمار</button>
+      </div>
+    </div>`;
+
+  if(modeEnabled){
+    html += `<div style="margin-top:14px;padding:12px;background:var(--accent-light);border-radius:var(--radius-sm);border:1px solid rgba(58,140,63,.2)">
+      <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px">✅ وضع البروتوكول مفعّل</div>
+      <div style="font-size:11px;color:var(--text2)">الجداول والوصفات والاقتراحات تعمل حسب مرحلتك. يمكنك الخروج منها بضغطة زر.</div>
+    </div>`;
+  } else {
+    html += `<div style="margin-top:14px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">الوضع الحالي: الطريقة العامة</div>
+      <div style="font-size:11px;color:var(--text3)">جميع الأطعمة والوصفات متاحة بدون تصفية. فعّل بروتوكول د. عمار للحصول على توجيه مخصص.</div>
+    </div>`;
+  }
+  html += `</div>`;
+
+  /* -- المرحلة الحالية أو قائمة المراحل -- */
+  if(modeEnabled){
+    if(currentPhase !== null && phData[currentPhase]){
+      const ph = phData[currentPhase];
+      const dayCount = mem.phase_start ? Math.max(1, Math.floor((new Date()-new Date(mem.phase_start))/86400000)+1) : 1;
+      html += `<div class="card" style="margin-bottom:20px;border-right:4px solid ${ph.color}">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:3px">مرحلتك الحالية</div>
+            <div style="font-size:20px;font-weight:700">${ph.icon} المرحلة ${ph.name}</div>
+            <div style="font-size:13px;color:var(--text2);margin-top:3px">${ph.label}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:5px">⏱ ${ph.duration}</div>
+            ${mem.phase_start ? '<div style="font-size:11px;color:var(--text3);margin-top:3px">📅 بدأت: '+mem.phase_start+' · اليوم '+dayCount+'</div>' : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+            <button class="btn sm primary" onclick="openPhaseDetail(${currentPhase})">تفاصيل مرحلتي ←</button>
+            <button class="btn sm" onclick="openPhaseAssessment()">إعادة تقييم المرحلة</button>
+            <button class="btn sm" onclick="editPhaseStartDate()">📅 تعديل تاريخ البدء</button>
+          </div>
+        </div>
+      </div>`;
+    } else {
+      html += `<div class="card" style="margin-bottom:20px;border-right:4px solid var(--warning)">
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px">📋 تحديد مرحلتك</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">أجب على بعض الأسئلة لنحدد المرحلة المناسبة لك.</div>
+        <button class="btn primary" onclick="openPhaseAssessment()">ابدأ تقييم المرحلة 🎯</button>
+      </div>`;
+    }
+
+    /* قائمة كل المراحل */
+    html += `<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px">رحلة المراحل الكاملة</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">`;
+    Object.values(phData).forEach(ph => {
+      const isCurrent = ph.id === currentPhase;
+      const isDone = currentPhase !== null && ph.id < currentPhase;
+      html += `<div onclick="openPhaseDetail(${ph.id})" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid ${isCurrent?ph.color:'var(--border)'};border-right-width:4px;border-right-color:${ph.color};border-radius:var(--radius);cursor:pointer;transition:background .15s${isDone?';opacity:.7':''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='var(--surface)'">
+        <div style="font-size:22px;flex-shrink:0">${ph.icon}</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:13px;font-weight:600">المرحلة ${ph.name}</span>
+            ${isCurrent ? '<span style="font-size:10px;background:'+ph.color+';color:#fff;padding:2px 8px;border-radius:100px;font-weight:600">● مرحلتك الحالية</span>' : ''}
+            ${isDone ? '<span style="font-size:10px;color:var(--text3)">✓ منتهية</span>' : ''}
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${ph.label}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">⏱ ${ph.duration}</div>
+        </div>
+        <div style="font-size:18px;color:var(--text3)">›</div>
+      </div>`;
+    });
+    html += `</div>`;
+
+  } else {
+    /* الوضع العام — شبكة بطاقات */
+    html += `<div class="card" style="margin-bottom:20px;border:2px dashed var(--border)">
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:36px;margin-bottom:10px">🗺️</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px">تريد توجيهاً مخصصاً؟</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:16px">فعّل بروتوكول د. عمار للحصول على اقتراحات وجداول وتوجيه مبني على مرحلتك.</div>
+        <button class="btn primary" onclick="setKetoMode('protocol')">تفعيل البروتوكول</button>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px">نظرة عامة على المراحل</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">`;
+    Object.values(phData).forEach(ph => {
+      html += `<div onclick="openPhaseDetail(${ph.id})" style="background:var(--surface);border:1px solid var(--border);border-top:3px solid ${ph.color};border-radius:var(--radius);padding:14px;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
+        <div style="font-size:22px;margin-bottom:8px">${ph.icon}</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px">المرحلة ${ph.name}</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:6px">${ph.label}</div>
+        <div style="font-size:10px;color:var(--text3)">${ph.duration}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  /* النوافذ المنبثقة */
+  html += `
+    <div id="phase-assessment-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px">
+      <div style="background:var(--surface);border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+        <div id="assessment-content"></div>
+      </div>
+    </div>
+    <div id="phase-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+      <div style="background:var(--surface);border-radius:16px;width:100%;max-width:600px;box-shadow:0 8px 40px rgba(0,0,0,.18);margin:auto">
+        <div id="phase-detail-content"></div>
+      </div>
+    </div>`;
+
+  el.innerHTML = html;
+}
+
+function setKetoMode(mode){
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem){ alert('لم يتم العثور على ملفك الشخصي'); return; }
+  mem.keto_mode = mode;
+  if(window.DB) window.DB.saveMember(mem);
+  rPhases();
+  rDash();
+  if(mode==='protocol' && (mem.phase===null||mem.phase===undefined)){
+    setTimeout(()=>openPhaseAssessment(), 400);
+  }
+}
+
+function openPhaseAssessment(){
+  const modal = document.getElementById('phase-assessment-modal');
+  if(!modal) return;
+  modal.style.display = 'flex';
+  showAssessmentStep(0, {});
+}
+
+function closePhaseAssessment(){
+  const modal = document.getElementById('phase-assessment-modal');
+  if(modal) modal.style.display = 'none';
+}
 function applyPhase(phase, mode){
   const mem = MEMBERS.find(m=>m.uid===CU.id);
   if(!mem) return;
