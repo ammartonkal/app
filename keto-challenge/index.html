@@ -1912,7 +1912,6 @@ function _renderMealsPage(el){
   <div id="meal-form-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto">
     <div style="background:var(--surface);border-radius:16px;width:100%;max-width:540px;box-shadow:0 8px 40px rgba(0,0,0,.18);margin:auto">
       <div id="meal-form-content"></div>
-    </div>
   </div>`;
 
   el.innerHTML = html;
@@ -3617,7 +3616,6 @@ function rNeeds(){
       <div class="fg" style="flex:1;min-width:70px"><label>الوزن (كغ)</label><input type="number" id="nc-w" value="${weight}" onchange="rNeeds()" style="font-size:13px"></div>
       <div class="fg" style="flex:1;min-width:70px"><label>الطول (سم)</label><input type="number" id="nc-h" value="${height}" onchange="rNeeds()" style="font-size:13px"></div>
       <div class="fg" style="flex:1;min-width:110px"><label>مستوى النشاط</label><select id="nc-ac" onchange="rNeeds()" style="font-size:13px"><option value="sedentary" ${actKey==='sedentary'?'selected':''}>قليل الحركة</option><option value="light" ${actKey==='light'?'selected':''}>خفيف</option><option value="moderate" ${actKey==='moderate'?'selected':''}>معتدل</option><option value="active" ${actKey==='active'?'selected':''}>عالي</option></select></div>
-    </div>
   </div>`;
 
   /* المقترح حسب المرحلة */
@@ -3701,7 +3699,7 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
   const minProt = Math.round(lastW*0.8);
   const maxProt = Math.round(lastW*2.5);
 
-  return `<div dir="ltr" style="text-align:left">
+  return `
     <!-- السعرات ومؤشر العجز -->
     <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -3717,7 +3715,7 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
       <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
         <button onclick="window._mtAdjustCal(100)" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--accent);background:var(--accent-light);color:var(--accent);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">+</button>
         <div style="flex:1">
-          <div style="height:8px;background:var(--surface3);border-radius:4px;overflow:hidden">
+          <div style="height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;direction:ltr">
             <div id="mt-deficit-bar" style="height:100%;width:${defBarPct}%;background:${defColor};border-radius:4px;transition:all .3s;margin:0 auto"></div>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:3px">
@@ -3735,7 +3733,7 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
         <span style="color:var(--info)">🥩 بروتين <strong id="mt-pp">${pp}%</strong></span>
         <span style="color:var(--danger)">🥬 كارب <strong id="mt-cp">${cp}%</strong></span>
       </div>
-      <div style="height:12px;border-radius:6px;overflow:hidden;display:flex">
+      <div style="height:12px;border-radius:6px;overflow:hidden;display:flex;direction:ltr">
         <div id="mt-bar-fat"  style="width:${fp}%;background:var(--accent);transition:width .3s"></div>
         <div id="mt-bar-prot" style="width:${pp}%;background:var(--info);transition:width .3s"></div>
         <div id="mt-bar-carb" style="width:${cp}%;background:var(--danger);transition:width .3s"></div>
@@ -3749,7 +3747,7 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
         <span style="font-size:12px;font-weight:700;color:${rColor}" id="mt-ratio-text">${rLabel}</span>
       </div>
       <!-- scaleX(-1) يعكس الشريط: يبدأ من اليمين 0 وينتهي يساراً 4.0 -->
-      <div style="height:8px;background:rgba(0,0,0,.08);border-radius:4px;overflow:hidden">
+      <div style="height:8px;background:rgba(0,0,0,.08);border-radius:4px;overflow:hidden;direction:ltr">
         <div id="mt-ratio-bar" style="height:100%;width:${krPct}%;background:${rColor};border-radius:4px;transition:all .3s"></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:9px;color:${rColor}88;margin-top:4px">
@@ -3803,7 +3801,6 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
     <div style="display:flex;gap:8px">
       <button onclick="saveTargetsManual()" class="btn primary" style="flex:1;justify-content:center;padding:13px">حفظ الأهداف ✓</button>
       <button onclick="rNeeds()" class="btn" style="padding:13px 16px;justify-content:center" title="إعادة تعيين">↺</button>
-    </div>
   </div>`;
 }
 
@@ -4400,7 +4397,6 @@ function rProfile(){
           <div class="flex-end"><button class="btn sm" onclick="toggleProfileEdit('supps')">إلغاء</button><button class="btn primary sm" onclick="saveProfileSection('supps')">حفظ ✓</button></div>
         </div>
       </div>
-    </div>
   </div>`;
 
   window._profileSelectedGoal=mem.ob_goal;
