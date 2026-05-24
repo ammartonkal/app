@@ -811,42 +811,8 @@ let MEALS=[];
 
       <!-- NEEDS -->
       <div class="panel" id="panel-needs">
-        <!-- القسم الأول: الحاسبة التلقائية -->
-        <div class="card" style="margin-bottom:20px">
-          <div class="card-header">
-            <div class="card-title">📊 الحاسبة التلقائية حسب المرحلة</div>
-          </div>
-          <div class="two-col" style="gap:16px">
-            <div>
-              <div class="form-row"><div class="fg"><label>الجنس</label><select id="nc-g"><option value="male">ذكر</option><option value="female">أنثى</option></select></div><div class="fg"><label>العمر</label><input type="number" id="nc-a" value="35"></div></div>
-              <div class="form-row"><div class="fg"><label>الوزن (كغ)</label><input type="number" id="nc-w" value="75"></div><div class="fg"><label>الطول (سم)</label><input type="number" id="nc-h" value="170"></div></div>
-              <div class="form-row f1"><div class="fg"><label>مستوى النشاط</label><select id="nc-ac"><option value="sedentary">قليل الحركة</option><option value="light">خفيف</option><option value="moderate" selected>معتدل</option><option value="active">عالي</option></select></div></div>
-              <div class="form-row f1"><div class="fg"><label>صرامة الكيتو</label><select id="nc-lv"><option value="strict">صارم (≤20غ)</option><option value="moderate" selected>معتدل (≤30غ)</option><option value="liberal">مرن (≤50غ)</option></select></div></div>
-              <div class="form-row f1"><div class="fg"><label>الهدف</label><select id="nc-go"><option value="standard">صحة عامة</option><option value="active">الحفاظ على العضل</option><option value="building">بناء العضل</option></select></div></div>
-              <button class="btn primary" onclick="calcNeeds()" style="margin-top:6px;width:100%;justify-content:center">احسب احتياجي ←</button>
-            </div>
-            <div>
-              <div id="nresult"><div style="color:var(--text3);text-align:center;padding:40px 0;font-size:13px">أدخل بياناتك واضغط احسب</div></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- فاصل -->
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-          <div style="flex:1;height:1px;background:var(--border)"></div>
-          <div style="font-size:12px;color:var(--text3);white-space:nowrap">أو اضبط يدوياً</div>
-          <div style="flex:1;height:1px;background:var(--border)"></div>
-        </div>
-
-        <!-- القسم الثاني: الضبط اليدوي الديناميكي -->
-        <div class="card" id="manual-targets-card">
-          <div class="card-header">
-            <div class="card-title">✏️ الضبط اليدوي للأهداف</div>
-            <div id="manual-targets-subtitle" style="font-size:11px;color:var(--text3)">اسحب الأشرطة لتخصيص أهدافك</div>
-          </div>
-          <div id="manual-targets-content">
-            <!-- يُبنى بـ JS عند تحميل الصفحة -->
-          </div>
+        <div id="needs-content">
+          <div style="color:var(--text3);text-align:center;padding:40px 0">جاري التحميل...</div>
         </div>
       </div>
 
@@ -3490,259 +3456,253 @@ function renderCI(){const el=document.getElementById('citems');if(!calcItems.len
 function updateCR(){const el=document.getElementById('cresult');if(!calcItems.length){el.innerHTML='<div style="color:var(--text3);text-align:center;padding:28px 0">أضف مكونات للبدء</div>';return;}const m=cmac({ingredients:calcItems});const k=klbl(m.k);el.innerHTML=`<div style="text-align:center;margin-bottom:13px"><div style="font-size:36px;font-weight:700;font-family:var(--mono);color:${kc(m.k)}">${m.k}</div><div style="font-size:12px;color:var(--text3)">نقاط التوافق الكيتوني</div><div style="margin-top:5px"><span class="badge ${k.c}">${k.l}</span></div></div><div class="kbar" style="margin-bottom:12px"><div class="kfill ${m.k>=80?'gr':m.k>=60?'ok':'bd'}" style="width:${m.k}%"></div></div>${macHTML(m,1)}`;}
 
 /* ═══ NEEDS ═══ */
-function calcNeeds(){
-  const g   = document.getElementById('nc-g').value;
-  const age = parseInt(document.getElementById('nc-a').value)||35;
-  const w   = parseFloat(document.getElementById('nc-w').value)||75;
-  const h   = parseFloat(document.getElementById('nc-h').value)||170;
-  const act = document.getElementById('nc-ac').value;
-  const lv  = document.getElementById('nc-lv').value;
-  const goal= document.getElementById('nc-go').value;
-  const bmr  = g==='male' ? 10*w+6.25*h-5*age+5 : 10*w+6.25*h-5*age-161;
-  const tdee = Math.round(bmr*({sedentary:1.2,light:1.375,moderate:1.55,active:1.725}[act]||1.55));
-  const carbMax = {strict:20,moderate:30,liberal:50}[lv]||30;
-  const protG   = Math.round(w*({standard:1.2,active:1.6,building:2.0}[goal]||1.2));
-  const fatG    = Math.max(30,Math.round((tdee-protG*4-carbMax*4)/9));
-  const realCal = fatG*9+protG*4+carbMax*4;
-  const fp=Math.round(fatG*9/realCal*100),pp=Math.round(protG*4/realCal*100),cp=Math.round(carbMax*4/realCal*100);
-  const rs=['أوميغا 3 (2غ EPA+DHA)'];
-  if(lv==='strict')rs.unshift('الماغنيسيوم (400مغ)','الصوديوم (ملح الهيمالايا)','البوتاسيوم');
-  if(age>40)rs.push('فيتامين D3 (2000-4000 وحدة)');
-  if(goal==='building')rs.push('الكريتين (5غ/يوم)');
-  window._lastCalcResult={cal:realCal,fat:fatG,protein:protG,carb:carbMax,bmr:Math.round(bmr),tdee};
-  document.getElementById('nresult').innerHTML=`
-    <div class="stats-grid" style="margin-bottom:14px">
-      <div class="stat-card"><div class="stat-label">BMR</div><div class="stat-val" style="font-size:20px">${Math.round(bmr)}</div></div>
-      <div class="stat-card"><div class="stat-label">TDEE</div><div class="stat-val" style="font-size:20px">${tdee}</div></div>
-      <div class="stat-card"><div class="stat-label">سعرات الكيتو</div><div class="stat-val" style="font-size:20px">${realCal}</div></div>
-    </div>
-    <div class="mrow" style="margin-bottom:12px">
-      <div class="mchip"><div class="mchip-l">دهون</div><div class="mchip-v f">${fatG}</div><div class="mchip-u">غ · ${fp}%</div></div>
-      <div class="mchip"><div class="mchip-l">بروتين</div><div class="mchip-v p">${protG}</div><div class="mchip-u">غ · ${pp}%</div></div>
-      <div class="mchip"><div class="mchip-l">كربو صافية</div><div class="mchip-v c">≤${carbMax}</div><div class="mchip-u">غ · ${cp}%</div></div>
-    </div>
-    <div style="height:8px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:14px">
-      <div style="width:${fp}%;background:var(--accent)"></div>
-      <div style="width:${pp}%;background:var(--info)"></div>
-      <div style="width:${cp}%;background:var(--danger)"></div>
-    </div>
-    <div style="margin-bottom:14px">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:500">مكملات موصى بها:</div>
-      ${rs.map(s=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--accent)">✓</span>${s}</div>`).join('')}
-    </div>
-    <div style="background:var(--accent-light);border:1px solid rgba(58,140,63,.2);border-radius:var(--radius-sm);padding:12px">
-      <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px">✅ طبّق هذه النتائج كأهدافك اليومية</div>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:10px">ستُحدَّث لوحة التحكم وصفحة اليوميات بناءً على هذه الأرقام</div>
-      <button onclick="applyNeedsToProfile()" class="btn primary" style="width:100%;justify-content:center">تطبيق الأهداف ✓</button>
-    </div>`;
-}
-function applyNeedsToProfile(){
-  const r=window._lastCalcResult;
-  if(!r){alert('احسب الاحتياج أولاً');return;}
-  const mem=MEMBERS.find(m=>m.uid===CU.id);
-  if(!mem){alert('لم يتم العثور على ملفك الشخصي');return;}
-  mem.target_cal=r.cal;mem.target_fat=r.fat;mem.target_prot=r.protein;mem.target_carb=r.carb;mem.bmr=r.bmr;mem.tdee=r.tdee;
-  if(window.DB)window.DB.saveMember(mem);
-  const btn=document.querySelector('#nresult .btn.primary');
-  if(btn){btn.textContent='✓ تم التطبيق';btn.disabled=true;btn.style.opacity='.7';}
-  rDash();
-  _showToast('✅ تم تحديث أهدافك اليومية');
-}
-function saveTargetsManual(){
-  const v = window._mtv;
-  if(!v){ alert('عدّل القيم أولاً'); return; }
+function _applyPhaseDefaults(fat, prot, carb){
+  window._mtv = {fat, prot, carb};
   const mem = MEMBERS.find(m=>m.uid===CU.id);
-  if(!mem) return;
-  mem.target_fat  = v.fat;
-  mem.target_prot = v.prot;
-  mem.target_carb = v.carb;
-  mem.target_cal  = Math.round(v.fat*9 + v.prot*4 + v.carb*4);
-  if(window.DB) window.DB.saveMember(mem);
-  rDash();
-  _buildManualTargets(mem); /* تحديث الأهداف المحفوظة المعروضة */
-  _showToast('✅ تم حفظ الأهداف اليومية');
-}
-function _showToast(msg){
-  let t=document.getElementById('app-toast');
-  if(!t){t=document.createElement('div');t.id='app-toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 20px;border-radius:100px;font-size:13px;font-weight:600;z-index:500;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:opacity .4s';document.body.appendChild(t);}
-  t.textContent=msg;t.style.opacity='1';
-  setTimeout(()=>{t.style.opacity='0';},2500);
+  const lastW = mem?.current_weight||mem?.start_weight||75;
+  const bmr = (()=>{const g=mem?.gender==='أنثى'?'female':'male';const a=mem?.age||35;const w=lastW;const h=mem?.height||170;return g==='male'?10*w+6.25*h-5*a+5:10*w+6.25*h-5*a-161;})();
+  const tdee = Math.round(bmr*({sedentary:1.2,light:1.375,moderate:1.55,active:1.725}[mem?.activity_level||'moderate']||1.55));
+  _buildManualTargets(mem, tdee, fat, prot, carb);
+  document.getElementById('manual-targets-card')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-function rNeeds(){
-  const mem = MEMBERS.find(m=>m.uid===CU.id);
-
-  /* تعبئة الحاسبة التلقائية من بيانات المشترك */
-  if(mem){
-    const g = document.getElementById('nc-g');
-    const a = document.getElementById('nc-a');
-    const w = document.getElementById('nc-w');
-    const h = document.getElementById('nc-h');
-    if(g) g.value = mem.gender==='أنثى'?'female':'male';
-    if(a && mem.age)             a.value = mem.age;
-    if(w && mem.current_weight)  w.value = mem.current_weight;
-    if(h && mem.height)          h.value = mem.height;
-  }
-
-  /* بناء القسم اليدوي */
-  _buildManualTargets(mem);
-}
-
-function _buildManualTargets(mem){
+function _buildManualTargets(mem, tdee, tFat, tProt, tCarb){
   const el = document.getElementById('manual-targets-content');
   if(!el) return;
-
-  const lastW = mem?.current_weight || mem?.start_weight || 75;
-  const tFat  = mem?.target_fat  || 130;
-  const tProt = mem?.target_prot || Math.round(lastW * 1.5);
-  const tCarb = mem?.target_carb || 25;
-
+  const lastW = mem?.current_weight||mem?.start_weight||75;
+  tdee = tdee || 2000;
+  tFat = tFat || window._mtv?.fat || 130;
+  tProt= tProt|| window._mtv?.prot|| Math.round(lastW*1.5);
+  tCarb= tCarb|| window._mtv?.carb|| 25;
   window._mtv = {fat:tFat, prot:tProt, carb:tCarb};
-
-  el.innerHTML = _manualTargetsHTML(tFat, tProt, tCarb, lastW);
+  window._mtTdee = tdee;
+  el.innerHTML = _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee);
 }
 
-function _manualTargetsHTML(tFat, tProt, tCarb, lastW){
-  const tCal = Math.round(tFat*9 + tProt*4 + tCarb*4);
-  const tot  = tCal || 1;
-  const fp   = Math.round(tFat*9/tot*100);
-  const pp   = Math.round(tProt*4/tot*100);
-  const cp   = Math.round(tCarb*4/tot*100);
-  const pf   = 0.6; /* معامل البروتين المتقدم */
-  const kr   = tFat && (tCarb+(tProt*pf)) ? (tFat/(tCarb+(tProt*pf))).toFixed(2) : '—';
-  const rv   = parseFloat(kr)||0;
-  const krPct= Math.round(Math.min(4,rv)/4*100);
-  const ratioColor = rv>=2?'var(--accent)':rv>=1.5?'var(--accent)':rv>=1?'var(--warning)':'var(--danger)';
-  const ratioBg    = rv>=1.5?'var(--accent-light)':rv>=1?'var(--warning-dim)':'var(--danger-dim)';
-  const ratioLabel = rv>=2?'محفز جداً':rv>=1.5?'محفز للكيتون':rv>=1?'غير محفز':'مثبط للكيتون';
-  const protPerKg  = (tProt/lastW).toFixed(1);
-
-  const mem = MEMBERS.find(m=>m.uid===CU.id);
-  const hasSaved = mem?.target_fat;
+function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
+  const tCal   = Math.round(tFat*9+tProt*4+tCarb*4);
+  const tot    = tCal||1;
+  const fp     = Math.round(tFat*9/tot*100);
+  const pp     = Math.round(tProt*4/tot*100);
+  const cp     = Math.round(tCarb*4/tot*100);
+  const pf     = 0.6;
+  const kr     = tFat&&(tCarb+(tProt*pf))?(tFat/(tCarb+(tProt*pf))).toFixed(2):'—';
+  const rv     = parseFloat(kr)||0;
+  const krPct  = Math.round(Math.min(4,rv)/4*100);
+  const rColor = rv>=1.5?'var(--accent)':rv>=1?'var(--warning)':'var(--danger)';
+  const rBg    = rv>=1.5?'var(--accent-light)':rv>=1?'var(--warning-dim)':'var(--danger-dim)';
+  const rLabel = rv>=2?'محفز جداً':rv>=1.5?'محفز للكيتون':rv>=1?'غير محفز':'مثبط للكيتون';
+  const deficit = tdee - tCal;
+  const defLabel= deficit>0?`عجز ${deficit} سعرة`:deficit<0?`فائض ${Math.abs(deficit)} سعرة`:'سعرات الثبات';
+  const defColor= deficit>200?'var(--info)':deficit>0?'var(--warning)':deficit===0?'var(--accent)':'var(--danger)';
+  const protKg  = (tProt/lastW).toFixed(1);
+  const minFat  = Math.max(30, Math.round(lastW*0.5));
+  const maxFat  = 350;
+  const minProt = Math.round(lastW*0.8);
+  const maxProt = Math.round(lastW*2.5);
 
   return `
-    <!-- الأهداف الحالية -->
-    ${hasSaved?`<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <div style="font-size:11px;color:var(--text3)">أهدافك المحفوظة حالياً</div>
-      <div style="display:flex;gap:12px;font-size:12px;font-family:var(--mono)">
-        <span style="color:var(--accent)">د ${mem.target_fat}غ</span>
-        <span style="color:var(--info)">ب ${mem.target_prot}غ</span>
-        <span style="color:var(--danger)">ك ${mem.target_carb}غ</span>
-        <span style="color:var(--text2)">${mem.target_cal} سعرة</span>
-      </div>
-    </div>`:''}
-
-    <!-- النسبة الكيتونية -->
-    <div id="mt-ratio-box" style="background:${ratioBg};border-radius:var(--radius-sm);padding:14px;margin-bottom:20px">
+    <!-- السعرات ومؤشر العجز -->
+    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:13px;font-weight:600;color:${ratioColor}" id="mt-ratio-label">النسبة الكيتونية المتقدمة: <span id="mt-ratio-val">${kr}</span></div>
-        <span style="font-size:12px;font-weight:700;color:${ratioColor}" id="mt-ratio-text">${ratioLabel}</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text2)">السعرات اليومية</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">TDEE الحالي: ${tdee||'—'} سعرة</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:28px;font-weight:700;font-family:var(--mono)" id="mt-cal-val">${tCal}</div>
+          <div style="font-size:11px;font-weight:600;color:${defColor}" id="mt-deficit-label">${defLabel}</div>
+        </div>
       </div>
-      <div style="height:10px;background:rgba(0,0,0,.08);border-radius:5px;overflow:hidden;margin-bottom:6px">
-        <div id="mt-ratio-bar" style="height:100%;width:${krPct}%;background:${ratioColor};border-radius:5px;transition:width .3s,background .3s"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:${ratioColor}88">
-        <span>0</span><span>1.0 مثبط</span><span>1.5 حد</span><span>2.0+ محفز</span><span>4.0</span>
+      <!-- شريط تعديل السعرات عبر تعديل الدهون -->
+      <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+        <button onclick="window._mtAdjustCal(-100)" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">−</button>
+        <div style="flex:1">
+          <div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;position:relative">
+            <div id="mt-deficit-bar" style="height:100%;width:${Math.min(100,Math.round(Math.max(0,deficit)/tdee*200))}%;background:${defColor};border-radius:3px;transition:all .3s"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:3px">
+            <span style="color:var(--danger)">فائض</span><span style="color:var(--accent)">ثبات</span><span style="color:var(--info)">عجز 300</span><span style="color:var(--info)">عجز 500</span>
+          </div>
+        </div>
+        <button onclick="window._mtAdjustCal(100)" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">+</button>
       </div>
     </div>
 
-    <!-- شريط التوزيع + السعرات -->
-    <div style="margin-bottom:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div style="font-size:12px;font-weight:600;color:var(--text2)">توزيع الماكرو</div>
-        <div style="font-size:14px;font-weight:700;font-family:var(--mono)" id="mt-cal-val">${tCal} <span style="font-size:11px;color:var(--text3);font-weight:400">سعرة/يوم</span></div>
-      </div>
-      <div style="height:12px;border-radius:6px;overflow:hidden;display:flex;margin-bottom:6px">
-        <div id="mt-bar-fat"  style="width:${fp}%;background:var(--accent);transition:width .3s"></div>
-        <div id="mt-bar-prot" style="width:${pp}%;background:var(--info);transition:width .3s"></div>
-        <div id="mt-bar-carb" style="width:${cp}%;background:var(--danger);transition:width .3s"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:11px">
+    <!-- شريط التوزيع -->
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px">
         <span style="color:var(--accent)">🥑 دهون <strong id="mt-fp">${fp}%</strong></span>
         <span style="color:var(--info)">🥩 بروتين <strong id="mt-pp">${pp}%</strong></span>
         <span style="color:var(--danger)">🥬 كارب <strong id="mt-cp">${cp}%</strong></span>
       </div>
-    </div>
-
-    <!-- البروتين -->
-    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:16px;margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--info)">🥩 البروتين اليومي</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:3px" id="mt-prot-kg">${protPerKg} غ/كغ · الوزن ${lastW} كغ</div>
-        </div>
-        <div style="text-align:center;background:var(--surface);border-radius:var(--radius-sm);padding:8px 14px;min-width:70px">
-          <div style="font-size:26px;font-weight:700;font-family:var(--mono);color:var(--info);line-height:1" id="mt-prot-val">${tProt}</div>
-          <div style="font-size:10px;color:var(--text3)">غ/يوم</div>
-        </div>
-      </div>
-      <input type="range" id="mt-prot" min="${Math.round(lastW*0.8)}" max="${Math.round(lastW*2.5)}" step="5" value="${tProt}"
-        style="width:100%;height:6px;accent-color:var(--info);cursor:pointer"
-        oninput="window._mtUpdate('prot',this.value)">
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:6px">
-        <span>${Math.round(lastW*0.8)}غ <span style="color:var(--text3)">(0.8 غ/كغ)</span></span>
-        <span style="color:var(--info);font-weight:600">${Math.round(lastW*1.5)}غ (1.5 — افتراضي)</span>
-        <span>${Math.round(lastW*2.5)}غ <span style="color:var(--text3)">(2.5 غ/كغ)</span></span>
+      <div style="height:12px;border-radius:6px;overflow:hidden;display:flex">
+        <div id="mt-bar-fat"  style="width:${fp}%;background:var(--accent);transition:width .3s"></div>
+        <div id="mt-bar-prot" style="width:${pp}%;background:var(--info);transition:width .3s"></div>
+        <div id="mt-bar-carb" style="width:${cp}%;background:var(--danger);transition:width .3s"></div>
       </div>
     </div>
 
-    <!-- الكارب الصافي -->
-    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:16px;margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--danger)">🥬 الكارب الصافي</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:3px">كل 5 غ تؤثر على النسبة الكيتونية</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <button onclick="window._mtStep('carb',-5)" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">−</button>
-          <div style="text-align:center;background:var(--surface);border-radius:var(--radius-sm);padding:8px 14px;min-width:70px">
-            <div style="font-size:26px;font-weight:700;font-family:var(--mono);color:var(--danger);line-height:1" id="mt-carb-val">${tCarb}</div>
-            <div style="font-size:10px;color:var(--text3)">غ/يوم</div>
-          </div>
-          <button onclick="window._mtStep('carb',5)" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">+</button>
-        </div>
+    <!-- النسبة الكيتونية -->
+    <div id="mt-ratio-box" style="background:${rBg};border-radius:var(--radius-sm);padding:12px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:7px">
+        <div style="font-size:12px;font-weight:600;color:${rColor}" id="mt-ratio-label">النسبة الكيتونية: <span id="mt-ratio-val">${kr}</span></div>
+        <span style="font-size:12px;font-weight:700;color:${rColor}" id="mt-ratio-text">${rLabel}</span>
       </div>
-      <input type="range" id="mt-carb" min="10" max="100" step="5" value="${tCarb}"
-        style="width:100%;height:6px;accent-color:var(--danger);cursor:pointer"
-        oninput="window._mtUpdate('carb',this.value)">
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:6px">
-        <span style="color:var(--accent)">10 (صارم)</span>
-        <span>20</span><span>30</span><span>50</span>
-        <span style="color:var(--text3)">100 (مرن)</span>
+      <div style="height:8px;background:rgba(0,0,0,.08);border-radius:4px;overflow:hidden">
+        <div id="mt-ratio-bar" style="height:100%;width:${krPct}%;background:${rColor};border-radius:4px;transition:all .3s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:${rColor}88;margin-top:4px">
+        <span>0</span><span>1.0</span><span>1.5 حد</span><span>2.0+ ✓</span><span>4.0</span>
       </div>
     </div>
 
     <!-- الدهون -->
-    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:16px;margin-bottom:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div>
           <div style="font-size:13px;font-weight:600;color:var(--accent)">🥑 الدهون</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:3px">المصدر الأساسي للطاقة في الكيتو</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">المصدر الأساسي للطاقة</div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <button onclick="window._mtStep('fat',-5)" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">−</button>
-          <div style="text-align:center;background:var(--surface);border-radius:var(--radius-sm);padding:8px 14px;min-width:70px">
-            <div style="font-size:26px;font-weight:700;font-family:var(--mono);color:var(--accent);line-height:1" id="mt-fat-val">${tFat}</div>
-            <div style="font-size:10px;color:var(--text3)">غ/يوم</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button onclick="window._mtStep('fat',-5)" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+          <div style="text-align:center;min-width:60px">
+            <div style="font-size:24px;font-weight:700;font-family:var(--mono);color:var(--accent);line-height:1" id="mt-fat-val">${tFat}</div>
+            <div style="font-size:9px;color:var(--text3)">غ/يوم</div>
           </div>
-          <button onclick="window._mtStep('fat',5)" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">+</button>
+          <button onclick="window._mtStep('fat',5)" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
         </div>
       </div>
-      <input type="range" id="mt-fat" min="30" max="350" step="5" value="${tFat}"
-        style="width:100%;height:6px;accent-color:var(--accent);cursor:pointer"
-        oninput="window._mtUpdate('fat',this.value)">
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:6px">
-        <span>30غ</span>
-        <span style="color:var(--accent)">↑ يرفع النسبة الكيتونية</span>
-        <span>350غ</span>
+      <input type="range" id="mt-fat" min="${minFat}" max="${maxFat}" step="5" value="${tFat}" style="width:100%;height:6px;accent-color:var(--accent);cursor:pointer" oninput="window._mtUpdate('fat',this.value)">
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:4px"><span>${minFat}غ</span><span style="color:var(--accent)">↑ يرفع النسبة الكيتونية</span><span>${maxFat}غ</span></div>
+    </div>
+
+    <!-- البروتين -->
+    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--info)">🥩 البروتين</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px" id="mt-prot-kg">${protKg} غ/كغ · وزن ${lastW} كغ</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button onclick="window._mtStep('prot',-5)" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+          <div style="text-align:center;min-width:60px">
+            <div style="font-size:24px;font-weight:700;font-family:var(--mono);color:var(--info);line-height:1" id="mt-prot-val">${tProt}</div>
+            <div style="font-size:9px;color:var(--text3)">غ/يوم</div>
+          </div>
+          <button onclick="window._mtStep('prot',5)" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+        </div>
+      </div>
+      <input type="range" id="mt-prot" min="${minProt}" max="${maxProt}" step="5" value="${tProt}" style="width:100%;height:6px;accent-color:var(--info);cursor:pointer" oninput="window._mtUpdate('prot',this.value)">
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:4px">
+        <span>${minProt}غ (0.8)</span><span style="color:var(--info)">${Math.round(lastW*1.5)}غ (1.5 افتراضي)</span><span>${maxProt}غ (2.5)</span>
+      </div>
+    </div>
+
+    <!-- الكارب -->
+    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--danger)">🥬 الكارب الصافي</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">كل 5غ تؤثر على النسبة الكيتونية</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button onclick="window._mtStep('carb',-5)" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+          <div style="text-align:center;min-width:60px">
+            <div style="font-size:24px;font-weight:700;font-family:var(--mono);color:var(--danger);line-height:1" id="mt-carb-val">${tCarb}</div>
+            <div style="font-size:9px;color:var(--text3)">غ/يوم</div>
+          </div>
+          <button onclick="window._mtStep('carb',5)" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+        </div>
+      </div>
+      <input type="range" id="mt-carb" min="10" max="130" step="5" value="${tCarb}" style="width:100%;height:6px;accent-color:var(--danger);cursor:pointer" oninput="window._mtUpdate('carb',this.value)">
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:4px">
+        <span style="color:var(--accent)">10 صارم</span><span>20</span><span>30</span><span>50</span><span>130 مرن</span>
       </div>
     </div>
 
     <!-- حفظ -->
-    <div style="display:flex;gap:10px">
-      <button onclick="saveTargetsManual()" class="btn primary" style="flex:1;justify-content:center;padding:12px">حفظ الأهداف ✓</button>
-      <button onclick="rNeeds()" class="btn" style="justify-content:center;padding:12px">↺ إعادة تعيين</button>
+    <div style="display:flex;gap:8px">
+      <button onclick="saveTargetsManual()" class="btn primary" style="flex:1;justify-content:center;padding:13px">حفظ الأهداف ✓</button>
+      <button onclick="rNeeds()" class="btn" style="padding:13px 16px;justify-content:center" title="إعادة تعيين">↺</button>
     </div>`;
+}
+
+/* تحديث ديناميكي */
+window._mtUpdate = function(field, val){
+  window._mtv = window._mtv||{fat:130,prot:110,carb:25};
+  window._mtv[field] = parseInt(val)||0;
+  _mtRefreshUI(window._mtv.fat, window._mtv.prot, window._mtv.carb);
+};
+window._mtStep = function(field, step){
+  window._mtv = window._mtv||{fat:130,prot:110,carb:25};
+  const el=document.getElementById('mt-'+field);
+  const min=parseInt(el?.min)||0, max=parseInt(el?.max)||350;
+  const nv=Math.min(max,Math.max(min,(window._mtv[field]||0)+step));
+  window._mtv[field]=nv; if(el)el.value=nv;
+  _mtRefreshUI(window._mtv.fat,window._mtv.prot,window._mtv.carb);
+};
+window._mtAdjustCal = function(delta){
+  /* تعديل السعرات عبر الدهون */
+  window._mtv=window._mtv||{fat:130,prot:110,carb:25};
+  const fatDelta=Math.round(delta/9);
+  const el=document.getElementById('mt-fat');
+  const min=parseInt(el?.min)||30, max=parseInt(el?.max)||350;
+  const nv=Math.min(max,Math.max(min,(window._mtv.fat||130)+fatDelta));
+  window._mtv.fat=nv; if(el)el.value=nv;
+  _mtRefreshUI(window._mtv.fat,window._mtv.prot,window._mtv.carb);
+};
+
+function _mtRefreshUI(tFat,tProt,tCarb){
+  const tCal=Math.round(tFat*9+tProt*4+tCarb*4);
+  const tot=tCal||1;
+  const fp=Math.round(tFat*9/tot*100), pp=Math.round(tProt*4/tot*100), cp=Math.round(tCarb*4/tot*100);
+  const pf=0.6;
+  const kr=tFat&&(tCarb+(tProt*pf))?(tFat/(tCarb+(tProt*pf))).toFixed(2):'—';
+  const rv=parseFloat(kr)||0;
+  const krPct=Math.round(Math.min(4,rv)/4*100);
+  const rColor=rv>=1.5?'var(--accent)':rv>=1?'var(--warning)':'var(--danger)';
+  const rBg=rv>=1.5?'var(--accent-light)':rv>=1?'var(--warning-dim)':'var(--danger-dim)';
+  const rLabel=rv>=2?'محفز جداً':rv>=1.5?'محفز للكيتون':rv>=1?'غير محفز':'مثبط للكيتون';
+  const tdee=window._mtTdee||2000;
+  const deficit=tdee-tCal;
+  const defLabel=deficit>0?`عجز ${deficit} سعرة`:deficit<0?`فائض ${Math.abs(deficit)} سعرة`:'سعرات الثبات';
+  const defColor=deficit>200?'var(--info)':deficit>0?'var(--warning)':deficit===0?'var(--accent)':'var(--danger)';
+  const mem=MEMBERS.find(m=>m.uid===CU.id);
+  const lastW=mem?.current_weight||mem?.start_weight||75;
+  const protKg=(tProt/lastW).toFixed(1);
+
+  const sv=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  const sw=(id,w)=>{const e=document.getElementById(id);if(e)e.style.width=w+'%';};
+  const sc=(id,c)=>{const e=document.getElementById(id);if(e)e.style.color=c;};
+
+  sv('mt-fat-val',tFat);   sv('mt-prot-val',tProt);   sv('mt-carb-val',tCarb);
+  sv('mt-cal-val',tCal);   sv('mt-fp',fp+'%');        sv('mt-pp',pp+'%');  sv('mt-cp',cp+'%');
+  sv('mt-ratio-val',kr);   sv('mt-ratio-text',rLabel); sv('mt-deficit-label',defLabel);
+  sv('mt-prot-kg',protKg+' غ/كغ · وزن '+lastW+' كغ');
+  sw('mt-bar-fat',fp);     sw('mt-bar-prot',pp);       sw('mt-bar-carb',cp);
+  sw('mt-ratio-bar',krPct);
+  sc('mt-ratio-label',rColor); sc('mt-ratio-text',rColor); sc('mt-deficit-label',defColor);
+  const rb=document.getElementById('mt-ratio-bar'); if(rb){rb.style.background=rColor;}
+  const rbox=document.getElementById('mt-ratio-box'); if(rbox){rbox.style.background=rBg;}
+  const db=document.getElementById('mt-deficit-bar');
+  if(db){db.style.width=Math.min(100,Math.round(Math.max(0,deficit)/tdee*200))+'%';db.style.background=defColor;}
+  ['fat','prot','carb'].forEach(f=>{const e=document.getElementById('mt-'+f);if(e)e.value=window._mtv[f];});
+}
+
+function saveTargetsManual(){
+  const v=window._mtv;
+  if(!v){alert('عدّل القيم أولاً');return;}
+  const mem=MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem)return;
+  mem.target_fat=v.fat; mem.target_prot=v.prot; mem.target_carb=v.carb;
+  mem.target_cal=Math.round(v.fat*9+v.prot*4+v.carb*4);
+  if(window.DB)window.DB.saveMember(mem);
+  rDash();
+  _showToast('✅ تم حفظ الأهداف اليومية');
+  /* تحديث حالة "آخر تعديل محفوظ" */
+  const sub=document.querySelector('#manual-targets-card .card-header div:last-child');
+  if(sub)sub.textContent='آخر تعديل محفوظ';
 }
 
 /* دوال التحديث الديناميكي */
