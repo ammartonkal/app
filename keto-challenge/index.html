@@ -3715,11 +3715,19 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
       <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
         <button onclick="window._mtAdjustCal(100)" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--accent);background:var(--accent-light);color:var(--accent);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">+</button>
         <div style="flex:1">
-          <div style="height:8px;background:var(--surface3);border-radius:4px;overflow:hidden">
-            <div id="mt-deficit-bar" style="height:100%;width:${defBarPct}%;background:${defColor};border-radius:4px;transition:all .3s;margin:0 auto"></div>
+          <!-- شريط مزدوج الاتجاه: المنتصف=ثبات، يمين=عجز، يسار=فائض -->
+          <div style="position:relative;height:10px;background:var(--surface3);border-radius:5px;overflow:hidden">
+            <!-- خط المنتصف -->
+            <div style="position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--border);z-index:2;transform:translateX(-50%)"></div>
+            <!-- الشريط المتحرك: يمتد من المنتصف -->
+            <div id="mt-deficit-bar" style="position:absolute;top:0;bottom:0;border-radius:5px;transition:all .35s ease;background:${defColor};${deficit>50?`right:50%;width:${Math.min(50,Math.round(Math.abs(deficit)/600*50))}%`:deficit<-50?`left:50%;width:${Math.min(50,Math.round(Math.abs(deficit)/600*50))}%`:`left:49%;width:2%`}"></div>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:3px">
-            <span style="color:var(--danger)">فائض</span><span style="color:var(--accent)">ثبات</span><span style="color:var(--info)">عجز 300</span><span style="color:var(--info)">عجز 500+</span>
+          <div style="display:flex;justify-content:space-between;font-size:9px;margin-top:4px">
+            <span style="color:var(--info)">عجز 600+</span>
+            <span style="color:var(--info)">عجز 300</span>
+            <span style="color:var(--accent);font-weight:600">ثبات</span>
+            <span style="color:var(--danger)">فائض 300</span>
+            <span style="color:var(--danger)">فائض 600+</span>
           </div>
         </div>
         <button onclick="window._mtAdjustCal(-100)" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">−</button>
@@ -3864,8 +3872,16 @@ function _mtRefreshUI(tFat, tProt, tCarb){
   if(dlEl)dlEl.style.color=defColor;
   const db=document.getElementById('mt-deficit-bar');
   if(db){
-    db.style.width=defBarPct+'%';
+    const pct=Math.min(50,Math.round(Math.abs(deficit)/600*50));
     db.style.background=defColor;
+    db.style.transition='all .35s ease';
+    if(deficit>50){
+      db.style.right='50%'; db.style.left='auto'; db.style.width=pct+'%';
+    } else if(deficit<-50){
+      db.style.left='50%'; db.style.right='auto'; db.style.width=pct+'%';
+    } else {
+      db.style.left='49%'; db.style.right='auto'; db.style.width='2%';
+    }
   }
   sw('mt-bar-fat',fp); sw('mt-bar-prot',pp); sw('mt-bar-carb',cp);
   /* النسبة الكيتونية — مصدر واحد للحقيقة */
