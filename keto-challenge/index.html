@@ -3720,7 +3720,7 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
             <!-- خط المنتصف -->
             <div style="position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--border);z-index:2;transform:translateX(-50%)"></div>
             <!-- الشريط المتحرك: يمتد من المنتصف -->
-            <div id="mt-deficit-bar" style="position:absolute;top:0;bottom:0;border-radius:5px;transition:all .35s ease;background:${defColor};${deficit>50?`right:50%;width:${Math.min(50,Math.round(Math.abs(deficit)/600*50))}%`:deficit<-50?`left:50%;width:${Math.min(50,Math.round(Math.abs(deficit)/600*50))}%`:`left:49%;width:2%`}"></div>
+            <div id="mt-deficit-bar" style="position:absolute;top:0;bottom:0;border-radius:5px;transition:all .35s ease;background:${defColor};${deficit>50?`left:50%;width:${Math.min(50,Math.round(Math.abs(deficit)/600*50))}%`:deficit<-50?`right:50%;width:${Math.min(50,Math.round(Math.abs(deficit)/600*50))}%`:`left:49%;width:2%`}"></div>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:9px;margin-top:4px">
             <span style="color:var(--info)">عجز 600+</span>
@@ -3876,9 +3876,9 @@ function _mtRefreshUI(tFat, tProt, tCarb){
     db.style.background=defColor;
     db.style.transition='all .35s ease';
     if(deficit>50){
-      db.style.right='50%'; db.style.left='auto'; db.style.width=pct+'%';
-    } else if(deficit<-50){
       db.style.left='50%'; db.style.right='auto'; db.style.width=pct+'%';
+    } else if(deficit<-50){
+      db.style.right='50%'; db.style.left='auto'; db.style.width=pct+'%';
     } else {
       db.style.left='49%'; db.style.right='auto'; db.style.width='2%';
     }
