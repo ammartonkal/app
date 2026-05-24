@@ -3701,7 +3701,7 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
   const minProt = Math.round(lastW*0.8);
   const maxProt = Math.round(lastW*2.5);
 
-  return `
+  return `<div dir="ltr" style="text-align:left">
     <!-- السعرات ومؤشر العجز -->
     <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -3721,7 +3721,7 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
             <div id="mt-deficit-bar" style="height:100%;width:${defBarPct}%;background:${defColor};border-radius:4px;transition:all .3s;margin:0 auto"></div>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:3px">
-            <span style="color:var(--info)">+عجز 500</span><span style="color:var(--info)">+عجز 300</span><span style="color:var(--accent)">ثبات</span><span style="color:var(--warning)">فائض −</span>
+            <span style="color:var(--danger)">فائض</span><span style="color:var(--accent)">ثبات</span><span style="color:var(--info)">عجز 300</span><span style="color:var(--info)">عجز 500+</span>
           </div>
         </div>
         <button onclick="window._mtAdjustCal(-100)" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">−</button>
@@ -3735,7 +3735,7 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
         <span style="color:var(--info)">🥩 بروتين <strong id="mt-pp">${pp}%</strong></span>
         <span style="color:var(--danger)">🥬 كارب <strong id="mt-cp">${cp}%</strong></span>
       </div>
-      <div style="height:12px;border-radius:6px;overflow:hidden;display:flex;flex-direction:row-reverse">
+      <div style="height:12px;border-radius:6px;overflow:hidden;display:flex">
         <div id="mt-bar-fat"  style="width:${fp}%;background:var(--accent);transition:width .3s"></div>
         <div id="mt-bar-prot" style="width:${pp}%;background:var(--info);transition:width .3s"></div>
         <div id="mt-bar-carb" style="width:${cp}%;background:var(--danger);transition:width .3s"></div>
@@ -3749,11 +3749,11 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
         <span style="font-size:12px;font-weight:700;color:${rColor}" id="mt-ratio-text">${rLabel}</span>
       </div>
       <!-- scaleX(-1) يعكس الشريط: يبدأ من اليمين 0 وينتهي يساراً 4.0 -->
-      <div style="height:8px;background:rgba(0,0,0,.08);border-radius:4px;overflow:hidden;transform:scaleX(-1)">
+      <div style="height:8px;background:rgba(0,0,0,.08);border-radius:4px;overflow:hidden">
         <div id="mt-ratio-bar" style="height:100%;width:${krPct}%;background:${rColor};border-radius:4px;transition:all .3s"></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:9px;color:${rColor}88;margin-top:4px">
-        <span>4.0</span><span>2.0+ ✓</span><span>1.5 حد</span><span>1.0</span><span>0</span>
+        <span>0</span><span>1.0</span><span>1.5 حد</span><span>2.0+ ✓</span><span>4.0</span>
       </div>
     </div>
 
@@ -3803,7 +3803,8 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
     <div style="display:flex;gap:8px">
       <button onclick="saveTargetsManual()" class="btn primary" style="flex:1;justify-content:center;padding:13px">حفظ الأهداف ✓</button>
       <button onclick="rNeeds()" class="btn" style="padding:13px 16px;justify-content:center" title="إعادة تعيين">↺</button>
-    </div>`;
+    </div>
+  </div>`;
 }
 
 /* تحديث ديناميكي */
