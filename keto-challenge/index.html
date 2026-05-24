@@ -1360,11 +1360,27 @@ function getDayKetoRatio(mem, date){
   const label   = type==='positive' ? 'محفز للكيتون' : type==='neutral' ? 'غير محفز' : 'مثبط للكيتون';
   return {simple, advanced:adv, label, type};
 }
+/* الحصول على الخطة الغذائية السارية في تاريخ معين */
+function getTargetForDate(mem, date){
+  const d = date || new Date().toISOString().split('T')[0];
+  /* إذا وُجد سجل تاريخي نبحث في الأقرب قبل أو في نفس التاريخ */
+  if(mem?.targets_history && mem.targets_history.length > 0){
+    const sorted = [...mem.targets_history]
+      .filter(t => t.date <= d)
+      .sort((a,b) => b.date.localeCompare(a.date));
+    if(sorted.length > 0) return sorted[0];
+  }
+  /* fallback للحقول القديمة إن وُجدت */
+  if(mem?.target_fat){
+    return {fat:mem.target_fat, protein:mem.target_prot||110, carb:mem.target_carb||25, cal:mem.target_cal||1800, date:'2000-01-01', label:'الخطة الأساسية'};
+  }
+  return {fat:130, protein:110, carb:25, cal:1800, date:'2000-01-01', label:'افتراضية'};
+}
+
 function getDayRemaining(mem, date){
-  const phase  = mem?.phase || 1;
-  /* خطة افتراضية — ستُستبدل بحاسبة الاحتياج لاحقاً */
-  const plan   = {cal:mem?.target_cal||1800, fat:mem?.target_fat||130, protein:mem?.target_prot||110, carb:mem?.target_carb||25};
-  const meals  = getTodayMeals(mem?.uid, date);
+  const t = getTargetForDate(mem, date);
+  const plan = {cal:t.cal||1800, fat:t.fat||130, protein:t.protein||110, carb:t.carb||25};
+  const meals    = getTodayMeals(mem?.uid, date);
   const consumed = calcDayTotals(meals);
   return {
     plan, consumed,
@@ -1726,7 +1742,9 @@ function _renderMealsPage(el){
   const dayMeals = getTodayMeals(CU.id, mealsViewDate).sort((a,b)=>a.ts-b.ts);
   const totals = calcDayTotals(dayMeals);
   const mem = MEMBERS.find(m=>m.uid===CU.id);
-  const plan = {cal:mem?.target_cal||1800, fat:mem?.target_fat||130, protein:mem?.target_prot||110, carb:mem?.target_carb||25};
+  /* الخطة الصحيحة لهذا اليوم */
+  const target = getTargetForDate(mem, mealsViewDate);
+  const plan = {cal:target.cal||1800, fat:target.fat||130, protein:target.protein||110, carb:target.carb||25};
   const pf = typeof PROTEIN_FACTOR!=='undefined' ? PROTEIN_FACTOR.sedentary : 0.6;
   const simRatio = totals.fat&&(totals.protein+totals.net_carb) ? (totals.fat/(totals.protein+totals.net_carb)).toFixed(2) : '—';
   const advRatio = totals.fat&&(totals.net_carb+(totals.protein*pf)) ? (totals.fat/(totals.net_carb+(totals.protein*pf))).toFixed(2) : '—';
@@ -1761,6 +1779,16 @@ function _renderMealsPage(el){
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div style="font-size:13px;font-weight:600">ملخص ${isToday?'اليوم':dateLabel}</div>
       <div style="font-size:11px;color:var(--text3)">${dayMeals.length} وجبة · ${totals.cal} سعرة</div>
+    </div>
+    <!-- الخطة السارية لهذا اليوم -->
+    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+      <div style="font-size:11px;color:var(--text3)">الخطة: <span style="color:var(--text2);font-weight:500">${target.label||'الافتراضية'}</span>${!isToday&&target.date!=='2000-01-01'?' · منذ '+target.date:''}</div>
+      <div style="display:flex;gap:10px;font-size:11px;font-family:var(--mono)">
+        <span style="color:var(--accent)">د ${plan.fat}غ</span>
+        <span style="color:var(--info)">ب ${plan.protein}غ</span>
+        <span style="color:var(--danger)">ك ${plan.carb}غ</span>
+        <span style="color:var(--text3)">${plan.cal} سعرة</span>
+      </div>
     </div>
 
     <!-- ماكرو أشرطة -->
@@ -1840,6 +1868,30 @@ function _renderMealsPage(el){
       html += `</div>`;
     });
   }
+
+  /* سجل الخطط السابقة */
+  ${(()=>{
+    const hist = mem?.targets_history;
+    if(!hist||hist.length<=1) return '';
+    const sorted = [...hist].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+    return `<div class="card" style="margin-top:16px">
+      <div class="card-header"><div class="card-title" style="font-size:12px">📋 سجل الخطط الغذائية</div></div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        ${sorted.map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--surface2);border-radius:var(--radius-sm)">
+          <div>
+            <div style="font-size:12px;font-weight:500">${t.label||'خطة '+t.date}</div>
+            <div style="font-size:10px;color:var(--text3)">بدأت ${t.date}</div>
+          </div>
+          <div style="display:flex;gap:8px;font-size:11px;font-family:var(--mono)">
+            <span style="color:var(--accent)">د ${t.fat}غ</span>
+            <span style="color:var(--info)">ب ${t.protein}غ</span>
+            <span style="color:var(--danger)">ك ${t.carb}غ</span>
+            <span style="color:var(--text3)">${t.cal} ك.ح</span>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  })()}
 
   /* نافذة تسجيل الوجبة */
   html += `
@@ -3695,12 +3747,26 @@ function saveTargetsManual(){
   if(!v){alert('عدّل القيم أولاً');return;}
   const mem=MEMBERS.find(m=>m.uid===CU.id);
   if(!mem)return;
-  mem.target_fat=v.fat; mem.target_prot=v.prot; mem.target_carb=v.carb;
-  mem.target_cal=Math.round(v.fat*9+v.prot*4+v.carb*4);
+  const today=new Date().toISOString().split('T')[0];
+  const cal=Math.round(v.fat*9+v.prot*4+v.carb*4);
+  const entry={fat:v.fat, protein:v.prot, carb:v.carb, cal, date:today, label:'خطة '+today};
+
+  /* إضافة للسجل التاريخي */
+  if(!mem.targets_history) mem.targets_history=[];
+  /* إذا وُجد إدخال لنفس اليوم نستبدله */
+  const idx=mem.targets_history.findIndex(t=>t.date===today);
+  if(idx>=0) mem.targets_history[idx]=entry;
+  else mem.targets_history.push(entry);
+  /* الاحتفاظ بآخر 50 خطة فقط */
+  mem.targets_history.sort((a,b)=>a.date.localeCompare(b.date));
+  if(mem.targets_history.length>50) mem.targets_history=mem.targets_history.slice(-50);
+
+  /* نحتفظ بالحقول القديمة للتوافق مع الكود القديم */
+  mem.target_fat=v.fat; mem.target_prot=v.prot; mem.target_carb=v.carb; mem.target_cal=cal;
+
   if(window.DB)window.DB.saveMember(mem);
   rDash();
   _showToast('✅ تم حفظ الأهداف اليومية');
-  /* تحديث حالة "آخر تعديل محفوظ" */
   const sub=document.querySelector('#manual-targets-card .card-header div:last-child');
   if(sub)sub.textContent='آخر تعديل محفوظ';
 }
