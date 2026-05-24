@@ -1292,6 +1292,7 @@ function gp(id){
   const lookup=()=>({
     dashboard:typeof rDash!=='undefined'?rDash:null,
     meals:typeof rMeals!=='undefined'?rMeals:null,
+    needs:typeof rNeeds!=='undefined'?rNeeds:null,
     phases:typeof rPhases!=='undefined'?rPhases:null,
     challenge_personal:typeof rPersonalChallenge!=='undefined'?rPersonalChallenge:null,
     challenge_group:typeof rGroupChallenge!=='undefined'?rGroupChallenge:null,
@@ -1429,7 +1430,7 @@ function rDash(){
     ${missing.length>0?`<div style="margin-top:10px;background:var(--warning-dim);border:1px solid rgba(160,112,16,.25);border-radius:var(--radius-sm);padding:9px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div style="font-size:11px;font-weight:600;color:var(--warning);margin-bottom:4px">💡 أكمل ملفك للحصول على تجربة مخصصة</div><div style="display:flex;flex-wrap:wrap;gap:4px">${missing.map(m=>`<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(160,112,16,.12);border:1px solid rgba(160,112,16,.2);color:var(--warning);border-radius:100px;padding:2px 9px;font-size:11px">${m.icon} ${m.label}</span>`).join('')}</div></div><button class="btn sm" style="background:var(--warning);color:#fff;border-color:var(--warning);white-space:nowrap;flex-shrink:0" onclick="gp('profile')">إكمال الملف ←</button></div>`:''}`;
   const ratioSection=`<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:12px;font-weight:600;color:var(--text2)">النسبة الكيتونية اليوم</div><span style="font-size:11px;font-weight:700;color:${ratioColor};background:${ratio.type==='positive'?'var(--accent-light)':ratio.type==='neutral'?'var(--warning-dim)':'var(--danger-dim)'};padding:2px 9px;border-radius:100px">${ratio.label}</span></div><div class="keto-ratio-bar" style="margin-bottom:6px"><div class="keto-ratio-fill ${ratio.type==='positive'?'ratio-positive':ratio.type==='neutral'?'ratio-neutral':'ratio-negative'}" style="width:${ratioFill}%"></div></div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3)"><span>مبسطة: <strong style="color:var(--text2);font-family:var(--mono)">${ratio.simple}</strong></span><span>متقدمة: <strong style="color:${ratioColor};font-family:var(--mono)">${ratio.advanced}</strong></span><span>هدف المرحلة: <strong style="color:var(--info);font-family:var(--mono)">≥ ${(typeof PHASE_KETO_TARGETS!=='undefined'?PHASE_KETO_TARGETS[phase]?.advanced:null)||'—'}</strong></span></div></div>`;
   const carbPct=Math.round(((rem.plan.carb-rem.carb)/rem.plan.carb)*100);
-  const macroSection=`<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:var(--text2)">المتبقي لليوم</div><span style="font-size:11px;color:var(--text3)">${rem.cal} سعرة متبقية</span></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:${carbPct>80?'10':'0'}px">${[['دهون',rem.fat,rem.plan.fat,'var(--accent)'],['بروتين',rem.protein,rem.plan.protein,'var(--info)'],['كارب صافٍ',rem.carb,rem.plan.carb,'var(--danger)']].map(([lbl,val,total,col])=>{const p=Math.min(100,Math.round(((total-val)/total)*100));const isWarn=lbl==='كارب صافٍ'&&p>80;return`<div class="day-macro-card" style="${isWarn?'border-color:var(--danger);background:var(--danger-dim)':''}"><div class="day-macro-val" style="color:${isWarn?'var(--danger)':col}">${val}</div><div style="font-size:8px;color:var(--text3);margin-bottom:6px">غ متبقي</div><div class="keto-ratio-bar" style="height:4px"><div class="keto-ratio-fill" style="width:${p}%;background:${isWarn?'var(--danger)':col}"></div></div><div class="day-macro-sub">${lbl} · ${total}غ</div></div>`;}).join('')}</div>${carbPct>80?`<div style="background:var(--danger-dim);border:1px solid rgba(192,57,43,.2);border-radius:var(--radius-sm);padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--danger);margin-bottom:10px"><span>⚠️</span> استهلكت ${carbPct}% من الكارب اليومي — تجنب الأصناف النشوية في باقي اليوم</div>`:''}<button class="btn primary" style="width:100%;justify-content:center" onclick="gp('meals')">🍽️ تسجيل وجبة جديدة</button></div>`;
+  const macroSection=`<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:var(--text2)">المتبقي لليوم</div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:var(--text3)">${rem.cal} سعرة متبقية</span><button onclick="openTargetsModal()" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 8px;font-size:10px;color:var(--text2);cursor:pointer">✏️ تعديل الأهداف</button></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:${carbPct>80?'10':'0'}px">${[['دهون',rem.fat,rem.plan.fat,'var(--accent)'],['بروتين',rem.protein,rem.plan.protein,'var(--info)'],['كارب صافٍ',rem.carb,rem.plan.carb,'var(--danger)']].map(([lbl,val,total,col])=>{const p=Math.min(100,Math.round(((total-val)/total)*100));const isWarn=lbl==='كارب صافٍ'&&p>80;return`<div class="day-macro-card" style="${isWarn?'border-color:var(--danger);background:var(--danger-dim)':''}"><div class="day-macro-val" style="color:${isWarn?'var(--danger)':col}">${val}</div><div style="font-size:8px;color:var(--text3);margin-bottom:6px">غ متبقي</div><div class="keto-ratio-bar" style="height:4px"><div class="keto-ratio-fill" style="width:${p}%;background:${isWarn?'var(--danger)':col}"></div></div><div class="day-macro-sub">${lbl} · ${total}غ</div></div>`;}).join('')}</div>${carbPct>80?`<div style="background:var(--danger-dim);border:1px solid rgba(192,57,43,.2);border-radius:var(--radius-sm);padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--danger);margin-bottom:10px"><span>⚠️</span> استهلكت ${carbPct}% من الكارب اليومي — تجنب الأصناف النشوية في باقي اليوم</div>`:''}<button class="btn primary" style="width:100%;justify-content:center" onclick="gp('meals')">🍽️ تسجيل وجبة جديدة</button></div>`;
   const suggestions=typeof getSuggestionsToImproveRatio==='function'?getSuggestionsToImproveRatio(rem.plan.fat-rem.fat,rem.plan.protein-rem.protein,rem.plan.carb-rem.carb,(typeof PHASE_KETO_TARGETS!=='undefined'?PHASE_KETO_TARGETS[phase]?.advanced:null)||1.5,phase,mem.activity||'sedentary'):[];
   const suggSection=`<div class="card" style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:18px">🎯</span><div><div style="font-size:12px;font-weight:600;color:var(--text2)">اقتراح الوجبة القادمة</div><div style="font-size:11px;color:var(--text3)">بناءً على المتبقي ومتطلبات النسبة الكيتونية</div></div></div>${suggestions.length>0?suggestions.map((s,i)=>`<div class="suggestion-item" onclick="this.classList.toggle('selected')"><div><div style="font-size:13px;font-weight:500">${s.food.name}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${s.qty}غ · دهون ${s.nutrients.fat}غ · بروتين ${s.nutrients.protein}غ · كارب ${s.nutrients.net_carb}غ</div></div><div style="text-align:center;flex-shrink:0"><div style="font-size:10px;color:var(--text3)">النسبة</div><div style="font-size:14px;font-weight:700;color:var(--accent)">+${s.improvement}</div></div></div>`).join(''):`<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0">سجّل وجباتك اليوم لعرض الاقتراحات</div>`}</div>`;
   const lost=mem.start_weight?(mem.start_weight-(mem.current_weight||mem.start_weight)).toFixed(1):'—';
@@ -3467,7 +3468,139 @@ function renderCI(){const el=document.getElementById('citems');if(!calcItems.len
 function updateCR(){const el=document.getElementById('cresult');if(!calcItems.length){el.innerHTML='<div style="color:var(--text3);text-align:center;padding:28px 0">أضف مكونات للبدء</div>';return;}const m=cmac({ingredients:calcItems});const k=klbl(m.k);el.innerHTML=`<div style="text-align:center;margin-bottom:13px"><div style="font-size:36px;font-weight:700;font-family:var(--mono);color:${kc(m.k)}">${m.k}</div><div style="font-size:12px;color:var(--text3)">نقاط التوافق الكيتوني</div><div style="margin-top:5px"><span class="badge ${k.c}">${k.l}</span></div></div><div class="kbar" style="margin-bottom:12px"><div class="kfill ${m.k>=80?'gr':m.k>=60?'ok':'bd'}" style="width:${m.k}%"></div></div>${macHTML(m,1)}`;}
 
 /* ═══ NEEDS ═══ */
-function calcNeeds(){const g=document.getElementById('nc-g').value;const age=parseInt(document.getElementById('nc-a').value)||35;const w=parseFloat(document.getElementById('nc-w').value)||75;const h=parseFloat(document.getElementById('nc-h').value)||170;const act=document.getElementById('nc-ac').value;const lv=document.getElementById('nc-lv').value;const goal=document.getElementById('nc-go').value;const bmr=g==='male'?88.4+13.4*w+4.8*h-5.68*age:447.6+9.25*w+3.1*h-4.33*age;const tdee=Math.round(bmr*({sedentary:1.2,light:1.375,moderate:1.55,active:1.725}[act]));const carbMax={strict:20,moderate:30,liberal:50}[lv];const protG=Math.round(w*({standard:1.2,active:1.6,building:2.0}[goal]));const fatG=Math.round((tdee-protG*4-carbMax*4)/9);const fp=Math.round(fatG*9/tdee*100),pp=Math.round(protG*4/tdee*100),cp=Math.round(carbMax*4/tdee*100);const rs=['أوميغا 3 (2غ EPA+DHA)'];if(lv==='strict')rs.unshift('الماغنيسيوم (400مغ)','الصوديوم (ملح الهيمالايا)','البوتاسيوم');if(age>40)rs.push('فيتامين D3 (2000-4000 وحدة)');if(goal==='building')rs.push('الكريتين (5غ/يوم)');document.getElementById('nresult').innerHTML=`<div class="stats-grid" style="margin-bottom:13px"><div class="stat-card"><div class="stat-label">BMR</div><div class="stat-val" style="font-size:20px">${Math.round(bmr)}</div></div><div class="stat-card"><div class="stat-label">TDEE</div><div class="stat-val" style="font-size:20px">${tdee}</div></div></div><div class="mrow"><div class="mchip"><div class="mchip-l">دهون</div><div class="mchip-v f">${fatG}</div><div class="mchip-u">غ · ${fp}%</div></div><div class="mchip"><div class="mchip-l">بروتين</div><div class="mchip-v p">${protG}</div><div class="mchip-u">غ · ${pp}%</div></div><div class="mchip"><div class="mchip-l">كربو صافية</div><div class="mchip-v c">≤${carbMax}</div><div class="mchip-u">غ · ${cp}%</div></div></div><div style="margin-top:11px"><div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:500">مكملات موصى بها:</div>${rs.map(s=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--accent)">✓</span>${s}</div>`).join('')}</div>`;}
+function calcNeeds(){
+  const g   = document.getElementById('nc-g').value;
+  const age = parseInt(document.getElementById('nc-a').value)||35;
+  const w   = parseFloat(document.getElementById('nc-w').value)||75;
+  const h   = parseFloat(document.getElementById('nc-h').value)||170;
+  const act = document.getElementById('nc-ac').value;
+  const lv  = document.getElementById('nc-lv').value;
+  const goal= document.getElementById('nc-go').value;
+  const bmr  = g==='male' ? 10*w+6.25*h-5*age+5 : 10*w+6.25*h-5*age-161;
+  const tdee = Math.round(bmr*({sedentary:1.2,light:1.375,moderate:1.55,active:1.725}[act]||1.55));
+  const carbMax = {strict:20,moderate:30,liberal:50}[lv]||30;
+  const protG   = Math.round(w*({standard:1.2,active:1.6,building:2.0}[goal]||1.2));
+  const fatG    = Math.max(30,Math.round((tdee-protG*4-carbMax*4)/9));
+  const realCal = fatG*9+protG*4+carbMax*4;
+  const fp=Math.round(fatG*9/realCal*100),pp=Math.round(protG*4/realCal*100),cp=Math.round(carbMax*4/realCal*100);
+  const rs=['أوميغا 3 (2غ EPA+DHA)'];
+  if(lv==='strict')rs.unshift('الماغنيسيوم (400مغ)','الصوديوم (ملح الهيمالايا)','البوتاسيوم');
+  if(age>40)rs.push('فيتامين D3 (2000-4000 وحدة)');
+  if(goal==='building')rs.push('الكريتين (5غ/يوم)');
+  window._lastCalcResult={cal:realCal,fat:fatG,protein:protG,carb:carbMax,bmr:Math.round(bmr),tdee};
+  document.getElementById('nresult').innerHTML=`
+    <div class="stats-grid" style="margin-bottom:14px">
+      <div class="stat-card"><div class="stat-label">BMR</div><div class="stat-val" style="font-size:20px">${Math.round(bmr)}</div></div>
+      <div class="stat-card"><div class="stat-label">TDEE</div><div class="stat-val" style="font-size:20px">${tdee}</div></div>
+      <div class="stat-card"><div class="stat-label">سعرات الكيتو</div><div class="stat-val" style="font-size:20px">${realCal}</div></div>
+    </div>
+    <div class="mrow" style="margin-bottom:12px">
+      <div class="mchip"><div class="mchip-l">دهون</div><div class="mchip-v f">${fatG}</div><div class="mchip-u">غ · ${fp}%</div></div>
+      <div class="mchip"><div class="mchip-l">بروتين</div><div class="mchip-v p">${protG}</div><div class="mchip-u">غ · ${pp}%</div></div>
+      <div class="mchip"><div class="mchip-l">كربو صافية</div><div class="mchip-v c">≤${carbMax}</div><div class="mchip-u">غ · ${cp}%</div></div>
+    </div>
+    <div style="height:8px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:14px">
+      <div style="width:${fp}%;background:var(--accent)"></div>
+      <div style="width:${pp}%;background:var(--info)"></div>
+      <div style="width:${cp}%;background:var(--danger)"></div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:500">مكملات موصى بها:</div>
+      ${rs.map(s=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--accent)">✓</span>${s}</div>`).join('')}
+    </div>
+    <div style="background:var(--accent-light);border:1px solid rgba(58,140,63,.2);border-radius:var(--radius-sm);padding:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px">✅ طبّق هذه النتائج كأهدافك اليومية</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px">ستُحدَّث لوحة التحكم وصفحة اليوميات بناءً على هذه الأرقام</div>
+      <button onclick="applyNeedsToProfile()" class="btn primary" style="width:100%;justify-content:center">تطبيق الأهداف ✓</button>
+    </div>`;
+}
+function applyNeedsToProfile(){
+  const r=window._lastCalcResult;
+  if(!r){alert('احسب الاحتياج أولاً');return;}
+  const mem=MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem){alert('لم يتم العثور على ملفك الشخصي');return;}
+  mem.target_cal=r.cal;mem.target_fat=r.fat;mem.target_prot=r.protein;mem.target_carb=r.carb;mem.bmr=r.bmr;mem.tdee=r.tdee;
+  if(window.DB)window.DB.saveMember(mem);
+  const btn=document.querySelector('#nresult .btn.primary');
+  if(btn){btn.textContent='✓ تم التطبيق';btn.disabled=true;btn.style.opacity='.7';}
+  rDash();
+  _showToast('✅ تم تحديث أهدافك اليومية');
+}
+function openTargetsModal(){
+  const mem=MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem)return;
+  let modal=document.getElementById('targets-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='targets-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML=`<div style="background:var(--surface);border-radius:16px;width:100%;max-width:400px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <div style="font-size:15px;font-weight:600">✏️ تعديل الأهداف اليومية</div>
+      <button onclick="document.getElementById('targets-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
+    </div>
+    <div class="fg" style="margin-bottom:10px"><label>السعرات الكلية</label><input type="number" id="t-cal" value="${mem.target_cal||1800}"></div>
+    <div class="fg" style="margin-bottom:10px"><label>الدهون (غ)</label><input type="number" id="t-fat" value="${mem.target_fat||130}"></div>
+    <div class="fg" style="margin-bottom:10px"><label>البروتين (غ)</label><input type="number" id="t-prot" value="${mem.target_prot||110}"></div>
+    <div class="fg" style="margin-bottom:18px"><label>الكارب الصافي (غ)</label><input type="number" id="t-carb" value="${mem.target_carb||25}"></div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:14px">💡 أو احسب احتياجك بدقة من <button onclick="document.getElementById('targets-modal').style.display='none';gp('needs')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;text-decoration:underline">حاسبة الاحتياج</button></div>
+    <div style="display:flex;gap:8px">
+      <button onclick="saveTargetsManual()" class="btn primary" style="flex:1;justify-content:center">حفظ ✓</button>
+      <button onclick="document.getElementById('targets-modal').style.display='none'" class="btn" style="justify-content:center">إلغاء</button>
+    </div>
+  </div>`;
+  modal.style.display='flex';
+}
+function saveTargetsManual(){
+  const mem=MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem)return;
+  mem.target_cal =parseInt(document.getElementById('t-cal').value)||1800;
+  mem.target_fat =parseInt(document.getElementById('t-fat').value)||130;
+  mem.target_prot=parseInt(document.getElementById('t-prot').value)||110;
+  mem.target_carb=parseInt(document.getElementById('t-carb').value)||25;
+  if(window.DB)window.DB.saveMember(mem);
+  document.getElementById('targets-modal').style.display='none';
+  rDash();
+  _showToast('✅ تم تحديث الأهداف');
+}
+function _showToast(msg){
+  let t=document.getElementById('app-toast');
+  if(!t){t=document.createElement('div');t.id='app-toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 20px;border-radius:100px;font-size:13px;font-weight:600;z-index:500;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:opacity .4s';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';
+  setTimeout(()=>{t.style.opacity='0';},2500);
+}
+
+function rNeeds(){
+  /* تعبئة الحاسبة تلقائياً من بيانات المشترك */
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem) return;
+  const g  = document.getElementById('nc-g');
+  const a  = document.getElementById('nc-a');
+  const w  = document.getElementById('nc-w');
+  const h  = document.getElementById('nc-h');
+  if(g && mem.gender) g.value = mem.gender==='أنثى'?'female':'male';
+  if(a && mem.age)    a.value = mem.age;
+  if(w && mem.current_weight) w.value = mem.current_weight;
+  if(h && mem.height) h.value = mem.height;
+
+  /* عرض الأهداف الحالية إذا وُجدت */
+  if(mem.target_cal){
+    const r = document.getElementById('nresult');
+    if(r && r.children.length<=1){
+      r.innerHTML = `<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">أهدافك الحالية</div>
+        <div class="mrow">
+          <div class="mchip"><div class="mchip-l">دهون</div><div class="mchip-v f">${mem.target_fat||130}</div><div class="mchip-u">غ/يوم</div></div>
+          <div class="mchip"><div class="mchip-l">بروتين</div><div class="mchip-v p">${mem.target_prot||110}</div><div class="mchip-u">غ/يوم</div></div>
+          <div class="mchip"><div class="mchip-l">كارب صافٍ</div><div class="mchip-v c">${mem.target_carb||25}</div><div class="mchip-u">غ/يوم</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:10px">احسب من جديد لتحديث الأهداف أو <button onclick="openTargetsModal()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;text-decoration:underline">عدّلها يدوياً</button></div>
+      </div>`;
+    }
+  }
+}
 
 /* ═══ MEMBERS ═══ */
 function rMembers(){const q=(document.getElementById('msearch')?.value||'').toLowerCase();const mems=CU.role==='admin'?MEMBERS.filter(m=>!q||m.name.includes(q)):MEMBERS.filter(m=>m.uid===CU.id);document.getElementById('mtbody').innerHTML=mems.map(m=>{const lost=(m.start_weight-m.current_weight).toFixed(1);const pct=Math.min(100,Math.round(parseFloat(lost)/(m.start_weight-m.goal_weight)*100));const jd=m.join_date||m.start_date;const sd=m.start_date;return`<tr><td><div style="font-weight:500">${m.name}</div><div style="font-size:11px;color:var(--text3)">${m.email}</div></td><td><span class="badge ${m.phase===1?'b':m.phase===2?'g':'y'}">مرحلة ${m.phase}</span></td><td style="font-size:12px;color:var(--text3)">${jd}</td><td style="font-size:12px;color:var(--text2)">${dur(jd)}</td><td style="font-size:12px;color:var(--text3)">${sd}</td><td style="font-size:12px;color:var(--text2)">${dur(sd)}</td><td class="mono">${m.start_weight} كغ</td><td class="mono" style="color:var(--accent)">${m.current_weight} كغ</td><td class="mono" style="color:var(--accent)">−${lost}كغ</td><td style="min-width:80px"><div style="font-size:11px;color:var(--text3);margin-bottom:2px">${pct}%</div><div class="kbar" style="margin:0"><div class="kfill gr" style="width:${pct}%"></div></div></td></tr>`;}).join('');}
