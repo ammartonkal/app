@@ -3754,12 +3754,20 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
         <div style="font-size:12px;font-weight:600;color:${rColor}" id="mt-ratio-label">النسبة الكيتونية: <span id="mt-ratio-val" style="font-family:var(--mono);font-size:14px">${kr}</span></div>
         <span style="font-size:12px;font-weight:700;color:${rColor}" id="mt-ratio-text">${rLabel}</span>
       </div>
-      <!-- scaleX(-1) يعكس الشريط: يبدأ من اليمين 0 وينتهي يساراً 4.0 -->
-      <div style="height:8px;background:rgba(0,0,0,.08);border-radius:4px;overflow:hidden">
-        <div id="mt-ratio-bar" style="height:100%;width:${krPct}%;background:${rColor};border-radius:4px;transition:all .3s"></div>
+      <!-- الشريط مع مؤشر: 0 على اليمين، 4.0 على اليسار -->
+      <div style="position:relative;height:8px;background:rgba(0,0,0,.08);border-radius:4px;margin-bottom:4px">
+        <!-- الجزء الملوّن من اليمين -->
+        <div id="mt-ratio-bar" style="position:absolute;top:0;bottom:0;right:0;width:${krPct}%;background:${rColor};border-radius:4px;transition:all .3s;opacity:.35"></div>
+        <!-- المؤشر الرأسي عند القيمة الحالية -->
+        <div id="mt-ratio-needle" style="position:absolute;top:-3px;bottom:-3px;width:3px;background:${rColor};border-radius:2px;right:${krPct}%;transform:translateX(50%);transition:all .3s;box-shadow:0 0 4px ${rColor}"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:${rColor}88;margin-top:4px">
-        <span>0</span><span>1.0</span><span>1.5 حد</span><span>2.0+ ✓</span><span>4.0</span>
+      <!-- التسميات: 0 على اليمين، 4.0 على اليسار -->
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:2px">
+        <span style="color:var(--accent)">4.0</span>
+        <span style="color:var(--accent)">2.0+ ✓</span>
+        <span style="color:var(--warning)">1.5 حد</span>
+        <span style="color:var(--danger)">1.0</span>
+        <span>0</span>
       </div>
     </div>
 
@@ -3893,7 +3901,9 @@ function _mtRefreshUI(tFat, tProt, tCarb){
   const rtEl=document.getElementById('mt-ratio-text');
   if(rtEl){rtEl.textContent=rLabel;rtEl.style.color=rColor;}
   const rb=document.getElementById('mt-ratio-bar');
-  if(rb){rb.style.width=krPct+'%';rb.style.background=rColor;}
+  if(rb){ rb.style.width=krPct+'%'; rb.style.background=rColor; }
+  const needle=document.getElementById('mt-ratio-needle');
+  if(needle){ needle.style.right=krPct+'%'; needle.style.background=rColor; needle.style.boxShadow='0 0 4px '+rColor; }
   const rbox=document.getElementById('mt-ratio-box');
   if(rbox)rbox.style.background=rBg;
   ['fat','prot','carb'].forEach(f=>{const e=document.getElementById('mt-'+f);if(e)e.value=window._mtv[f];});
