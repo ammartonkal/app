@@ -1421,7 +1421,9 @@ function rDash(){
   const rem=getDayRemaining(mem);
   const ratio=getDayKetoRatio(mem);
   const ratioColor=ratio.type==='positive'?'var(--accent)':ratio.type==='neutral'?'var(--warning)':'var(--danger)';
-  const ratioFill=Math.min(100,(ratio.advanced/4)*100);
+  /* الشريط يكون صفر إذا لا توجد وجبات */
+  const hasRatio = ratio.simple !== '—' && ratio.advanced !== '—';
+  const ratioFill = hasRatio ? Math.min(100,(parseFloat(ratio.advanced)||0)/4*100) : 0;
   document.getElementById('d-rbar').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:12px;flex-wrap:wrap">
       <div><div style="font-size:11px;color:var(--text3);margin-bottom:1px">${greeting}</div><div style="font-size:16px;font-weight:600;color:var(--text)">${CU.name} 👋</div></div>
@@ -1432,9 +1434,22 @@ function rDash(){
       </div>
     </div>
     ${missing.length>0?`<div style="margin-top:10px;background:var(--warning-dim);border:1px solid rgba(160,112,16,.25);border-radius:var(--radius-sm);padding:9px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div style="font-size:11px;font-weight:600;color:var(--warning);margin-bottom:4px">💡 أكمل ملفك للحصول على تجربة مخصصة</div><div style="display:flex;flex-wrap:wrap;gap:4px">${missing.map(m=>`<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(160,112,16,.12);border:1px solid rgba(160,112,16,.2);color:var(--warning);border-radius:100px;padding:2px 9px;font-size:11px">${m.icon} ${m.label}</span>`).join('')}</div></div><button class="btn sm" style="background:var(--warning);color:#fff;border-color:var(--warning);white-space:nowrap;flex-shrink:0" onclick="gp('profile')">إكمال الملف ←</button></div>`:''}`;
-  const ratioSection=`<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:12px;font-weight:600;color:var(--text2)">النسبة الكيتونية اليوم</div><span style="font-size:11px;font-weight:700;color:${ratioColor};background:${ratio.type==='positive'?'var(--accent-light)':ratio.type==='neutral'?'var(--warning-dim)':'var(--danger-dim)'};padding:2px 9px;border-radius:100px">${ratio.label}</span></div><div class="keto-ratio-bar" style="margin-bottom:6px"><div class="keto-ratio-fill ${ratio.type==='positive'?'ratio-positive':ratio.type==='neutral'?'ratio-neutral':'ratio-negative'}" style="width:${ratioFill}%"></div></div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3)"><span>مبسطة: <strong style="color:var(--text2);font-family:var(--mono)">${ratio.simple}</strong></span><span>متقدمة: <strong style="color:${ratioColor};font-family:var(--mono)">${ratio.advanced}</strong></span><span>هدف المرحلة: <strong style="color:var(--info);font-family:var(--mono)">≥ ${(typeof PHASE_KETO_TARGETS!=='undefined'?PHASE_KETO_TARGETS[phase]?.advanced:null)||'—'}</strong></span></div></div>`;
-  const carbPct=Math.round(((rem.plan.carb-rem.carb)/rem.plan.carb)*100);
-  const macroSection=`<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:var(--text2)">المتبقي لليوم</div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:var(--text3)">${rem.cal} سعرة متبقية</span><button onclick="gp('needs')" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 8px;font-size:10px;color:var(--text2);cursor:pointer">✏️ تعديل الأهداف</button></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:${carbPct>80?'10':'0'}px">${[['دهون',rem.fat,rem.plan.fat,'var(--accent)'],['بروتين',rem.protein,rem.plan.protein,'var(--info)'],['كارب صافٍ',rem.carb,rem.plan.carb,'var(--danger)']].map(([lbl,val,total,col])=>{const p=Math.min(100,Math.round(((total-val)/total)*100));const isWarn=lbl==='كارب صافٍ'&&p>80;return`<div class="day-macro-card" style="${isWarn?'border-color:var(--danger);background:var(--danger-dim)':''}"><div class="day-macro-val" style="color:${isWarn?'var(--danger)':col}">${val}</div><div style="font-size:8px;color:var(--text3);margin-bottom:6px">غ متبقي</div><div class="keto-ratio-bar" style="height:4px"><div class="keto-ratio-fill" style="width:${p}%;background:${isWarn?'var(--danger)':col}"></div></div><div class="day-macro-sub">${lbl} · ${total}غ</div></div>`;}).join('')}</div>${carbPct>80?`<div style="background:var(--danger-dim);border:1px solid rgba(192,57,43,.2);border-radius:var(--radius-sm);padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--danger);margin-bottom:10px"><span>⚠️</span> استهلكت ${carbPct}% من الكارب اليومي — تجنب الأصناف النشوية في باقي اليوم</div>`:''}<button class="btn primary" style="width:100%;justify-content:center" onclick="gp('meals')">🍽️ تسجيل وجبة جديدة</button></div>`;
+  const ratioSection=`<div class="card" style="margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2)">النسبة الكيتونية اليوم</div>
+      <span style="font-size:11px;font-weight:700;color:${hasRatio?ratioColor:'var(--text3)'};background:${hasRatio?(ratio.type==='positive'?'var(--accent-light)':ratio.type==='neutral'?'var(--warning-dim)':'var(--danger-dim)'):'var(--surface2)'};padding:2px 9px;border-radius:100px">${ratio.label}</span>
+    </div>
+    <div class="keto-ratio-bar" style="margin-bottom:6px">
+      <div class="keto-ratio-fill ${ratio.type==='positive'?'ratio-positive':ratio.type==='neutral'?'ratio-neutral':'ratio-negative'}" style="width:${ratioFill}%"></div>
+    </div>
+    ${hasRatio
+      ? `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3)"><span>مبسطة: <strong style="color:var(--text2);font-family:var(--mono)">${ratio.simple}</strong></span><span>متقدمة: <strong style="color:${ratioColor};font-family:var(--mono)">${ratio.advanced}</strong></span><span>هدف المرحلة: <strong style="color:var(--info);font-family:var(--mono)">≥ ${(typeof PHASE_KETO_TARGETS!=='undefined'?PHASE_KETO_TARGETS[phase]?.advanced:null)||'—'}</strong></span></div>`
+      : `<div style="font-size:11px;color:var(--text3);text-align:center">سجّل وجباتك لحساب النسبة الكيتونية · هدف المرحلة ≥ ${(typeof PHASE_KETO_TARGETS!=='undefined'?PHASE_KETO_TARGETS[phase]?.advanced:null)||'—'}</div>`}
+  </div>`;
+  /* carbPct يُحسب من المستهلك (consumed) لا من المتبقي */
+  const carbConsumedPct=rem.plan.carb>0?Math.round((rem.consumed?.net_carb||0)/rem.plan.carb*100):0;
+  const carbPct=carbConsumedPct;
+  const macroSection=`<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:var(--text2)">المتبقي لليوم</div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:var(--text3)">${rem.cal} سعرة متبقية</span><button onclick="gp('needs')" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 8px;font-size:10px;color:var(--text2);cursor:pointer">✏️ تعديل الأهداف</button></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:${carbPct>80?'10':'0'}px">${[['دهون',rem.fat,rem.plan.fat,'var(--accent)',rem.consumed?.fat||0],['بروتين',rem.protein,rem.plan.protein,'var(--info)',rem.consumed?.protein||0],['كارب صافٍ',rem.carb,rem.plan.carb,'var(--danger)',rem.consumed?.net_carb||0]].map(([lbl,val,total,col,consumed])=>{const consumedPct=total>0?Math.min(100,Math.round(consumed/total*100)):0;const isWarn=lbl==='كارب صافٍ'&&consumedPct>80;return`<div class="day-macro-card" style="${isWarn?'border-color:var(--danger);background:var(--danger-dim)':''}"><div class="day-macro-val" style="color:${isWarn?'var(--danger)':col}">${val}</div><div style="font-size:8px;color:var(--text3);margin-bottom:6px">غ متبقي</div><div class="keto-ratio-bar" style="height:4px"><div class="keto-ratio-fill" style="width:${consumedPct}%;background:${isWarn?'var(--danger)':col}"></div></div><div class="day-macro-sub">${lbl} · ${total}غ</div></div>`;}).join('')}</div>${carbPct>80?`<div style="background:var(--danger-dim);border:1px solid rgba(192,57,43,.2);border-radius:var(--radius-sm);padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--danger);margin-bottom:10px"><span>⚠️</span> استهلكت ${carbPct}% من الكارب اليومي — تجنب الأصناف النشوية في باقي اليوم</div>`:''}<button class="btn primary" style="width:100%;justify-content:center" onclick="gp('meals')">🍽️ تسجيل وجبة جديدة</button></div>`;
   const suggestions=typeof getSuggestionsToImproveRatio==='function'?getSuggestionsToImproveRatio(rem.plan.fat-rem.fat,rem.plan.protein-rem.protein,rem.plan.carb-rem.carb,(typeof PHASE_KETO_TARGETS!=='undefined'?PHASE_KETO_TARGETS[phase]?.advanced:null)||1.5,phase,mem.activity||'sedentary'):[];
   const suggSection=`<div class="card" style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:18px">🎯</span><div><div style="font-size:12px;font-weight:600;color:var(--text2)">اقتراح الوجبة القادمة</div><div style="font-size:11px;color:var(--text3)">بناءً على المتبقي ومتطلبات النسبة الكيتونية</div></div></div>${suggestions.length>0?suggestions.map((s,i)=>`<div class="suggestion-item" onclick="this.classList.toggle('selected')"><div><div style="font-size:13px;font-weight:500">${s.food.name}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${s.qty}غ · دهون ${s.nutrients.fat}غ · بروتين ${s.nutrients.protein}غ · كارب ${s.nutrients.net_carb}غ</div></div><div style="text-align:center;flex-shrink:0"><div style="font-size:10px;color:var(--text3)">النسبة</div><div style="font-size:14px;font-weight:700;color:var(--accent)">+${s.improvement}</div></div></div>`).join(''):`<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0">سجّل وجباتك اليوم لعرض الاقتراحات</div>`}</div>`;
   const lost=mem.start_weight?(mem.start_weight-(mem.current_weight||mem.start_weight)).toFixed(1):'—';
@@ -3507,6 +3522,138 @@ function renderCI(){const el=document.getElementById('citems');if(!calcItems.len
 function updateCR(){const el=document.getElementById('cresult');if(!calcItems.length){el.innerHTML='<div style="color:var(--text3);text-align:center;padding:28px 0">أضف مكونات للبدء</div>';return;}const m=cmac({ingredients:calcItems});const k=klbl(m.k);el.innerHTML=`<div style="text-align:center;margin-bottom:13px"><div style="font-size:36px;font-weight:700;font-family:var(--mono);color:${kc(m.k)}">${m.k}</div><div style="font-size:12px;color:var(--text3)">نقاط التوافق الكيتوني</div><div style="margin-top:5px"><span class="badge ${k.c}">${k.l}</span></div></div><div class="kbar" style="margin-bottom:12px"><div class="kfill ${m.k>=80?'gr':m.k>=60?'ok':'bd'}" style="width:${m.k}%"></div></div>${macHTML(m,1)}`;}
 
 /* ═══ NEEDS ═══ */
+
+const PHASE_MACRO_TARGETS = {
+  0:{name:'التمهيدية',fat_pct:[60,70],carb_max:[50,100],prot_gkg:[1.2,1.5],note:'مرحلة تهيئة — تقليل تدريجي للكارب',deficit:0},
+  1:{name:'الأولى',   fat_pct:[75,85],carb_max:[10,15], prot_gkg:[1.2,1.5],note:'دخول الكيتوز — دهون عالية وكارب أقل من 15غ',deficit:-300},
+  2:{name:'الثانية',  fat_pct:[65,75],carb_max:[20,30], prot_gkg:[1.2,1.5],note:'Keto Adaptation — دهون تنخفض تدريجياً',deficit:-400},
+  3:{name:'الثالثة',  fat_pct:[40,55],carb_max:[50,130],prot_gkg:[1.2,1.5],note:'خروج مؤقت — سعرات الثبات أو أعلى',deficit:0},
+  4:{name:'الرابعة',  fat_pct:[65,75],carb_max:[20,35], prot_gkg:[1.5,2.0],note:'Fat Adaptation — بروتين أعلى لبناء العضل',deficit:-400},
+  5:{name:'الخامسة',  fat_pct:[60,70],carb_max:[25,40], prot_gkg:[1.5,2.0],note:'الاستمرارية — تدوير بين المراحل',deficit:-300},
+  6:{name:'السادسة',  fat_pct:[50,65],carb_max:[30,50], prot_gkg:[1.2,1.5],note:'تثبيت النتائج — مرونة أكبر',deficit:-200},
+  7:{name:'السابعة',  fat_pct:[55,70],carb_max:[20,50], prot_gkg:[1.2,1.5],note:'نمط حياة — كيتو مستدام مرن',deficit:-100},
+};
+
+const PHASE_NEXT_SIGNALS = {
+  0:'انخفاض اشتهاء السكر + القدرة على قطع الكارب لأيام متواصلة',
+  1:'ظهور الكيتون في الدم/البول + صفاء ذهني + انخفاض الجوع',
+  2:'طاقة مستقرة طوال اليوم + مرور 4-6 أسابيع من البداية',
+  3:'الاكتفاء من الخروج (1-3 أيام كحد أقصى)',
+  4:'مرور 6-8 أسابيع + طاقة عالية من الدهون الحرة',
+  5:'الوصول للهدف الصحي أو الوزن المستهدف',
+  6:'ثبات النتائج لعدة أسابيع + راحة نفسية وجسدية',
+};
+
+function rNeeds(){
+  const el = document.getElementById('needs-content');
+  if(!el) return;
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  const lastW   = mem?.current_weight||mem?.start_weight||75;
+  const phase   = mem?.keto_mode==='protocol'?(mem?.phase!==undefined&&mem?.phase!==null?mem.phase:null):null;
+  const today   = new Date().toISOString().split('T')[0];
+  const lastTarget = getTargetForDate(mem, today);
+  const hasSaved = !!(mem?.targets_history?.length>0||mem?.target_fat);
+
+  /* TDEE */
+  const nc_g  = document.getElementById('nc-g');
+  const nc_a  = document.getElementById('nc-a');
+  const nc_w  = document.getElementById('nc-w');
+  const nc_h  = document.getElementById('nc-h');
+  const nc_ac = document.getElementById('nc-ac');
+  const gender  = (nc_g?.value)||( mem?.gender==='أنثى'?'female':'male');
+  const age     = parseInt(nc_a?.value)||mem?.age||35;
+  const weight  = parseFloat(nc_w?.value)||lastW;
+  const height  = parseInt(nc_h?.value)||mem?.height||170;
+  const actKey  = nc_ac?.value||mem?.activity_level||'moderate';
+  const bmr = gender==='male'?10*weight+6.25*height-5*age+5:10*weight+6.25*height-5*age-161;
+  const tdee= Math.round(bmr*({sedentary:1.2,light:1.375,moderate:1.55,active:1.725}[actKey]||1.55));
+
+  /* المقترح */
+  const pmt      = phase!==null?PHASE_MACRO_TARGETS[phase]:null;
+  const sugCarb  = pmt?pmt.carb_max[0]:25;
+  const sugProtG = pmt?Math.round(lastW*((pmt.prot_gkg[0]+pmt.prot_gkg[1])/2)):Math.round(lastW*1.5);
+  const deficit  = pmt?pmt.deficit:-300;
+  const targetCal= Math.max(1200, tdee+deficit);
+  const sugFatG  = Math.max(30,Math.round((targetCal-sugProtG*4-sugCarb*4)/9));
+
+  /* القيم اليدوية */
+  const initFat  = hasSaved?lastTarget.fat :sugFatG;
+  const initProt = hasSaved?lastTarget.protein:sugProtG;
+  const initCarb = hasSaved?lastTarget.carb:sugCarb;
+  window._mtv    = {fat:initFat,prot:initProt,carb:initCarb};
+  window._mtTdee = tdee;
+
+  let html = '';
+
+  /* إشعار الانتقال */
+  if(phase!==null&&mem?.phase_start&&PHASE_NEXT_SIGNALS[phase]){
+    const dayCount=Math.max(1,Math.floor((new Date()-new Date(mem.phase_start))/86400000)+1);
+    const nextPhase=phase<7?phase+1:null;
+    const shouldNotify=(phase===1&&dayCount>=5)||(phase===2&&dayCount>=21)||(phase===4&&dayCount>=42)||(phase===5&&dayCount>=90);
+    if(shouldNotify&&nextPhase!==null){
+      html+=`<div style="background:var(--accent-light);border:1px solid rgba(58,140,63,.3);border-radius:var(--radius);padding:14px 16px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:24px;flex-shrink:0">🔔</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px">حان وقت الانتقال للمرحلة ${PHASE_MACRO_TARGETS[nextPhase]?.name}!</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:8px">أنت في المرحلة ${pmt?.name} منذ ${dayCount} يوماً · ${PHASE_NEXT_SIGNALS[phase]}</div>
+          <button onclick="gp('phases')" class="btn sm primary">عرض تفاصيل المرحلة التالية ←</button>
+        </div>
+      </div>`;
+    }
+  }
+
+  /* بطاقة البيانات */
+  html+=`<div class="card" style="margin-bottom:20px">
+    <div class="card-header"><div class="card-title">📊 بياناتك الأساسية</div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px">
+      <div class="stat-card"><div class="stat-label">الوزن الحالي</div><div class="stat-val">${lastW} <span style="font-size:13px;color:var(--text3)">كغ</span></div></div>
+      <div class="stat-card"><div class="stat-label">BMR</div><div class="stat-val">${Math.round(bmr)}</div></div>
+      <div class="stat-card"><div class="stat-label">TDEE</div><div class="stat-val">${tdee}</div></div>
+      ${phase!==null?`<div class="stat-card"><div class="stat-label">المرحلة</div><div class="stat-val" style="font-size:15px;color:var(--accent)">المرحلة ${pmt?.name}</div></div>`:''}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div class="fg" style="flex:1;min-width:100px"><label>الجنس</label><select id="nc-g" onchange="rNeeds()" style="font-size:13px"><option value="male" ${gender==='male'?'selected':''}>ذكر</option><option value="female" ${gender==='female'?'selected':''}>أنثى</option></select></div>
+      <div class="fg" style="flex:1;min-width:70px"><label>العمر</label><input type="number" id="nc-a" value="${age}" onchange="rNeeds()" style="font-size:13px"></div>
+      <div class="fg" style="flex:1;min-width:70px"><label>الوزن (كغ)</label><input type="number" id="nc-w" value="${weight}" onchange="rNeeds()" style="font-size:13px"></div>
+      <div class="fg" style="flex:1;min-width:70px"><label>الطول (سم)</label><input type="number" id="nc-h" value="${height}" onchange="rNeeds()" style="font-size:13px"></div>
+      <div class="fg" style="flex:1;min-width:110px"><label>مستوى النشاط</label><select id="nc-ac" onchange="rNeeds()" style="font-size:13px"><option value="sedentary" ${actKey==='sedentary'?'selected':''}>قليل الحركة</option><option value="light" ${actKey==='light'?'selected':''}>خفيف</option><option value="moderate" ${actKey==='moderate'?'selected':''}>معتدل</option><option value="active" ${actKey==='active'?'selected':''}>عالي</option></select></div>
+    </div>
+  </div>`;
+
+  /* المقترح حسب المرحلة */
+  if(pmt){
+    const defLabel=deficit<0?`عجز ${Math.abs(deficit)} سعرة`:deficit===0?'سعرات الثبات':`فائض ${deficit} سعرة`;
+    const defColor=deficit<-200?'var(--info)':deficit===0?'var(--accent)':'var(--warning)';
+    html+=`<div class="card" style="margin-bottom:20px;border-right:4px solid var(--accent)">
+      <div class="card-header"><div class="card-title">🎯 التوزيع المقترح — المرحلة ${pmt.name}</div></div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">${pmt.note}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+        <div style="text-align:center;background:var(--surface2);border-radius:var(--radius-sm);padding:10px"><div style="font-size:9px;color:var(--text3);margin-bottom:2px">السعرات</div><div style="font-size:20px;font-weight:700;font-family:var(--mono)">${targetCal}</div><div style="font-size:9px;color:${defColor};margin-top:2px">${defLabel}</div></div>
+        <div style="text-align:center;background:var(--surface2);border-radius:var(--radius-sm);padding:10px"><div style="font-size:9px;color:var(--text3);margin-bottom:2px">دهون</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:var(--accent)">${sugFatG}غ</div><div style="font-size:9px;color:var(--text3);margin-top:2px">${pmt.fat_pct[0]}-${pmt.fat_pct[1]}%</div></div>
+        <div style="text-align:center;background:var(--surface2);border-radius:var(--radius-sm);padding:10px"><div style="font-size:9px;color:var(--text3);margin-bottom:2px">بروتين</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:var(--info)">${sugProtG}غ</div><div style="font-size:9px;color:var(--text3);margin-top:2px">${pmt.prot_gkg[0]}-${pmt.prot_gkg[1]} غ/كغ</div></div>
+        <div style="text-align:center;background:var(--surface2);border-radius:var(--radius-sm);padding:10px"><div style="font-size:9px;color:var(--text3);margin-bottom:2px">كارب صافٍ</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:var(--danger)">≤${sugCarb}غ</div><div style="font-size:9px;color:var(--text3);margin-top:2px">حد المرحلة</div></div>
+      </div>
+      <button onclick="_applyPhaseDefaults(${sugFatG},${sugProtG},${sugCarb})" class="btn primary" style="width:100%;justify-content:center">تطبيق المقترح في الحاسبة اليدوية ↓</button>
+    </div>`;
+  } else {
+    html+=`<div class="card" style="margin-bottom:20px;background:var(--surface2)">
+      <div style="font-size:12px;color:var(--text2);text-align:center;padding:14px 0">فعّل بروتوكول د. عمار من <button onclick="gp('phases')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;text-decoration:underline">صفحة المراحل</button> للحصول على توزيع مقترح حسب مرحلتك</div>
+    </div>`;
+  }
+
+  /* الحاسبة اليدوية */
+  html+=`<div class="card" id="manual-targets-card">
+    <div class="card-header">
+      <div class="card-title">✏️ ضبط الأهداف يدوياً</div>
+      <div style="font-size:11px;color:var(--text3)">${hasSaved?'آخر تعديل محفوظ':'اسحب الأشرطة لتخصيص أهدافك'}</div>
+    </div>
+    <div id="manual-targets-content"></div>
+  </div>`;
+
+  el.innerHTML = html;
+  _buildManualTargets(mem, tdee, initFat, initProt, initCarb);
+}
+
 function _applyPhaseDefaults(fat, prot, carb){
   window._mtv = {fat, prot, carb};
   const mem = MEMBERS.find(m=>m.uid===CU.id);
