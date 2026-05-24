@@ -3527,41 +3527,247 @@ function applyNeedsToProfile(){
   _showToast('✅ تم تحديث أهدافك اليومية');
 }
 function openTargetsModal(){
-  const mem=MEMBERS.find(m=>m.uid===CU.id);
-  if(!mem)return;
-  let modal=document.getElementById('targets-modal');
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem) return;
+
+  /* آخر وزن مسجل */
+  const lastW = mem.current_weight || mem.start_weight || 75;
+
+  /* القيم الحالية أو الافتراضية */
+  let tFat  = mem.target_fat  || 130;
+  let tProt = mem.target_prot || Math.round(lastW * 1.5);
+  let tCarb = mem.target_carb || 25;
+  let tCal  = tFat*9 + tProt*4 + tCarb*4;
+
+  let modal = document.getElementById('targets-modal');
   if(!modal){
-    modal=document.createElement('div');
-    modal.id='targets-modal';
-    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px';
+    modal = document.createElement('div');
+    modal.id = 'targets-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto';
     document.body.appendChild(modal);
   }
-  modal.innerHTML=`<div style="background:var(--surface);border-radius:16px;width:100%;max-width:400px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,.18)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-      <div style="font-size:15px;font-weight:600">✏️ تعديل الأهداف اليومية</div>
-      <button onclick="document.getElementById('targets-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
-    </div>
-    <div class="fg" style="margin-bottom:10px"><label>السعرات الكلية</label><input type="number" id="t-cal" value="${mem.target_cal||1800}"></div>
-    <div class="fg" style="margin-bottom:10px"><label>الدهون (غ)</label><input type="number" id="t-fat" value="${mem.target_fat||130}"></div>
-    <div class="fg" style="margin-bottom:10px"><label>البروتين (غ)</label><input type="number" id="t-prot" value="${mem.target_prot||110}"></div>
-    <div class="fg" style="margin-bottom:18px"><label>الكارب الصافي (غ)</label><input type="number" id="t-carb" value="${mem.target_carb||25}"></div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:14px">💡 أو احسب احتياجك بدقة من <button onclick="document.getElementById('targets-modal').style.display='none';gp('needs')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;text-decoration:underline">حاسبة الاحتياج</button></div>
-    <div style="display:flex;gap:8px">
-      <button onclick="saveTargetsManual()" class="btn primary" style="flex:1;justify-content:center">حفظ ✓</button>
-      <button onclick="document.getElementById('targets-modal').style.display='none'" class="btn" style="justify-content:center">إلغاء</button>
-    </div>
-  </div>`;
-  modal.style.display='flex';
+
+  function ketoRatio(f,p,c){ const d=p*0.6+c; return d>0?(f/d).toFixed(2):'—'; }
+  function ratioLabel(r){ const v=parseFloat(r)||0; return v>=2?{l:'محفز جداً',c:'var(--accent)'}:v>=1.5?{l:'محفز للكيتون',c:'var(--accent)'}:v>=1?{l:'غير محفز',c:'var(--warning)'}:{l:'مثبط للكيتون',c:'var(--danger)'}; }
+
+  function buildHTML(){
+    tCal = Math.round(tFat*9 + tProt*4 + tCarb*4);
+    const totMacro = tFat*9+tProt*4+tCarb*4||1;
+    const fp = Math.round(tFat*9/totMacro*100);
+    const pp = Math.round(tProt*4/totMacro*100);
+    const cp = Math.round(tCarb*4/totMacro*100);
+    const kr = ketoRatio(tFat,tProt,tCarb);
+    const rl = ratioLabel(kr);
+    const protPerKg = (tProt/lastW).toFixed(1);
+    /* النسبة الكيتونية كشريط (0 إلى 4) */
+    const krVal = Math.min(4, Math.max(0, parseFloat(kr)||0));
+    const krPct = Math.round(krVal/4*100);
+
+    return `<div style="background:var(--surface);border-radius:16px;width:100%;max-width:460px;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+      <div style="padding:20px 20px 0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-size:15px;font-weight:700">✏️ الأهداف اليومية</div>
+          <button onclick="document.getElementById('targets-modal').style.display='none'" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text3)">✕</button>
+        </div>
+
+        <!-- رابط الحاسبة — واضح وبارز -->
+        <div style="background:var(--info-dim);border:1px solid rgba(26,111,168,.25);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--info);margin-bottom:2px">📊 الحساب الدقيق حسب المرحلة</div>
+            <div style="font-size:11px;color:var(--text2)">احسب احتياجك بناءً على وزنك ونشاطك ومرحلتك</div>
+          </div>
+          <button onclick="document.getElementById('targets-modal').style.display='none';gp('needs')" class="btn sm primary" style="white-space:nowrap;flex-shrink:0">الحاسبة ←</button>
+        </div>
+
+        <!-- النسبة الكيتونية الحالية -->
+        <div style="background:${rl.c==='var(--accent)'?'var(--accent-light)':rl.c==='var(--warning)'?'var(--warning-dim)':'var(--danger-dim)'};border-radius:var(--radius-sm);padding:12px;margin-bottom:18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:12px;font-weight:600;color:${rl.c}">النسبة الكيتونية المتقدمة: ${kr}</div>
+            <span style="font-size:11px;font-weight:600;color:${rl.c}">${rl.l}</span>
+          </div>
+          <div style="height:8px;background:var(--surface3);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${krPct}%;background:${rl.c};border-radius:4px;transition:width .3s"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:4px">
+            <span>0</span><span style="color:var(--danger)">1.0 مثبط</span><span style="color:var(--warning)">1.5 حد</span><span style="color:var(--accent)">2.0+ محفز</span><span>4.0</span>
+          </div>
+        </div>
+
+        <!-- توزيع الماكرو -->
+        <div style="height:10px;border-radius:5px;overflow:hidden;display:flex;margin-bottom:6px">
+          <div style="width:${fp}%;background:var(--accent);transition:width .3s"></div>
+          <div style="width:${pp}%;background:var(--info);transition:width .3s"></div>
+          <div style="width:${cp}%;background:var(--danger);transition:width .3s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:18px">
+          <span style="color:var(--accent)">دهون ${fp}%</span>
+          <span style="color:var(--info)">بروتين ${pp}%</span>
+          <span style="color:var(--danger)">كارب ${cp}%</span>
+          <span style="font-weight:600">${tCal} سعرة</span>
+        </div>
+      </div>
+
+      <div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:16px">
+
+        <!-- البروتين -->
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--info)">🥩 البروتين</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">${protPerKg} غ/كغ · الوزن الحالي ${lastW} كغ</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:22px;font-weight:700;font-family:var(--mono);color:var(--info)" id="tm-prot-val">${tProt}</div>
+              <div style="font-size:9px;color:var(--text3)">غ/يوم</div>
+            </div>
+          </div>
+          <!-- شريط المعدل: 0.8 إلى 2.5 غ/كغ -->
+          <input type="range" id="tm-prot" min="${Math.round(lastW*0.8)}" max="${Math.round(lastW*2.5)}" step="5" value="${tProt}"
+            style="width:100%;accent-color:var(--info)"
+            oninput="window._tmUpdate('prot',this.value)">
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:4px">
+            <span>0.8 غ/كغ</span><span style="color:var(--info)">1.5 غ/كغ (افتراضي)</span><span>2.5 غ/كغ</span>
+          </div>
+        </div>
+
+        <!-- الكارب الصافي -->
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--danger)">🥬 الكارب الصافي</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">كل 5 غ تؤثر على النسبة الكيتونية</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <button onclick="window._tmStep('carb',-5)" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+              <div style="text-align:center;min-width:36px">
+                <div style="font-size:22px;font-weight:700;font-family:var(--mono);color:var(--danger)" id="tm-carb-val">${tCarb}</div>
+                <div style="font-size:9px;color:var(--text3)">غ/يوم</div>
+              </div>
+              <button onclick="window._tmStep('carb',5)" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+            </div>
+          </div>
+          <input type="range" id="tm-carb" min="10" max="100" step="5" value="${tCarb}"
+            style="width:100%;accent-color:var(--danger)"
+            oninput="window._tmUpdate('carb',this.value)">
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:4px">
+            <span style="color:var(--accent)">10 صارم</span><span>20</span><span>30</span><span>50</span><span>75</span><span>100 مرن</span>
+          </div>
+        </div>
+
+        <!-- الدهون (محسوبة) -->
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--accent)">🥑 الدهون</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">السعرات المتبقية بعد البروتين والكارب</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:22px;font-weight:700;font-family:var(--mono);color:var(--accent)" id="tm-fat-val">${tFat}</div>
+              <div style="font-size:9px;color:var(--text3)">غ/يوم</div>
+            </div>
+          </div>
+          <input type="range" id="tm-fat" min="30" max="300" step="5" value="${tFat}"
+            style="width:100%;accent-color:var(--accent)"
+            oninput="window._tmUpdate('fat',this.value)">
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:4px">
+            <span>30غ</span><span style="color:var(--accent)">مثالي للكيتو</span><span>300غ</span>
+          </div>
+        </div>
+
+        <!-- حفظ -->
+        <div style="display:flex;gap:8px">
+          <button onclick="saveTargetsManual()" class="btn primary" style="flex:1;justify-content:center">حفظ الأهداف ✓</button>
+          <button onclick="document.getElementById('targets-modal').style.display='none'" class="btn" style="justify-content:center">إلغاء</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  /* دالة التحديث الديناميكي — مشتركة بين كل العناصر */
+  window._tmVals = {fat:tFat, prot:tProt, carb:tCarb};
+
+  window._tmUpdate = function(field, val){
+    window._tmVals[field] = parseInt(val)||0;
+    tFat  = window._tmVals.fat;
+    tProt = window._tmVals.prot;
+    tCarb = window._tmVals.carb;
+    /* تحديث inner content بدلاً من إعادة بناء الـ modal كاملاً */
+    _tmRefresh(tFat, tProt, tCarb);
+  };
+
+  window._tmStep = function(field, step){
+    const cur = window._tmVals[field]||0;
+    const el  = document.getElementById('tm-'+field);
+    const min = parseInt(el?.min)||0;
+    const max = parseInt(el?.max)||300;
+    const nv  = Math.min(max, Math.max(min, cur+step));
+    window._tmVals[field] = nv;
+    if(el) el.value = nv;
+    window._tmUpdate(field, nv);
+  };
+
+  function _tmRefresh(f, p, c){
+    const cal = Math.round(f*9+p*4+c*4);
+    const tot = f*9+p*4+c*4||1;
+    const fp  = Math.round(f*9/tot*100);
+    const pp  = Math.round(p*4/tot*100);
+    const cp  = Math.round(c*4/tot*100);
+    const kr  = ketoRatio(f,p,c);
+    const rl  = ratioLabel(kr);
+    const krPct = Math.round(Math.min(4,Math.max(0,parseFloat(kr)||0))/4*100);
+    const protPerKg = (p/lastW).toFixed(1);
+
+    /* تحديث الأرقام */
+    const sv = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+    const sr = (id,v) => { const e=document.getElementById(id); if(e){ e.value=v; } };
+    sv('tm-fat-val', f);   sr('tm-fat', f);
+    sv('tm-prot-val', p);  sr('tm-prot', p);
+    sv('tm-carb-val', c);  sr('tm-carb', c);
+
+    /* النسبة الكيتونية */
+    const krBox = modal.querySelector('[id^="kr-box"]') || modal.querySelector('[style*="accent-light"],[style*="warning-dim"],[style*="danger-dim"]');
+    /* أعد بناء القسم العلوي فقط */
+    const topSection = modal.querySelector('[style*="accent-light"],[style*="warning-dim"],[style*="danger-dim"]');
+    if(topSection){
+      topSection.style.background = rl.c==='var(--accent)'?'var(--accent-light)':rl.c==='var(--warning)'?'var(--warning-dim)':'var(--danger-dim)';
+      const krLabel = topSection.querySelector('[style*="font-weight:600"]');
+      if(krLabel){ krLabel.style.color=rl.c; krLabel.textContent=`النسبة الكيتونية المتقدمة: ${kr}`; }
+      const krLabelRight = topSection.querySelectorAll('[style*="font-weight:600"]')[1];
+      if(krLabelRight){ krLabelRight.style.color=rl.c; krLabelRight.textContent=rl.l; }
+      const krBar = topSection.querySelector('[style*="background:var(--accent)"], [style*="background:var(--warning)"], [style*="background:var(--danger)"]');
+      if(krBar){ krBar.style.background=rl.c; krBar.style.width=krPct+'%'; }
+    }
+
+    /* شريط التوزيع */
+    const bars = modal.querySelectorAll('[style*="background:var(--accent)"][style*="transition"]');
+    if(bars.length>=3){ bars[0].style.width=fp+'%'; bars[1].style.width=pp+'%'; bars[2].style.width=cp+'%'; }
+
+    /* النسب النصية */
+    const percents = modal.querySelectorAll('[style*="color:var(--accent)"],[style*="color:var(--info)"],[style*="color:var(--danger)"]');
+    /* السعرات */
+    const calSpans = [...modal.querySelectorAll('[style*="font-weight:600"]')].filter(e=>e.textContent.includes('سعرة'));
+    calSpans.forEach(e=>e.textContent=`${cal} سعرة`);
+
+    /* البروتين: غ/كغ */
+    const protKgEl = [...modal.querySelectorAll('div')].find(e=>e.textContent.includes('غ/كغ · الوزن'));
+    if(protKgEl) protKgEl.textContent = `${protPerKg} غ/كغ · الوزن الحالي ${lastW} كغ`;
+  }
+
+  modal.innerHTML = buildHTML();
+  modal.style.display = 'flex';
 }
+
 function saveTargetsManual(){
-  const mem=MEMBERS.find(m=>m.uid===CU.id);
-  if(!mem)return;
-  mem.target_cal =parseInt(document.getElementById('t-cal').value)||1800;
-  mem.target_fat =parseInt(document.getElementById('t-fat').value)||130;
-  mem.target_prot=parseInt(document.getElementById('t-prot').value)||110;
-  mem.target_carb=parseInt(document.getElementById('t-carb').value)||25;
-  if(window.DB)window.DB.saveMember(mem);
-  document.getElementById('targets-modal').style.display='none';
+  const v = window._tmVals;
+  if(!v){ alert('افتح نافذة الأهداف أولاً'); return; }
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem) return;
+  mem.target_fat  = v.fat;
+  mem.target_prot = v.prot;
+  mem.target_carb = v.carb;
+  mem.target_cal  = Math.round(v.fat*9 + v.prot*4 + v.carb*4);
+  if(window.DB) window.DB.saveMember(mem);
+  document.getElementById('targets-modal').style.display = 'none';
   rDash();
   _showToast('✅ تم تحديث الأهداف');
 }
