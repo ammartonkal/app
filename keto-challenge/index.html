@@ -3691,8 +3691,10 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
   const rBg    = rv>=1.5?'var(--accent-light)':rv>=1?'var(--warning-dim)':'var(--danger-dim)';
   const rLabel = rv>=2?'محفز جداً':rv>=1.5?'محفز للكيتون':rv>=1?'غير محفز':'مثبط للكيتون';
   const deficit = tdee - tCal;
-  const defLabel= deficit>0?`عجز ${deficit} سعرة`:deficit<0?`فائض ${Math.abs(deficit)} سعرة`:'سعرات الثبات';
-  const defColor= deficit>200?'var(--info)':deficit>0?'var(--warning)':deficit===0?'var(--accent)':'var(--danger)';
+  const defAbs  = Math.abs(deficit);
+  const defBarPct = Math.min(50, Math.round(defAbs/500*50));
+  const defLabel= deficit>50?`-${defAbs} سعرة`:deficit<-50?`+${defAbs} سعرة`:`≈ ثبات`;
+  const defColor= deficit>200?'var(--info)':deficit>50?'var(--warning)':Math.abs(deficit)<=50?'var(--accent)':'var(--danger)';
   const protKg  = (tProt/lastW).toFixed(1);
   const minFat  = Math.max(30, Math.round(lastW*0.5));
   const maxFat  = 350;
