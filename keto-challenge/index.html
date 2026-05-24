@@ -1870,11 +1870,10 @@ function _renderMealsPage(el){
   }
 
   /* سجل الخطط السابقة */
-  ${(()=>{
-    const hist = mem?.targets_history;
-    if(!hist||hist.length<=1) return '';
+  const hist = mem?.targets_history;
+  if(hist && hist.length > 1){
     const sorted = [...hist].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
-    return `<div class="card" style="margin-top:16px">
+    html += `<div class="card" style="margin-top:16px">
       <div class="card-header"><div class="card-title" style="font-size:12px">📋 سجل الخطط الغذائية</div></div>
       <div style="display:flex;flex-direction:column;gap:4px">
         ${sorted.map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--surface2);border-radius:var(--radius-sm)">
@@ -1891,7 +1890,7 @@ function _renderMealsPage(el){
         </div>`).join('')}
       </div>
     </div>`;
-  })()}
+  }
 
   /* نافذة تسجيل الوجبة */
   html += `
