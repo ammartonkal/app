@@ -3609,7 +3609,7 @@ function rNeeds(){
       <div class="stat-card"><div class="stat-label">الوزن الحالي</div><div class="stat-val">${lastW} <span style="font-size:13px;color:var(--text3)">كغ</span></div></div>
       <div class="stat-card"><div class="stat-label">BMR</div><div class="stat-val">${Math.round(bmr)}</div></div>
       <div class="stat-card"><div class="stat-label">TDEE</div><div class="stat-val">${tdee}</div></div>
-      ${phase!==null?`<div class="stat-card"><div class="stat-label">المرحلة</div><div class="stat-val" style="font-size:15px;color:var(--accent)">المرحلة ${pmt?.name}</div></div>`:''}
+      ${phase!==null?`<div class="stat-card" style="cursor:pointer" onclick="gp('phases')"><div class="stat-label">المرحلة <span style="font-size:9px;color:var(--accent)">← تعديل</span></div><div class="stat-val" style="font-size:15px;color:var(--accent)">المرحلة ${pmt?.name}</div></div>`:'<div class="stat-card" style="cursor:pointer;border-color:var(--accent)" onclick="gp(\'phases\')"><div class="stat-label">المرحلة</div><div class="stat-val" style="font-size:13px;color:var(--accent)">تفعيل البروتوكول ←</div></div>'}
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <div class="fg" style="flex:1;min-width:100px"><label>الجنس</label><select id="nc-g" onchange="rNeeds()" style="font-size:13px"><option value="male" ${gender==='male'?'selected':''}>ذكر</option><option value="female" ${gender==='female'?'selected':''}>أنثى</option></select></div>
@@ -3708,7 +3708,7 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
           <div style="font-size:11px;color:var(--text3);margin-top:2px">TDEE الحالي: ${tdee||'—'} سعرة</div>
         </div>
         <div style="text-align:center">
-          <div style="font-size:28px;font-weight:700;font-family:var(--mono)" id="mt-cal-val">${tCal}</div>
+          <div style="font-size:28px;font-weight:700;font-family:var(--mono)" id="mt-cal-val">${tCal} سعرة/يوم</div>
           <div style="font-size:11px;font-weight:600;color:${defColor}" id="mt-deficit-label">${defLabel}</div>
         </div>
       </div>
@@ -3841,11 +3841,12 @@ window._mtStep = function(field, step){
   _mtRefreshUI(window._mtv.fat,window._mtv.prot,window._mtv.carb);
 };
 window._mtAdjustCal = function(delta){
-  /* تعديل السعرات عبر الدهون */
+  /* تعديل السعرات: +100/-100 سعرة = تعديل الدهون بالكمية المقابلة */
   window._mtv=window._mtv||{fat:130,prot:110,carb:25};
-  const fatDelta=Math.round(delta/9);
   const el=document.getElementById('mt-fat');
   const min=parseInt(el?.min)||30, max=parseInt(el?.max)||350;
+  /* 100 سعرة = ~11.1 غرام دهون، نستخدم 10 لخطوة محسوسة */
+  const fatDelta = delta > 0 ? 10 : -10;
   const nv=Math.min(max,Math.max(min,(window._mtv.fat||130)+fatDelta));
   window._mtv.fat=nv; if(el)el.value=nv;
   _mtRefreshUI(window._mtv.fat,window._mtv.prot,window._mtv.carb);
@@ -3858,34 +3859,67 @@ function _mtRefreshUI(tFat,tProt,tCarb){
   const pf=0.6;
   const kr=tFat&&(tCarb+(tProt*pf))?(tFat/(tCarb+(tProt*pf))).toFixed(2):'—';
   const rv=parseFloat(kr)||0;
+  /* الشريط: 0-4 يُرسم على 0-100% */
   const krPct=Math.round(Math.min(4,rv)/4*100);
   const rColor=rv>=1.5?'var(--accent)':rv>=1?'var(--warning)':'var(--danger)';
-  const rBg=rv>=1.5?'var(--accent-light)':rv>=1?'var(--warning-dim)':'var(--danger-dim)';
+  const rBg   =rv>=1.5?'var(--accent-light)':rv>=1?'var(--warning-dim)':'var(--danger-dim)';
   const rLabel=rv>=2?'محفز جداً':rv>=1.5?'محفز للكيتون':rv>=1?'غير محفز':'مثبط للكيتون';
   const tdee=window._mtTdee||2000;
   const deficit=tdee-tCal;
-  const defLabel=deficit>0?`عجز ${deficit} سعرة`:deficit<0?`فائض ${Math.abs(deficit)} سعرة`:'سعرات الثبات';
+  const defLabel=deficit>100?`عجز ${deficit} سعرة`:deficit<-100?`فائض ${Math.abs(deficit)} سعرة`:`قريب من الثبات (${deficit>0?'+':''}${deficit})`;
   const defColor=deficit>200?'var(--info)':deficit>0?'var(--warning)':deficit===0?'var(--accent)':'var(--danger)';
+  /* نسبة مؤشر العجز: 0=ثبات، 500عجز=100%، 500فائض=-100% */
+  const defBarPct=Math.min(100,Math.max(0,Math.round(Math.abs(deficit)/500*100)));
   const mem=MEMBERS.find(m=>m.uid===CU.id);
   const lastW=mem?.current_weight||mem?.start_weight||75;
   const protKg=(tProt/lastW).toFixed(1);
 
   const sv=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   const sw=(id,w)=>{const e=document.getElementById(id);if(e)e.style.width=w+'%';};
-  const sc=(id,c)=>{const e=document.getElementById(id);if(e)e.style.color=c;};
 
-  sv('mt-fat-val',tFat);   sv('mt-prot-val',tProt);   sv('mt-carb-val',tCarb);
-  sv('mt-cal-val',tCal);   sv('mt-fp',fp+'%');        sv('mt-pp',pp+'%');  sv('mt-cp',cp+'%');
-  sv('mt-ratio-val',kr);   sv('mt-ratio-text',rLabel); sv('mt-deficit-label',defLabel);
-  sv('mt-prot-kg',protKg+' غ/كغ · وزن '+lastW+' كغ');
-  sw('mt-bar-fat',fp);     sw('mt-bar-prot',pp);       sw('mt-bar-carb',cp);
-  sw('mt-ratio-bar',krPct);
-  sc('mt-ratio-label',rColor); sc('mt-ratio-text',rColor); sc('mt-deficit-label',defColor);
-  const rb=document.getElementById('mt-ratio-bar'); if(rb){rb.style.background=rColor;}
-  const rbox=document.getElementById('mt-ratio-box'); if(rbox){rbox.style.background=rBg;}
+  /* أرقام */
+  sv('mt-fat-val', tFat);
+  sv('mt-prot-val', tProt);
+  sv('mt-carb-val', tCarb);
+  sv('mt-cal-val',  tCal+' سعرة/يوم');
+  sv('mt-fp',  fp+'%');
+  sv('mt-pp',  pp+'%');
+  sv('mt-cp',  cp+'%');
+  sv('mt-prot-kg', protKg+' غ/كغ · وزن '+lastW+' كغ');
+
+  /* عجز السعرات */
+  sv('mt-deficit-label', defLabel);
+  const dlEl=document.getElementById('mt-deficit-label');
+  if(dlEl) dlEl.style.color=defColor;
   const db=document.getElementById('mt-deficit-bar');
-  if(db){db.style.width=Math.min(100,Math.round(Math.max(0,deficit)/tdee*200))+'%';db.style.background=defColor;}
-  ['fat','prot','carb'].forEach(f=>{const e=document.getElementById('mt-'+f);if(e)e.value=window._mtv[f];});
+  if(db){ db.style.width=defBarPct+'%'; db.style.background=defColor; }
+
+  /* أشرطة الماكرو */
+  sw('mt-bar-fat', fp);
+  sw('mt-bar-prot', pp);
+  sw('mt-bar-carb', cp);
+
+  /* النسبة الكيتونية — تحديث الرقم والنص والشريط واللون معاً */
+  sv('mt-ratio-val', kr);
+  sv('mt-ratio-text', rLabel);
+  const ratioLabelEl=document.getElementById('mt-ratio-label');
+  if(ratioLabelEl){
+    ratioLabelEl.style.color=rColor;
+    /* تحديث النص كاملاً مع الرقم */
+    ratioLabelEl.innerHTML=`النسبة الكيتونية: <span id="mt-ratio-val" style="font-family:var(--mono)">${kr}</span>`;
+  }
+  const rtEl=document.getElementById('mt-ratio-text');
+  if(rtEl){ rtEl.textContent=rLabel; rtEl.style.color=rColor; }
+  const rb=document.getElementById('mt-ratio-bar');
+  if(rb){ rb.style.width=krPct+'%'; rb.style.background=rColor; }
+  const rbox=document.getElementById('mt-ratio-box');
+  if(rbox){ rbox.style.background=rBg; }
+
+  /* مزامنة الأشرطة المتحركة مع القيم */
+  ['fat','prot','carb'].forEach(f=>{
+    const e=document.getElementById('mt-'+f);
+    if(e) e.value=window._mtv[f];
+  });
 }
 
 function saveTargetsManual(){
