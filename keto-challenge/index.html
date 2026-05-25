@@ -287,6 +287,17 @@ textarea{resize:vertical;min-height:76px;}
 .suggestion-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;margin-bottom:6px;}
 .suggestion-item:hover,.suggestion-item.selected{border-color:var(--accent);background:var(--accent-light);}
 
+/* SWAP PANEL */
+.swap-panel{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;margin-top:6px;display:none;}
+.swap-panel.open{display:block;}
+.swap-option{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:var(--radius-sm);cursor:pointer;margin-bottom:4px;border:1px solid transparent;transition:all .15s;}
+.swap-option:hover{background:var(--accent-light);border-color:var(--accent);}
+.swap-option.current{background:var(--accent-light);border-color:var(--accent);opacity:.6;cursor:default;}
+.swap-option-name{font-size:12px;font-weight:500;}
+.swap-option-macros{font-size:10px;color:var(--text3);font-family:var(--mono);}
+.sugg-item-row.swappable{cursor:pointer;}
+.sugg-item-row.swappable:hover .sugg-item-name::after{content:' ↔';color:var(--accent);font-size:10px;}
+
 /* MEAL SUGGESTION v2 */
 .sugg-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:18px;box-shadow:var(--shadow);overflow:hidden;}
 .sugg-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border);background:var(--surface2);}
@@ -2344,19 +2355,45 @@ function renderSuggSection(mem, rem, phase){
       </div>
     </div>
     <div class="sugg-body">
-      <div class="sugg-items">
-        ${items.map(i=>{
+      <div class="sugg-items" id="sugg-items-list">
+        ${items.map((i,idx)=>{
           const im = _calcMealRatio([{fid:i.fid,qty:i.qty}]);
-          return `<div class="sugg-item-row">
-            <div style="flex:1">
-              <div class="sugg-item-name">${i.food.name}${i.source==='fav'?' ⭐':''}</div>
-              <div class="sugg-item-qty">${i.displayQty||i.qty+'غ'}</div>
+          const alts = typeof getSwapAlternatives==='function'
+            ? getSwapAlternatives(i, mealTypeInfo.type, items, mem, phase)
+            : [];
+          const hasAlts = alts.length > 0;
+          return `<div>
+            <div class="sugg-item-row${hasAlts?' swappable':''}"
+              style="margin-bottom:0;border-radius:${hasAlts?'var(--radius-sm) var(--radius-sm) 0 0':'var(--radius-sm)'}">
+              <div style="flex:1">
+                <div class="sugg-item-name">${i.food.name}${i.source==='fav'?' ⭐':''}</div>
+                <div class="sugg-item-qty">${i.displayQty||i.qty+'غ'} · ${i.groupName||''}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <div class="sugg-item-macros">
+                  <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--accent)">${im.fat}غ</div><div class="sugg-macro-lbl">د</div></div>
+                  <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--info)">${im.prot}غ</div><div class="sugg-macro-lbl">ب</div></div>
+                  <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--danger)">${im.nc}غ</div><div class="sugg-macro-lbl">ك</div></div>
+                </div>
+                ${hasAlts?`<button class="btn sm" style="padding:3px 8px;font-size:10px;flex-shrink:0"
+                  onclick="toggleSwapPanel('swap-${idx}')" title="استبدل بديلاً">↔</button>`:''}
+              </div>
             </div>
-            <div class="sugg-item-macros">
-              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--accent)">${im.fat}غ</div><div class="sugg-macro-lbl">دهون</div></div>
-              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--info)">${im.prot}غ</div><div class="sugg-macro-lbl">بروتين</div></div>
-              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--danger)">${im.nc}غ</div><div class="sugg-macro-lbl">كارب</div></div>
-            </div>
+            ${hasAlts?`<div class="swap-panel" id="swap-${idx}">
+              <div style="font-size:10px;color:var(--text3);margin-bottom:6px;font-weight:600">اختر بديلاً من نفس المجموعة:</div>
+              ${alts.map(alt=>{
+                const altMacros = _calcMealRatio([{fid:alt.fid,qty:alt.qty}]);
+                const isCurrent = alt.fid === i.fid;
+                return `<div class="swap-option${isCurrent?' current':''}"
+                  onclick="${isCurrent?'':'swapMealItem('+i.fid+','+alt.fid+','+alt.qty+',\''+mealTypeInfo.type+'\')'}">
+                  <div>
+                    <div class="swap-option-name">${alt.name}${alt.isFav?' ⭐':''}</div>
+                    <div class="swap-option-macros">${alt.qty}غ · د${altMacros.fat} ب${altMacros.prot} ك${altMacros.nc}</div>
+                  </div>
+                  ${isCurrent?'<span style="font-size:10px;color:var(--accent)">الحالي</span>':'<span style="font-size:16px;color:var(--accent)">←</span>'}
+                </div>`;
+              }).join('')}
+            </div>`:''}
           </div>`;
         }).join('')}
       </div>
@@ -2396,7 +2433,201 @@ function refreshSnack(skipPresetId){
 }
 function refreshMeal(fids){
   (fids||[]).forEach(fid=>{ if(!_mealSkipFids.includes(fid)) _mealSkipFids.push(fid); });
+  // امسح الخطة المحفوظة لليوم حتى يتم إعادة بناء الوجبة
+  const mem = MEMBERS.find(m=>m.uid===CU?.id);
+  if(mem){
+    const today = new Date().toISOString().split('T')[0];
+    if(mem.day_plans?.[today]) delete mem.day_plans[today];
+  }
   rDash();
+}
+
+/* ─── حالة الـ swap الحالية ─── */
+let _currentSuggItems = []; // [{fid, qty, groupName, food, ...}]
+let _currentMealType  = null;
+
+/* ─── تبديل swap panel ─── */
+function toggleSwapPanel(panelId){
+  const el = document.getElementById(panelId);
+  if(!el) return;
+  // أغلق كل البانلات الأخرى
+  document.querySelectorAll('.swap-panel.open').forEach(p=>{
+    if(p.id !== panelId) p.classList.remove('open');
+  });
+  el.classList.toggle('open');
+}
+
+/* ─── استخراج البدائل لصنف معين ─── */
+function getSwapAlternatives(item, mealType, allItems, mem, phase){
+  if(typeof EXCHANGE_GROUPS === 'undefined') return [];
+  const grpKey = item.group;
+  if(!grpKey) return [];
+  const group  = EXCHANGE_GROUPS[grpKey];
+  if(!group)   return [];
+
+  const favIds   = mem?.favorites_foods || [];
+  const usedFids = new Set(allItems.filter(x=>x.fid!==item.fid).map(x=>x.fid));
+
+  // الأهداف والحصة لإعادة حساب الكمية
+  const prefs  = getMemPrefs(mem);
+  const shares = MEAL_SHARE?.[prefs.meals_per_day] || [0.30,0.35,0.35];
+  const mealIdx= {breakfast:0,lunch:1,dinner:2}[mealType] || 0;
+  const share  = shares[mealIdx] || 0.33;
+  const targets = typeof getTargetForDate!=='undefined' ? getTargetForDate(mem) : {fat:130,protein:110,carb:25};
+
+  return group.items
+    .filter(alt =>
+      !usedFids.has(alt.fid) &&
+      (alt.phases.length===0 || alt.phases.includes(phase)) &&
+      FOODS.find(f=>f.id===alt.fid)
+    )
+    .map(alt => {
+      const food = FOODS.find(f=>f.id===alt.fid);
+      // احسب الكمية المناسبة من الهدف
+      let qty = alt.qty;
+      if(grpKey.startsWith('protein') && food?.protein > 5){
+        const targetProt = (targets.protein||20) * share;
+        qty = Math.round(Math.min(targetProt/food.protein*100, alt.qty*1.5)/5)*5;
+        qty = Math.max(qty, 30);
+      } else if(grpKey.startsWith('fat') && food?.fat > 5){
+        const targetFat = (targets.fat||35) * share * 0.4;
+        const fatCap = food.fat>=80 ? alt.qty*2.5 : food.fat>=40 ? alt.qty*1.8 : alt.qty*1.5;
+        qty = Math.round(Math.min(targetFat/food.fat*100, fatCap)/5)*5;
+        qty = Math.max(qty, 5);
+      }
+      return {
+        fid:   alt.fid,
+        qty:   qty || alt.qty,
+        name:  alt.name || food?.name,
+        isFav: favIds.includes(alt.fid),
+        food
+      };
+    })
+    .sort((a,b) => (b.isFav?1:0)-(a.isFav?1:0)) // المفضلة أولاً
+    .slice(0, 5); // أقصى 5 بدائل
+}
+
+/* ─── تنفيذ الاستبدال ─── */
+function swapMealItem(oldFid, newFid, newQty, mealType){
+  const mem = MEMBERS.find(m=>m.uid===CU?.id);
+  if(!mem) return;
+
+  const today  = new Date().toISOString().split('T')[0];
+  const plan   = mem.day_plans?.[today];
+  if(!plan?.[mealType]) { rDash(); return; }
+
+  // استبدل الصنف في الخطة
+  const mealItems = plan[mealType];
+  const idx = mealItems.findIndex(i=>i.fid===oldFid);
+  if(idx === -1){ rDash(); return; }
+
+  const newFood = FOODS.find(f=>f.id===newFid);
+  if(!newFood) return;
+
+  mealItems[idx] = {
+    fid:       newFid,
+    qty:       newQty,
+    name:      newFood.name,
+    groupName: mealItems[idx].groupName,
+    group:     mealItems[idx].group,
+    note:      '',
+    source:    (mem.favorites_foods||[]).includes(newFid) ? 'fav' : 'std',
+  };
+
+  // ── أعد حساب الوجبات المتبقية بعد الاستبدال ──
+  _rebalanceRemainingMeals(mem, mealType, today);
+
+  if(typeof window.DB?.saveMember==='function') window.DB.saveMember(mem);
+  rDash();
+}
+
+/* ─── إعادة التوازن للوجبات المتبقية ─── */
+function _rebalanceRemainingMeals(mem, editedMealType, date){
+  const plan  = mem.day_plans?.[date];
+  if(!plan) return;
+
+  const prefs   = getMemPrefs(mem);
+  const mealsN  = prefs.meals_per_day;
+  const order   = mealsN===2 ? ['breakfast','dinner'] : ['breakfast','lunch','dinner'];
+  const editIdx = order.indexOf(editedMealType);
+  if(editIdx === -1) return;
+
+  // الوجبات التي بعد الوجبة المعدَّلة
+  const remaining = order.slice(editIdx + 1);
+  if(!remaining.length) return;
+
+  // احسب ما استُهلك حتى الآن (من السجل + الوجبات قبل المعدَّلة)
+  const consumed = calcDayTotals(getTodayMeals(mem.uid, date));
+
+  // احسب ماكرو الخطة حتى الوجبة المعدَّلة
+  const plannedSoFar = {fat:0, protein:0, net_carb:0, cal:0};
+  order.slice(0, editIdx+1).forEach(mt=>{
+    (plan[mt]||[]).forEach(item=>{
+      const f=FOODS.find(x=>x.id===item.fid);
+      if(!f) return;
+      const q=item.qty/100;
+      plannedSoFar.fat       += f.fat*q;
+      plannedSoFar.protein   += f.protein*q;
+      plannedSoFar.net_carb  += f.net_carb*q;
+      plannedSoFar.cal       += f.cal*q;
+    });
+  });
+
+  // المتبقي الحقيقي للوجبات التالية
+  const targets = typeof getTargetForDate!=='undefined'
+    ? getTargetForDate(mem, date)
+    : {fat:130, protein:110, carb:25, cal:1800};
+
+  const trueRemaining = {
+    fat:     Math.max(targets.fat     - plannedSoFar.fat,    5),
+    protein: Math.max(targets.protein - plannedSoFar.protein,5),
+    carb:    Math.max((targets.carb||25) - plannedSoFar.net_carb,2),
+    cal:     Math.max((targets.cal||1800) - plannedSoFar.cal,100),
+  };
+
+  // وزّع المتبقي على الوجبات التالية وأعد بناءها
+  const remCount = remaining.length;
+  remaining.forEach((mt, i)=>{
+    const shareOfRem = i === remCount-1 ? 1.0 : 1/remCount; // الأخيرة تأخذ كل المتبقي
+    const mealTargets = {
+      fat:     Math.round(trueRemaining.fat     * shareOfRem),
+      protein: Math.round(trueRemaining.protein * shareOfRem),
+      carb:    Math.round(trueRemaining.carb    * shareOfRem),
+      cal:     Math.round(trueRemaining.cal     * shareOfRem),
+    };
+    const favIds = mem.favorites_foods || [];
+    const phase  = mem.phase || 1;
+    const seed   = Date.now() + i;
+    const newMeal = typeof buildSingleMeal!=='undefined'
+      ? buildSingleMeal(mt, mealTargets, favIds, phase, [], seed, mem)
+      : null;
+    if(newMeal) plan[mt] = newMeal;
+    // قلّص المتبقي للوجبة التالية
+    if(i < remCount-1){
+      const used = {fat:0,protein:0,net_carb:0};
+      newMeal?.forEach(item=>{
+        const f=FOODS.find(x=>x.id===item.fid);
+        if(!f) return;
+        used.fat     += f.fat*(item.qty/100);
+        used.protein += f.protein*(item.qty/100);
+        used.net_carb+= f.net_carb*(item.qty/100);
+      });
+      trueRemaining.fat     -= used.fat;
+      trueRemaining.protein -= used.protein;
+      trueRemaining.carb    -= used.net_carb;
+    }
+  });
+}
+
+/* ─── بعد تسجيل وجبة: أعد حساب الوجبات المتبقية في الخطة ─── */
+function onMealRegistered(mealType){
+  const mem   = MEMBERS.find(m=>m.uid===CU?.id);
+  if(!mem) return;
+  const today = new Date().toISOString().split('T')[0];
+  if(!mem.day_plans?.[today]) return;
+  // أعد توازن الوجبات التالية فقط
+  _rebalanceRemainingMeals(mem, mealType, today);
+  if(typeof window.DB?.saveMember==='function') window.DB.saveMember(mem);
 }
 
 /* ─── تحديث الاقتراح بعشوائية ─── */
@@ -2540,6 +2771,7 @@ async function _suggRegisterMeal(){
   };
   MEALS.push(meal);
   if(typeof window.DB?.saveMeal==='function') await window.DB.saveMeal(meal);
+  onMealRegistered(_mealTypeName);
   closeSuggModal();
   rDash();
   alert('✅ تم تسجيل الوجبة في يومياتك!');
@@ -2624,6 +2856,7 @@ async function _calcRegisterMeal(){
     items:calcItems.map(i=>{const f=FOODS.find(x=>x.id===i.fid);return{fid:i.fid,name:f?.name||'',qty:i.qty};}),totals:t};
   MEALS.push(meal);
   if(typeof window.DB?.saveMeal==='function') await window.DB.saveMeal(meal);
+  onMealRegistered(_calcMealTypeNow?.type||'other');
   rDash();
   alert('✅ تم تسجيل الوجبة في يومياتك!');
 }
@@ -3408,6 +3641,7 @@ async function saveMealEntry(type){
   const meal = {uid:CU.id,date,ts,type,name,items:mealsDraftItems.map(i=>({fid:i.fid,name:i.name,qty:i.qty})),totals};
   MEALS.push(meal);
   if(window.DB) window.DB.saveMeal(meal);
+  onMealRegistered(type);
   mealsDraftItems = [];
   closeMealForm();
   rMeals();
