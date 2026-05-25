@@ -1713,161 +1713,321 @@ function _calcMealRatio(items){
           cal:Math.round(cal), ratio:Math.round(ratio*100)/100};
 }
 
+/* ═══════════════════════════════════════════
+   تصنيف الأطعمة — وجبة رئيسية أم سناك
+═══════════════════════════════════════════ */
+const SNACK_CATS = ['مكسرات وبذور', 'مكسرات', 'بذور', 'ألبان'];
+const SNACK_FOODS_IDS = []; // يمكن إضافة IDs محددة هنا لاحقاً
+
+// أطعمة السناك: مكسرات + بذور + ألبان + أصناف كارب<4 وكمية معتدلة ≤40غ
+function isSnackFood(f){
+  if(SNACK_CATS.some(c => f.cat?.includes(c))) return true;
+  if(SNACK_FOODS_IDS.includes(f.id)) return true;
+  // زبادي يوناني وجبنة كريمية بالاسم
+  const snackNames = ['زبادي','يوناني','جبنة كريمية','ماسكاربوني','قشطة'];
+  if(snackNames.some(n => f.name?.includes(n))) return true;
+  return false;
+}
+function isMainFood(f){ return !isSnackFood(f); }
+
+/* ─── تحديد نوع الوجبة حسب الوقت والتاريخ ─── */
+function getMealType(mem){
+  const todayMeals = getTodayMeals(mem?.uid);
+  const mainDone   = todayMeals.filter(m => m.type !== 'snack' && m.type !== 'other');
+  const prefs      = getMemPrefs(mem);
+  const total      = prefs.meals_per_day; // 2 أو 3
+
+  // إذا لم تُسجَّل أي وجبة → فطور دائماً
+  if(mainDone.length === 0) return {type:'breakfast', label:'الفطور', icon:'🌅', index:0};
+
+  // إذا اكتملت الوجبات → لا مقترح
+  if(mainDone.length >= total) return null;
+
+  const hour = new Date().getHours();
+  if(total === 2){
+    // وجبتان: فطور + عشاء
+    return {type:'dinner', label:'العشاء', icon:'🌙', index:1};
+  }
+  // ثلاث وجبات
+  if(mainDone.length === 1){
+    return {type:'lunch', label:'الغداء', icon:'☀️', index:1};
+  }
+  return {type:'dinner', label:'العشاء', icon:'🌙', index:2};
+}
+
+/* ─── نسب توزيع الوجبات ─── */
+const MEAL_SHARE = {
+  2: [0.45, 0.55],          // فطور 45% | عشاء 55%
+  3: [0.30, 0.35, 0.35],    // فطور 30% | غداء 35% | عشاء 35%
+};
+
+/* ─── تحويل الكمية لعرض طبيعي ─── */
+function humanQty(food, grams){
+  const name = food.name || '';
+  const g    = Math.round(grams);
+
+  // بيض
+  if(food.cat === 'بيض' || name.includes('بيض')){
+    const eggs = Math.max(1, Math.round(grams / 55));
+    return `${eggs} ${eggs===1?'بيضة':'بيضات'} كبيرة (${g}غ)`;
+  }
+  // دجاج / ديك رومي
+  if(['دواجن','دجاج'].includes(food.cat) || name.includes('دجاج') || name.includes('ديك')){
+    if(g <= 130) return `صدر دجاج متوسط (${g}غ مطبوخ)`;
+    if(g <= 220) return `صدران دجاج (${g}غ مطبوخ)`;
+    return `${g}غ دجاج مطبوخ`;
+  }
+  // لحم مفروم / شرائح
+  if(food.cat === 'لحوم' || name.includes('لحم')){
+    return `${g}غ (~${Math.round(g/100)} حصة)`;
+  }
+  // سمك
+  if(food.cat === 'أسماك' || name.includes('سلمون') || name.includes('تونة') || name.includes('سمك')){
+    if(name.includes('تونة')) return `${Math.max(1,Math.round(g/85))} علبة تونة (${g}غ)`;
+    return `فيليه متوسط (${g}غ)`;
+  }
+  // زبدة / سمن / زيوت
+  if(food.cat === 'دهون' || name.includes('زبدة') || name.includes('سمن') || name.includes('زيت')){
+    const tbsp = Math.round(g / 14);
+    if(tbsp <= 1) return `ملعقة كبيرة (${g}غ)`;
+    return `${tbsp} ملاعق كبيرة (${g}غ)`;
+  }
+  // جبن شرائح
+  if(food.cat === 'ألبان' || name.includes('جبن') || name.includes('شيدر') || name.includes('موزاريلا')){
+    if(name.includes('كريم') || name.includes('ماسكاربوني')) return `${g}غ (~${Math.round(g/30)} ملعقة كبيرة)`;
+    const slices = Math.max(1, Math.round(g / 20));
+    return `${slices} ${slices===1?'شريحة':'شرائح'} (${g}غ)`;
+  }
+  // زبادي
+  if(name.includes('زبادي') || name.includes('يوناني')){
+    return `وعاء (${g}غ)`;
+  }
+  // مكسرات / بذور
+  if(isSnackFood(food)){
+    const pieces = food.qty_moderate ? Math.round(g / (food.qty_moderate / 15)) : null;
+    const pcsText = pieces ? ` / ~${pieces} حبة` : '';
+    if(g <= 30) return `حفنة صغيرة (${g}غ${pcsText})`;
+    return `${g}غ${pcsText}`;
+  }
+  // أفوكادو
+  if(name.includes('أفوكادو')){
+    const halves = Math.max(1, Math.round(g / 75));
+    return `${halves===1?'نصف':'حبة كاملة'} أفوكادو (${g}غ)`;
+  }
+  // خضار ورقية
+  if(food.cat === 'خضار'){
+    if(g <= 50) return `حفنة صغيرة (${g}غ)`;
+    if(g <= 100) return `طبق سلطة صغير (${g}غ)`;
+    return `${g}غ`;
+  }
+  return `${g}غ`;
+}
+
+/* ─── بناء اقتراح الوجبة الرئيسية ─── */
 function buildMealSuggestion(mem, rem, phase){
-  // 1. إعدادات المرحلة والتفضيلات
   const ketoTarget = (typeof PHASE_KETO_TARGETS!=='undefined' ? PHASE_KETO_TARGETS[phase]?.advanced : null) || 1.5;
   const phaseData  = typeof PHASE_MACRO_TARGETS!=='undefined' ? PHASE_MACRO_TARGETS[phase] : null;
   const maxCarb    = phaseData ? phaseData.carb_max[1] : 30;
   const prefs      = getMemPrefs(mem);
 
-  // 2. حساب حصة الوجبة الواحدة من المتبقي
-  // — كم وجبة مسجلة اليوم؟
-  const todayMeals = getTodayMeals(mem?.uid);
-  const mainMeals  = todayMeals.filter(m => m.type !== 'snack' && m.type !== 'other');
-  const totalMain  = prefs.meals_per_day; // 2 أو 3
-  const doneMain   = Math.min(mainMeals.length, totalMain);
-  const remaining  = Math.max(totalMain - doneMain, 1);
-  // حصة هذه الوجبة = المتبقي مقسوماً على عدد الوجبات المتبقية
-  const shareFat   = Math.max(rem.fat  / remaining, 15);
-  const shareProt  = Math.max(rem.protein / remaining, 15);
-  const shareCarb  = Math.max(Math.min(rem.carb / remaining, maxCarb * 0.4), 3);
+  // نوع الوجبة المطلوبة
+  const mealTypeInfo = getMealType(mem);
+  if(!mealTypeInfo) return null; // اكتملت الوجبات
 
-  // 3. الأطعمة المسموحة في المرحلة
+  const total  = prefs.meals_per_day;
+  const shares = MEAL_SHARE[total] || MEAL_SHARE[3];
+  const share  = shares[mealTypeInfo.index] || shares[0];
+
+  // حصة هذه الوجبة من الأهداف اليومية
+  const shareFat  = Math.max(rem.plan.fat  * share, 15);
+  const shareProt = Math.max(rem.plan.protein * share, 15);
+  const shareCarb = Math.min(rem.plan.carb * share, maxCarb * 0.4);
+
+  // الأطعمة المسموحة للوجبات الرئيسية فقط
   const allowed = FOODS.filter(f =>
     f.keto_class <= 2 &&
+    isMainFood(f) &&
     (!f.phases_allowed || f.phases_allowed.includes(phase)) &&
     f.net_carb <= maxCarb
   );
   if(!allowed.length) return null;
 
-  // 4. الأولوية: مفضلات المشترك أولاً
   const favIds     = mem?.favorites_foods || [];
   const favAllowed = allowed.filter(f => favIds.includes(f.id));
 
-  const fatFoods  = allowed.filter(f => f.cat==='دهون' || (f.fat>8 && f.net_carb<3));
+  // تصنيف الأطعمة
   const protFoods = allowed.filter(f =>
-    ['بروتين','دواجن','أسماك','لحوم','بيض'].includes(f.cat) || (f.protein>15 && f.fat<30)
+    ['بروتين','دواجن','أسماك','لحوم','بيض'].includes(f.cat) ||
+    (f.protein > 12 && f.fat < 35 && f.net_carb < 5)
   );
-  const vegFoods  = allowed.filter(f => f.cat==='خضار' || (f.net_carb<5 && (f.fiber||0)>0.5));
+  const fatFoods  = allowed.filter(f =>
+    f.cat === 'دهون' ||
+    (f.fat > 10 && f.net_carb < 3 && !protFoods.find(p=>p.id===f.id))
+  );
+  const vegFoods  = allowed.filter(f =>
+    f.cat === 'خضار' && !protFoods.find(p=>p.id===f.id) && !fatFoods.find(p=>p.id===f.id)
+  );
 
-  function pickFrom(pool, n){
+  function pickBest(pool){
     const fromFav = favAllowed.filter(f => pool.find(x=>x.id===f.id));
-    const picks   = [...fromFav];
-    pool.filter(f => !picks.find(p=>p.id===f.id)).slice(0, n-picks.length).forEach(f=>picks.push(f));
-    return picks.slice(0, n);
+    if(fromFav.length) return fromFav[0];
+    return pool[0] || null;
   }
 
-  const pickedProt = pickFrom(protFoods, 1);
-  const pickedFat  = pickFrom(fatFoods.filter(f=>!pickedProt.find(p=>p.id===f.id)), 1);
-  const pickedVeg  = pickFrom(vegFoods.filter(f=>!pickedProt.find(p=>p.id===f.id)&&!pickedFat.find(p=>p.id===f.id)), 1);
+  const pickedProt = pickBest(protFoods);
+  const pickedFat  = pickBest(fatFoods.filter(f=>f.id!==pickedProt?.id));
+  const pickedVeg  = pickBest(vegFoods.filter(f=>f.id!==pickedProt?.id&&f.id!==pickedFat?.id));
 
-  // 5. حدد الكميات بناءً على حصة الوجبة (لا على كامل المتبقي)
   const items = [];
-  if(pickedProt[0]){
-    const f = pickedProt[0];
-    const qty = f.protein>0 ? Math.round(Math.min(shareProt/f.protein*100, 220)/5)*5 : 100;
-    items.push({fid:f.id, qty:Math.max(qty,50), food:f, source:favIds.includes(f.id)?'fav':'std'});
+  if(pickedProt){
+    const rawQty = pickedProt.protein>0 ? shareProt/pickedProt.protein*100 : 100;
+    const qty    = Math.round(Math.min(rawQty, 250)/5)*5;
+    items.push({fid:pickedProt.id, qty:Math.max(qty,50), food:pickedProt,
+                displayQty:humanQty(pickedProt, Math.max(qty,50)),
+                source:favIds.includes(pickedProt.id)?'fav':'std'});
   }
-  if(pickedFat[0]){
-    const f = pickedFat[0];
-    const qty = f.fat>0 ? Math.round(Math.min(shareFat/f.fat*100*0.5, 80)/5)*5 : 20;
-    items.push({fid:f.id, qty:Math.max(qty,10), food:f, source:favIds.includes(f.id)?'fav':'std'});
+  if(pickedFat){
+    const rawQty = pickedFat.fat>0 ? shareFat/pickedFat.fat*100*0.45 : 15;
+    const qty    = Math.round(Math.min(rawQty, 90)/5)*5;
+    items.push({fid:pickedFat.id, qty:Math.max(qty,10), food:pickedFat,
+                displayQty:humanQty(pickedFat, Math.max(qty,10)),
+                source:favIds.includes(pickedFat.id)?'fav':'std'});
   }
-  if(pickedVeg[0]){
-    const f = pickedVeg[0];
-    items.push({fid:f.id, qty:80, food:f, source:favIds.includes(f.id)?'fav':'std'});
+  if(pickedVeg){
+    items.push({fid:pickedVeg.id, qty:80, food:pickedVeg,
+                displayQty:humanQty(pickedVeg, 80),
+                source:favIds.includes(pickedVeg.id)?'fav':'std'});
   }
-
   if(!items.length) return null;
 
-  // 6. احسب ماكرو الوجبة
   const macros  = _calcMealRatio(items.map(i=>({fid:i.fid,qty:i.qty})));
-  const ratioOk = macros.ratio >= ketoTarget;
   const hasFav  = items.some(i=>i.source==='fav');
+  const todayMeals = getTodayMeals(mem?.uid);
+  const mainDone   = todayMeals.filter(m=>m.type!=='snack'&&m.type!=='other').length;
 
   return {
-    items, macros, ratioOk, ketoTarget, hasFav, phase,
-    mealNumber: doneMain+1, totalMeals: totalMain, remaining
+    items, macros,
+    ratioOk: macros.ratio >= ketoTarget,
+    ketoTarget, hasFav, phase,
+    mealTypeInfo,
+    mealNumber:  mainDone + 1,
+    totalMeals:  total,
+    remaining:   total - mainDone,
+    share
   };
 }
 
 /* ─── بناء اقتراح السناك ─── */
+// أصناف السناك المسموحة: مكسرات، بذور، زبادي يوناني، جبنة كريمية، أفوكادو
+// الحد الأقصى: 200 سعرة
 function buildSnackSuggestion(mem, rem, phase){
-  const prefs   = getMemPrefs(mem);
+  const prefs = getMemPrefs(mem);
   if(!prefs.has_snack) return null;
 
   const phaseData = typeof PHASE_MACRO_TARGETS!=='undefined' ? PHASE_MACRO_TARGETS[phase] : null;
-  const maxCarb   = phaseData ? phaseData.carb_max[0] : 15; // السناك يأخذ الحد الأدنى
+  const maxCarb   = phaseData ? phaseData.carb_max[0] : 10;
 
-  // السناك: صنف واحد فقط، كارب منخفض جداً، دهون أو بروتين
+  // مصادر السناك المسموحة
   const snackPool = FOODS.filter(f =>
     f.keto_class === 1 &&
     (!f.phases_allowed || f.phases_allowed.includes(phase)) &&
-    f.net_carb < 3 &&
-    (f.fat > 5 || f.protein > 5) &&
-    !['خضار'].includes(f.cat) // الخضار ليست سناك
+    f.net_carb < 5 &&
+    isSnackFood(f)
   );
   if(!snackPool.length) return null;
 
-  const favIds = mem?.favorites_foods || [];
-  const fromFav = snackPool.filter(f=>favIds.includes(f.id));
-  const pick = (fromFav.length ? fromFav : snackPool)[0];
+  const favIds  = mem?.favorites_foods || [];
+  const fromFav = snackPool.filter(f => favIds.includes(f.id));
+  const pick    = (fromFav.length ? fromFav : snackPool)[0];
   if(!pick) return null;
 
-  // كمية صغيرة: السناك لا يتجاوز 150 سعرة
-  const maxQty = pick.cal>0 ? Math.min(Math.round(150/pick.cal*100/5)*5, 60) : 30;
-  const qty    = Math.max(maxQty, 15);
+  // الكمية بحيث لا تتجاوز 200 سعرة
+  const maxCal = 200;
+  const maxQtyByCal = pick.cal > 0 ? (maxCal / pick.cal) * 100 : 40;
+  // الكمية المعتدلة من قاعدة البيانات إذا وُجدت
+  const modQty = pick.qty_moderate || 35;
+  const qty    = Math.round(Math.min(maxQtyByCal, modQty) / 5) * 5;
+  const finalQty = Math.max(qty, 10);
 
-  const macros = _calcMealRatio([{fid:pick.id, qty}]);
-  return {food:pick, qty, macros, isFav:favIds.includes(pick.id), snackTime:prefs.meal_times?.snack||'16:00'};
+  const macros = _calcMealRatio([{fid:pick.id, qty:finalQty}]);
+  return {
+    food:      pick,
+    qty:       finalQty,
+    displayQty: humanQty(pick, finalQty),
+    macros,
+    isFav:     favIds.includes(pick.id),
+    snackTime: prefs.meal_times?.snack || '16:00'
+  };
 }
+
 
 /* ─── عرض بطاقة الاقتراح في لوحة التحكم ─── */
 function renderSuggSection(mem, rem, phase){
   const sugg = buildMealSuggestion(mem, rem, phase);
-  if(!sugg){
-    return `<div class="sugg-card"><div class="sugg-header"><div class="sugg-header-left"><span style="font-size:18px">🎯</span><div><div class="sugg-title">اقتراح الوجبة القادمة</div></div></div></div><div class="sugg-body"><div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0">سجّل وجباتك اليوم لعرض الاقتراحات</div></div></div>`;
+
+  // اكتملت الوجبات اليوم
+  if(sugg === null){
+    const prefs = getMemPrefs(mem);
+    const snack = buildSnackSuggestion(mem, rem, phase);
+    return `<div>
+      <div class="sugg-card">
+        <div class="sugg-header">
+          <div class="sugg-header-left"><span style="font-size:18px">✅</span>
+            <div><div class="sugg-title">أحسنت! اكتملت وجباتك اليوم</div>
+              <div class="sugg-sub">${prefs.meals_per_day} وجبات مكتملة</div></div></div>
+        </div>
+        <div class="sugg-body" style="text-align:center;padding:14px 0;color:var(--text3);font-size:13px">
+          استمر غداً بنفس النمط 💪
+        </div>
+      </div>
+      ${snack ? _renderSnackCard(snack) : ''}
+    </div>`;
   }
 
-  const {items, macros, ratioOk, ketoTarget, hasFav} = sugg;
-  const ratioColor = macros.ratio >= ketoTarget ? 'var(--accent)' : macros.ratio >= ketoTarget*0.8 ? 'var(--warning)' : 'var(--danger)';
-  const ratioLabel = macros.ratio >= ketoTarget ? 'محفز للكيتون ✓' : macros.ratio >= ketoTarget*0.8 ? 'قريب من الهدف' : 'يحتاج تحسين';
-  const ratioClass = macros.ratio >= ketoTarget ? 'accent' : macros.ratio >= ketoTarget*0.8 ? 'warning' : 'danger';
+  const {items, macros, ratioOk, ketoTarget, hasFav, mealTypeInfo} = sugg;
 
-  const itemsJSON = JSON.stringify(items.map(i=>({fid:i.fid,qty:i.qty})));
+  if(!items.length){
+    return `<div class="sugg-card"><div class="sugg-body">
+      <div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0">سجّل وجباتك لعرض الاقتراحات</div>
+    </div></div>`;
+  }
 
-  // رقم الوجبة والسناك
-  const mealLabel = sugg.mealNumber ? `الوجبة ${sugg.mealNumber} من ${sugg.totalMeals}` : 'الوجبة القادمة';
-  const snack = buildSnackSuggestion(mem, rem, phase);
+  const ratioColor = macros.ratio >= ketoTarget ? 'var(--accent)'
+                   : macros.ratio >= ketoTarget*0.8 ? 'var(--warning)' : 'var(--danger)';
+  const ratioLabel = macros.ratio >= ketoTarget ? 'محفز للكيتون ✓'
+                   : macros.ratio >= ketoTarget*0.8 ? 'قريب من الهدف' : 'يحتاج تحسين';
+
+  const itemsJSON  = JSON.stringify(items.map(i=>({fid:i.fid,qty:i.qty})));
+  const snack      = buildSnackSuggestion(mem, rem, phase);
 
   return `<div>
   <div class="sugg-card">
     <div class="sugg-header">
       <div class="sugg-header-left">
-        <span style="font-size:18px">🎯</span>
+        <span style="font-size:20px">${mealTypeInfo.icon}</span>
         <div>
-          <div class="sugg-title">اقتراح ${mealLabel}</div>
-          <div class="sugg-sub">المرحلة ${phase} · هدف النسبة ≥${ketoTarget} · حصة من ${sugg.remaining||1} وجبة متبقية</div>
+          <div class="sugg-title">اقتراح ${mealTypeInfo.label} — الوجبة ${sugg.mealNumber} من ${sugg.totalMeals}</div>
+          <div class="sugg-sub">حصة ${Math.round(sugg.share*100)}% من الأهداف اليومية · هدف النسبة ≥${ketoTarget}</div>
         </div>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         ${hasFav?`<span class="sugg-tag-fav">⭐ من مفضلاتك</span>`:''}
-        <button class="btn sm" onclick="refreshSuggestion()">🔄</button>
+        <button class="btn sm" onclick="refreshSuggestion()" title="اقتراح آخر">🔄</button>
       </div>
     </div>
     <div class="sugg-body">
       <div class="sugg-items">
         ${items.map(i=>{
-          const macroItem = _calcMealRatio([{fid:i.fid,qty:i.qty}]);
+          const im = _calcMealRatio([{fid:i.fid,qty:i.qty}]);
           return `<div class="sugg-item-row">
-            <div>
+            <div style="flex:1">
               <div class="sugg-item-name">${i.food.name}${i.source==='fav'?' ⭐':''}</div>
-              <div class="sugg-item-qty">${i.qty}غ · ${i.food.cat}</div>
+              <div class="sugg-item-qty">${i.displayQty||i.qty+'غ'}</div>
             </div>
             <div class="sugg-item-macros">
-              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--accent)">${macroItem.fat}</div><div class="sugg-macro-lbl">دهون</div></div>
-              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--info)">${macroItem.prot}</div><div class="sugg-macro-lbl">بروتين</div></div>
-              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--danger)">${macroItem.nc}</div><div class="sugg-macro-lbl">كارب</div></div>
+              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--accent)">${im.fat}غ</div><div class="sugg-macro-lbl">دهون</div></div>
+              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--info)">${im.prot}غ</div><div class="sugg-macro-lbl">بروتين</div></div>
+              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--danger)">${im.nc}غ</div><div class="sugg-macro-lbl">كارب</div></div>
             </div>
           </div>`;
         }).join('')}
@@ -1882,7 +2042,7 @@ function renderSuggSection(mem, rem, phase){
         </div>
         <div style="margin-right:auto;text-align:left">
           <div style="font-size:10px;color:var(--text3)">سعرات الوجبة</div>
-          <div style="font-size:14px;font-weight:700;font-family:var(--mono)">${macros.cal}</div>
+          <div style="font-size:15px;font-weight:700;font-family:var(--mono)">${macros.cal} <span style="font-size:10px;color:var(--text3)">سعرة</span></div>
         </div>
       </div>
       <div class="sugg-macros-summary">
@@ -1896,35 +2056,37 @@ function renderSuggSection(mem, rem, phase){
       </div>
     </div>
   </div>
+  ${snack ? _renderSnackCard(snack) : ''}
+  </div>`;
+}
 
-  ${snack ? `
-  <div class="sugg-card" style="border-color:rgba(212,131,10,.3);background:var(--warning-dim)">
-    <div class="sugg-header" style="background:rgba(212,131,10,.07)">
+/* ─── بطاقة السناك (مشتركة بين الحالتين) ─── */
+function _renderSnackCard(snack){
+  return `<div class="sugg-card" style="border-color:rgba(212,131,10,.3)">
+    <div class="sugg-header" style="background:rgba(212,131,10,.06)">
       <div class="sugg-header-left">
         <span style="font-size:18px">🥜</span>
         <div>
           <div class="sugg-title" style="color:var(--warning)">اقتراح السناك</div>
-          <div class="sugg-sub">الساعة ${snack.snackTime} · وجبة خفيفة كيتونية${snack.isFav?' · من مفضلاتك ⭐':''}</div>
+          <div class="sugg-sub">الساعة ${snack.snackTime} · ≤200 سعرة${snack.isFav?' · من مفضلاتك ⭐':''}</div>
         </div>
       </div>
-      <button class="btn sm" onclick="gp('preferences')" style="font-size:11px;color:var(--text3)">تعديل ⚙️</button>
+      <button class="btn sm" onclick="gp('preferences')" style="font-size:11px;color:var(--text3)">⚙️ تعديل</button>
     </div>
     <div class="sugg-body">
-      <div class="sugg-item-row" style="border-color:rgba(212,131,10,.2)">
-        <div>
-          <div class="sugg-item-name">${snack.food.name}</div>
-          <div class="sugg-item-qty">${snack.qty}غ · ${snack.food.cat}</div>
+      <div class="sugg-item-row" style="border-color:rgba(212,131,10,.2);background:rgba(212,131,10,.04)">
+        <div style="flex:1">
+          <div class="sugg-item-name">${snack.food.name}${snack.isFav?' ⭐':''}</div>
+          <div class="sugg-item-qty">${snack.displayQty||snack.qty+'غ'}</div>
         </div>
         <div class="sugg-item-macros">
           <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--accent)">${snack.macros.fat}غ</div><div class="sugg-macro-lbl">دهون</div></div>
           <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--info)">${snack.macros.prot}غ</div><div class="sugg-macro-lbl">بروتين</div></div>
           <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--danger)">${snack.macros.nc}غ</div><div class="sugg-macro-lbl">كارب</div></div>
-          <div class="sugg-macro"><div class="sugg-macro-val">${snack.macros.cal}</div><div class="sugg-macro-lbl">سعرة</div></div>
+          <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--warning)">${snack.macros.cal}</div><div class="sugg-macro-lbl">سعرة</div></div>
         </div>
       </div>
     </div>
-  </div>` : ''}
-
   </div>`;
 }
 
