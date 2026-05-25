@@ -2174,6 +2174,106 @@ function _renderSnackCard(snack){
   </div>`;
 }
 
+/* ─── عرض بطاقة الاقتراح في لوحة التحكم ─── */
+function renderSuggSection(mem, rem, phase){
+  const sugg = buildMealSuggestion(mem, rem, phase);
+  const prefs = getMemPrefs(mem);
+
+  // اكتملت الوجبات اليوم
+  if(sugg === null){
+    const snack = buildSnackSuggestion(mem, rem, phase);
+    return `<div>
+      <div class="sugg-card">
+        <div class="sugg-header">
+          <div class="sugg-header-left"><span style="font-size:18px">✅</span>
+            <div><div class="sugg-title">أحسنت! اكتملت وجباتك اليوم</div>
+              <div class="sugg-sub">${prefs.meals_per_day} وجبات مكتملة</div></div></div>
+        </div>
+        <div class="sugg-body" style="text-align:center;padding:14px 0;color:var(--text3);font-size:13px">
+          استمر غداً بنفس النمط 💪
+        </div>
+      </div>
+      ${snack ? _renderSnackCard(snack) : ''}
+    </div>`;
+  }
+
+  const {items, macros, ratioOk, ketoTarget, hasFav, mealTypeInfo} = sugg;
+
+  if(!items || !items.length){
+    return `<div class="sugg-card"><div class="sugg-body">
+      <div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0">سجّل وجباتك لعرض الاقتراحات</div>
+    </div></div>`;
+  }
+
+  const ratioColor = macros.ratio >= ketoTarget ? 'var(--accent)'
+                   : macros.ratio >= ketoTarget*0.8 ? 'var(--warning)' : 'var(--danger)';
+  const ratioLabel = macros.ratio >= ketoTarget ? 'محفز للكيتون ✓'
+                   : macros.ratio >= ketoTarget*0.8 ? 'قريب من الهدف' : 'يحتاج تحسين';
+
+  const itemsJSON = JSON.stringify(items.map(i=>({fid:i.fid,qty:i.qty})));
+  const snack     = buildSnackSuggestion(mem, rem, phase);
+
+  return `<div>
+  <div class="sugg-card">
+    <div class="sugg-header">
+      <div class="sugg-header-left">
+        <span style="font-size:20px">${mealTypeInfo.icon}</span>
+        <div>
+          <div class="sugg-title">اقتراح ${mealTypeInfo.label} — الوجبة ${sugg.mealNumber} من ${sugg.totalMeals}</div>
+          <div class="sugg-sub">حصة ${Math.round((sugg.share||0.33)*100)}% من الأهداف اليومية · هدف النسبة ≥${ketoTarget}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        ${hasFav?`<span class="sugg-tag-fav">⭐ من مفضلاتك</span>`:''}
+        <button class="btn sm" onclick="refreshMeal([${items.map(i=>i.fid).join(',')}])" title="تغيير الاقتراح">🔄 تغيير</button>
+      </div>
+    </div>
+    <div class="sugg-body">
+      <div class="sugg-items">
+        ${items.map(i=>{
+          const im = _calcMealRatio([{fid:i.fid,qty:i.qty}]);
+          return `<div class="sugg-item-row">
+            <div style="flex:1">
+              <div class="sugg-item-name">${i.food.name}${i.source==='fav'?' ⭐':''}</div>
+              <div class="sugg-item-qty">${i.displayQty||i.qty+'غ'}</div>
+            </div>
+            <div class="sugg-item-macros">
+              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--accent)">${im.fat}غ</div><div class="sugg-macro-lbl">دهون</div></div>
+              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--info)">${im.prot}غ</div><div class="sugg-macro-lbl">بروتين</div></div>
+              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--danger)">${im.nc}غ</div><div class="sugg-macro-lbl">كارب</div></div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="sugg-ratio-row">
+        <div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">النسبة الكيتونية للوجبة</div>
+          <div style="display:flex;align-items:baseline;gap:6px">
+            <span class="sugg-ratio-val" style="color:${ratioColor}">${macros.ratio}</span>
+            <span style="font-size:11px;color:${ratioColor};font-weight:600">${ratioLabel}</span>
+          </div>
+        </div>
+        <div style="margin-right:auto;text-align:left">
+          <div style="font-size:10px;color:var(--text3)">سعرات الوجبة</div>
+          <div style="font-size:15px;font-weight:700;font-family:var(--mono)">${macros.cal} <span style="font-size:10px;color:var(--text3)">سعرة</span></div>
+        </div>
+      </div>
+      <div class="sugg-macros-summary">
+        <div class="sugg-macro-card"><div class="sugg-macro-card-val" style="color:var(--accent)">${macros.fat}غ</div><div class="sugg-macro-card-lbl">دهون</div></div>
+        <div class="sugg-macro-card"><div class="sugg-macro-card-val" style="color:var(--info)">${macros.prot}غ</div><div class="sugg-macro-card-lbl">بروتين</div></div>
+        <div class="sugg-macro-card"><div class="sugg-macro-card-val" style="color:var(--danger)">${macros.nc}غ</div><div class="sugg-macro-card-lbl">كارب صافٍ</div></div>
+      </div>
+      <div class="sugg-actions">
+        <button class="btn primary" style="width:100%;justify-content:center" onclick='openSuggInCalc(${itemsJSON})'>📊 جرّب وعدّل في الحاسبة ←</button>
+      </div>
+    </div>
+  </div>
+  ${snack ? _renderSnackCard(snack) : ''}
+  </div>`;
+}
+
+
+
 function refreshSnack(skipPresetId){
   // نضيف الـ preset ID للتخطي، وبذلك ينتقل للمجموعة التالية
   if(!_snackSkipIds.includes(skipPresetId)) _snackSkipIds.push(skipPresetId);
