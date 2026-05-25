@@ -1561,6 +1561,48 @@ function getMemPrefs(mem){
   return Object.assign({}, DEFAULT_MEAL_PREFS, mem?.meal_prefs || {});
 }
 
+/* ─── حفظ فوري لأي تغيير في التفضيلات بدون إعادة رسم ─── */
+function _savePrefField(key, value){
+  const mem = MEMBERS.find(m => m.uid === CU?.id);
+  if(!mem) return;
+  if(!mem.meal_prefs) mem.meal_prefs = Object.assign({}, DEFAULT_MEAL_PREFS);
+  if(key === 'meal_time'){
+    // value = {slot, time}
+    if(!mem.meal_prefs.meal_times) mem.meal_prefs.meal_times = {};
+    mem.meal_prefs.meal_times[value.slot] = value.time;
+  } else {
+    mem.meal_prefs[key] = value;
+  }
+  if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
+}
+
+function setMealsPerDay(n){
+  _savePrefField('meals_per_day', n);
+  // تحديث الـ UI المرئي فقط
+  document.querySelectorAll('.pref-meal-btn').forEach(btn=>{
+    const v = parseInt(btn.dataset.meals);
+    btn.style.borderColor   = v===n ? 'var(--accent)' : 'var(--border)';
+    btn.style.background    = v===n ? 'var(--accent-light)' : 'var(--surface2)';
+  });
+  // إظهار/إخفاء حقل الغداء
+  const lunchRow = document.getElementById('pref-lunch-row');
+  if(lunchRow) lunchRow.style.display = n===3 ? '' : 'none';
+  rDash();
+}
+
+function setSnackPref(checked){
+  _savePrefField('has_snack', checked);
+  // تحديث toggle مرئياً
+  const thumb = document.getElementById('pref-snack-thumb');
+  const track = document.getElementById('pref-snack-track');
+  if(thumb){ thumb.style.right = checked ? '2px' : '22px'; thumb.style.left = checked ? 'auto' : 'auto'; }
+  if(track){ track.style.background = checked ? 'var(--accent)' : 'var(--border)'; }
+  // إظهار/إخفاء موعد السناك
+  const snackTimeRow = document.getElementById('pref-snack-time-row');
+  if(snackTimeRow) snackTimeRow.style.display = checked ? '' : 'none';
+  rDash();
+}
+
 function rPreferences(){
   const mem = MEMBERS.find(m => m.uid === CU?.id);
   const el  = document.getElementById('preferences-content');
@@ -1574,79 +1616,85 @@ function rPreferences(){
     return;
   }
 
-  const prefs = getMemPrefs(mem);
-  const favFoodIds    = mem.favorites_foods    || [];
-  const favRecipeIds  = mem.favorites_recipes  || [];
+  const prefs       = getMemPrefs(mem);
+  const n           = prefs.meals_per_day;
+  const hasSnack    = prefs.has_snack;
+  const favFoodIds  = mem.favorites_foods   || [];
+  const favRecipeIds= mem.favorites_recipes || [];
 
   /* ── القسم 1: نمط الوجبات ── */
-  const mealTimesRows = [
-    {key:'breakfast', label:'الفطور',     icon:'🌅'},
-    {key:'lunch',     label:'الغداء',     icon:'☀️'},
-    {key:'dinner',    label:'العشاء',     icon:'🌙'},
-  ];
-  if(prefs.meals_per_day === 2){
-    mealTimesRows.splice(1,1); // حذف الغداء إذا 2 وجبات
-  }
-
   const mealPatternHTML = `
   <div class="card" style="margin-bottom:18px">
     <div class="card-header">
       <div><div class="card-title">🍽️ نمط الوجبات اليومي</div>
         <div class="card-sub">يؤثر مباشرة على حجم كل وجبة مقترحة</div></div>
-      <button class="btn sm primary" onclick="savePreferences()">حفظ ✓</button>
     </div>
 
     <div style="margin-bottom:16px">
       <div style="font-size:12px;color:var(--text3);margin-bottom:8px">عدد الوجبات الرئيسية يومياً</div>
-      <div style="display:flex;gap:10px">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 18px;border:1px solid var(--border);border-radius:var(--radius-sm);flex:1;justify-content:center;background:${prefs.meals_per_day===2?'var(--accent-light)':'var(--surface2)'};border-color:${prefs.meals_per_day===2?'var(--accent)':'var(--border)'}">
-          <input type="radio" name="pref-meals" value="2" ${prefs.meals_per_day===2?'checked':''} onchange="rPreferences()" style="display:none">
+      <div style="display:flex;gap:10px" class="pref-meal-options">
+        <div class="pref-meal-btn" data-meals="2" onclick="setMealsPerDay(2)"
+          style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:12px 16px;border:2px solid ${n===2?'var(--accent)':'var(--border)'};border-radius:var(--radius-sm);flex:1;justify-content:center;background:${n===2?'var(--accent-light)':'var(--surface2)'};transition:all .15s;user-select:none">
           <span style="font-size:20px">2️⃣</span>
           <div><div style="font-size:13px;font-weight:500">وجبتان</div><div style="font-size:10px;color:var(--text3)">فطور + عشاء</div></div>
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 18px;border:1px solid var(--border);border-radius:var(--radius-sm);flex:1;justify-content:center;background:${prefs.meals_per_day===3?'var(--accent-light)':'var(--surface2)'};border-color:${prefs.meals_per_day===3?'var(--accent)':'var(--border)'}">
-          <input type="radio" name="pref-meals" value="3" ${prefs.meals_per_day===3?'checked':''} onchange="rPreferences()" style="display:none">
+        </div>
+        <div class="pref-meal-btn" data-meals="3" onclick="setMealsPerDay(3)"
+          style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:12px 16px;border:2px solid ${n===3?'var(--accent)':'var(--border)'};border-radius:var(--radius-sm);flex:1;justify-content:center;background:${n===3?'var(--accent-light)':'var(--surface2)'};transition:all .15s;user-select:none">
           <span style="font-size:20px">3️⃣</span>
           <div><div style="font-size:13px;font-weight:500">ثلاث وجبات</div><div style="font-size:10px;color:var(--text3)">فطور + غداء + عشاء</div></div>
-        </label>
+        </div>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px">
-      ${mealTimesRows.map(r=>`
-        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px">
-          <div style="font-size:11px;color:var(--text3);margin-bottom:5px">${r.icon} ${r.label}</div>
-          <input type="time" id="pref-time-${r.key}" value="${prefs.meal_times[r.key]||'08:00'}"
-            style="width:100%;font-family:var(--mono);font-size:13px;padding:5px 8px">
-        </div>
-      `).join('')}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:5px">🌅 الفطور</div>
+        <input type="time" id="pref-time-breakfast"
+          value="${prefs.meal_times?.breakfast||'08:00'}"
+          onchange="_savePrefField('meal_time',{slot:'breakfast',time:this.value})"
+          style="width:100%;font-family:var(--mono);font-size:13px;padding:5px 8px">
+      </div>
+      <div id="pref-lunch-row" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px;${n===2?'display:none':''}">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:5px">☀️ الغداء</div>
+        <input type="time" id="pref-time-lunch"
+          value="${prefs.meal_times?.lunch||'13:00'}"
+          onchange="_savePrefField('meal_time',{slot:'lunch',time:this.value})"
+          style="width:100%;font-family:var(--mono);font-size:13px;padding:5px 8px">
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:5px">🌙 العشاء</div>
+        <input type="time" id="pref-time-dinner"
+          value="${prefs.meal_times?.dinner||'19:00'}"
+          onchange="_savePrefField('meal_time',{slot:'dinner',time:this.value})"
+          style="width:100%;font-family:var(--mono);font-size:13px;padding:5px 8px">
+      </div>
     </div>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:${prefs.has_snack?'12':'0'}px">
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:${hasSnack?'12':'0'}px">
       <div>
         <div style="font-size:13px;font-weight:500">🥜 وجبة خفيفة (سناك)</div>
         <div style="font-size:11px;color:var(--text3);margin-top:2px">يضاف تحت اقتراح الوجبة دائماً</div>
       </div>
-      <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer">
-        <input type="checkbox" id="pref-snack" ${prefs.has_snack?'checked':''} onchange="rPreferences()"
-          style="opacity:0;width:0;height:0;position:absolute">
-        <span style="position:absolute;inset:0;background:${prefs.has_snack?'var(--accent)':'var(--border)'};border-radius:24px;transition:.2s">
-          <span style="position:absolute;top:2px;${prefs.has_snack?'left:22px':'right:22px'};width:20px;height:20px;background:#fff;border-radius:50%;transition:.2s"></span>
-        </span>
-      </label>
+      <div onclick="setSnackPref(!${hasSnack})"
+        style="width:44px;height:24px;border-radius:24px;background:${hasSnack?'var(--accent)':'var(--border)'};position:relative;cursor:pointer;transition:background .2s;flex-shrink:0"
+        id="pref-snack-track">
+        <div id="pref-snack-thumb"
+          style="position:absolute;top:2px;${hasSnack?'right:2px':'left:2px'};width:20px;height:20px;background:#fff;border-radius:50%;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+      </div>
     </div>
 
-    ${prefs.has_snack ? `
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px">
+    <div id="pref-snack-time-row" style="${hasSnack?'':'display:none'};background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px;margin-bottom:14px">
       <div style="font-size:11px;color:var(--text3);margin-bottom:5px">🕐 موعد السناك المفضل</div>
-      <input type="time" id="pref-time-snack" value="${prefs.meal_times.snack||'16:00'}"
+      <input type="time" id="pref-time-snack"
+        value="${prefs.meal_times?.snack||'16:00'}"
+        onchange="_savePrefField('meal_time',{slot:'snack',time:this.value})"
         style="width:100%;font-family:var(--mono);font-size:13px;padding:5px 8px">
     </div>
-    ` : ''}
 
-    <div style="margin-top:14px">
+    <div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:5px">📝 ملاحظات غذائية وحساسيات</div>
       <textarea id="pref-notes" placeholder="مثال: لا أحب السمك، حساسية من المكسرات..."
+        onchange="_savePrefField('dietary_notes',this.value)"
         style="width:100%;min-height:68px;font-size:13px">${prefs.dietary_notes||''}</textarea>
     </div>
   </div>`;
@@ -1658,20 +1706,20 @@ function rPreferences(){
     <div class="card-header">
       <div><div class="card-title">⭐ الأطعمة المفضلة</div>
         <div class="card-sub">تُستخدم أولاً في اقتراحات الوجبات</div></div>
-      <span style="font-size:12px;color:var(--accent);font-weight:600">${favFoodIds.length} محدد</span>
+      <span style="font-size:12px;color:var(--accent);font-weight:600" id="fav-food-count">${favFoodIds.length} محدد</span>
     </div>
     ${cats.map(cat => {
       const catFoods = FOODS.filter(f => f.cat === cat && f.keto_class <= 2);
       if(!catFoods.length) return '';
       return `
         <div style="margin-bottom:14px">
-          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:7px;text-transform:uppercase;letter-spacing:.05em">${cat}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:7px">${cat}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px" class="fav-chips">
             ${catFoods.map(f => {
               const isFav = favFoodIds.includes(f.id);
               return `<button onclick="toggleFavFood(${f.id})" id="fav-food-${f.id}"
-                style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:100px;font-size:12px;font-family:var(--font);cursor:pointer;transition:all .15s;border:1px solid ${isFav?'var(--accent)':'var(--border)'};background:${isFav?'var(--accent-light)':'var(--surface2)'};color:${isFav?'var(--accent)':'var(--text2)'}">
-                ${isFav?'⭐':''} ${f.name}
+                style="display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:100px;font-size:12px;font-family:var(--font);cursor:pointer;transition:all .15s;border:1px solid ${isFav?'var(--accent)':'var(--border)'};background:${isFav?'var(--accent-light)':'var(--surface2)'};color:${isFav?'var(--accent)':'var(--text2)'}">
+                ${isFav?'⭐ ':''}${f.name}
               </button>`;
             }).join('')}
           </div>
@@ -1710,45 +1758,19 @@ function rPreferences(){
   </div>`;
 
   el.innerHTML = mealPatternHTML + favFoodsHTML + favRecipesHTML;
-
-  /* استعادة القيم المحفوظة من الذاكرة بعد render مباشرة */
-  const mealCount = document.querySelector('input[name="pref-meals"]:checked');
-  // إذا تغير الاختيار نعيد render (handled by onchange)
 }
 
 function savePreferences(){
+  // هذا الزر لم يعد مطلوباً — الحفظ يحدث فورياً
+  // لكن نبقيه للتوافق
   const mem = MEMBERS.find(m => m.uid === CU?.id);
   if(!mem) return;
-
-  const mealsRadio = document.querySelector('input[name="pref-meals"]:checked');
-  const snackEl    = document.getElementById('pref-snack');
-  const notesEl    = document.getElementById('pref-notes');
-
-  const meals_per_day = mealsRadio ? parseInt(mealsRadio.value) : 3;
-  const has_snack     = snackEl ? snackEl.checked : true;
-
-  const meal_times = {
-    breakfast: document.getElementById('pref-time-breakfast')?.value || '08:00',
-    lunch:     document.getElementById('pref-time-lunch')?.value    || '13:00',
-    dinner:    document.getElementById('pref-time-dinner')?.value   || '19:00',
-    snack:     document.getElementById('pref-time-snack')?.value    || '16:00',
-  };
-
-  mem.meal_prefs = {
-    meals_per_day,
-    has_snack,
-    meal_times,
-    dietary_notes: notesEl ? notesEl.value : ''
-  };
-
-  if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
-
-  /* feedback بسيط */
   const btn = document.querySelector('[onclick="savePreferences()"]');
-  if(btn){ const orig=btn.textContent; btn.textContent='✅ تم الحفظ'; setTimeout(()=>btn.textContent=orig, 1800); }
-
-  rDash(); // تحديث لوحة التحكم بالمنطق الجديد
+  if(btn){ const o=btn.textContent; btn.textContent='✅ محفوظ'; setTimeout(()=>btn.textContent=o,1500); }
+  if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
+  rDash();
 }
+
 
 function toggleFavFood(fid){
   const mem = MEMBERS.find(m => m.uid === CU?.id);
