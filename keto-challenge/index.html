@@ -3830,6 +3830,58 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
 }
 
 /* تحديث ديناميكي */
+function saveTargetsManual(){
+  const v = window._mtv;
+  if(!v){ alert('عدّل القيم أولاً'); return; }
+  const mem = MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem) return;
+
+  const today = new Date().toISOString().split('T')[0];
+  const cal   = Math.round(v.fat*9 + v.prot*4 + v.carb*4);
+  const entry = {fat:v.fat, protein:v.prot, carb:v.carb, cal, date:today, label:'خطة '+today};
+
+  /* حفظ في targets_history */
+  if(!mem.targets_history) mem.targets_history = [];
+  const idx = mem.targets_history.findIndex(t=>t.date===today);
+  if(idx>=0) mem.targets_history[idx] = entry;
+  else mem.targets_history.push(entry);
+  mem.targets_history.sort((a,b)=>a.date.localeCompare(b.date));
+  if(mem.targets_history.length>50) mem.targets_history = mem.targets_history.slice(-50);
+
+  /* تحديث الحقول المباشرة للتوافق */
+  mem.target_fat  = v.fat;
+  mem.target_prot = v.prot;
+  mem.target_carb = v.carb;
+  mem.target_cal  = cal;
+
+  /* حفظ Firebase */
+  if(window.DB) window.DB.saveMember(mem);
+
+  /* تحديث لوحة التحكم */
+  rDash();
+
+  /* رسالة تأكيد */
+  _showToast(`✅ تم حفظ الخطة بتاريخ ${today}`);
+
+  /* تحديث عنوان القسم */
+  const sub = document.querySelector('#manual-targets-card .card-header div:last-child');
+  if(sub) sub.textContent = 'آخر تعديل محفوظ — ' + today;
+}
+
+function _showToast(msg){
+  let t = document.getElementById('app-toast');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'app-toast';
+    t.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:11px 22px;border-radius:100px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.2);transition:opacity .4s;white-space:nowrap';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>{ t.style.opacity='0'; }, 2800);
+}
+
 function _positionRatioBar(krPct, rColor){
   requestAnimationFrame(()=>{
     const track = document.getElementById('mt-ratio-track');
