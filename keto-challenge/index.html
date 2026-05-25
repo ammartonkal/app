@@ -1572,6 +1572,34 @@ function getMemPrefs(mem){
 }
 
 /* ─── حفظ فوري لأي تغيير في التفضيلات بدون إعادة رسم ─── */
+function _toggleAdvPref(key){
+  const mem = MEMBERS.find(m => m.uid === CU?.id);
+  if(!mem) return;
+  if(!mem.adv_prefs) mem.adv_prefs = {};
+  mem.adv_prefs[key] = !mem.adv_prefs[key];
+  _invalidateDayPlan(mem);
+  if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
+  rPreferences(); // إعادة رسم القسم
+}
+
+function _toggleStore(storeId){
+  const mem = MEMBERS.find(m => m.uid === CU?.id);
+  if(!mem) return;
+  if(!mem.adv_prefs) mem.adv_prefs = {};
+  if(!mem.adv_prefs.available_stores) mem.adv_prefs.available_stores = [];
+  const idx = mem.adv_prefs.available_stores.indexOf(storeId);
+  if(idx > -1) mem.adv_prefs.available_stores.splice(idx, 1);
+  else         mem.adv_prefs.available_stores.push(storeId);
+  if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
+  const btn = document.getElementById('store-btn-'+storeId);
+  const on  = mem.adv_prefs.available_stores.includes(storeId);
+  if(btn){
+    btn.style.borderColor  = on ? 'var(--accent)' : 'var(--border)';
+    btn.style.background   = on ? 'var(--accent-light)' : 'var(--surface2)';
+    btn.style.color        = on ? 'var(--accent)' : 'var(--text2)';
+  }
+}
+
 function _savePrefField(key, value){
   const mem = MEMBERS.find(m => m.uid === CU?.id);
   if(!mem) return;
@@ -1768,7 +1796,63 @@ function rPreferences(){
     }
   </div>`;
 
-  el.innerHTML = mealPatternHTML + favFoodsHTML + favRecipesHTML;
+  /* ── القسم 4: خيارات متقدمة ── */
+  const advPrefs   = mem.adv_prefs || {};
+  const stores     = ['panda','carrefour','othaim','lulu','amazon'];
+  const storeNames = {panda:'بندة', carrefour:'كارفور', othaim:'العثيم', lulu:'لولو', amazon:'أمازون'};
+  const memStores  = advPrefs.available_stores || [];
+
+  const advancedHTML = `
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-header">
+      <div><div class="card-title">🔧 خيارات متقدمة</div>
+        <div class="card-sub">تؤثر على تنوع الوجبات المقترحة</div></div>
+    </div>
+
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px;font-weight:600">بدائل الطهي والمخبوزات</div>
+    ${[
+      {key:'use_flour_sub',    icon:'🍞', label:'بدائل الدقيق', sub:'خبز اللوز والتورتيلا الكيتو'},
+      {key:'use_ready_recipes',icon:'🥗', label:'وصفات جاهزة',  sub:'صحن تونة، لفة دجاج، جواكامولي'},
+      {key:'use_keto_sweets',  icon:'🍫', label:'حلا كيتوني',   sub:'شوكولاتة داكنة، بسكويت، براني'},
+    ].map(opt=>{
+      const on = advPrefs[opt.key] || false;
+      return `<div onclick="_toggleAdvPref('${opt.key}')"
+        style="display:flex;align-items:center;justify-content:space-between;
+               padding:12px 14px;background:var(--surface2);border:1px solid ${on?'var(--accent)':'var(--border)'};
+               border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:all .15s">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">${opt.icon}</span>
+          <div>
+            <div style="font-size:13px;font-weight:500">${opt.label}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px">${opt.sub}</div>
+          </div>
+        </div>
+        <div style="width:40px;height:22px;border-radius:22px;background:${on?'var(--accent)':'var(--border)'};
+                    position:relative;flex-shrink:0;transition:background .2s">
+          <div style="position:absolute;top:2px;${on?'right:2px':'left:2px'};width:18px;height:18px;
+                      background:#fff;border-radius:50%;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+        </div>
+      </div>`;
+    }).join('')}
+
+    <div style="font-size:12px;color:var(--text3);margin:14px 0 8px;font-weight:600">المتاجر المتاحة</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px">يُفلتر المنتجات حسب المتاجر التي تتسوق منها</div>
+    <div style="display:flex;flex-wrap:wrap;gap:7px">
+      ${stores.map(s=>{
+        const on = memStores.includes(s);
+        return `<button onclick="_toggleStore('${s}')" id="store-btn-${s}"
+          style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:100px;
+                 font-size:12px;font-family:var(--font);cursor:pointer;transition:all .15s;
+                 border:1px solid ${on?'var(--accent)':'var(--border)'};
+                 background:${on?'var(--accent-light)':'var(--surface2)'};
+                 color:${on?'var(--accent)':'var(--text2)'}">
+          🛒 ${storeNames[s]}
+        </button>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  el.innerHTML = mealPatternHTML + favFoodsHTML + favRecipesHTML + advancedHTML;
 }
 
 function savePreferences(){

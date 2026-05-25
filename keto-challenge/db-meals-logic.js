@@ -236,6 +236,76 @@ const EXCHANGE_GROUPS = {
     ]
   },
 
+
+  /* ────────────────────────────────────────
+     12. مخبوزات كيتونية (بدائل الخبز)
+     الحصة المعيارية ≈ 1 شريحة/قطعة · 2-4غ كارب صافٍ
+  ──────────────────────────────────────── */
+  flour_substitute: {
+    name:    'مخبوزات كيتونية',
+    icon:    '🍞',
+    std_serving: { fat: 9, protein: 5, carb: 2.5, cal: 110 },
+    items: [
+      { fid:121, name:'خبز دقيق اللوز (شريحة)',    qty:30, weight:5, phases:[],            note:'أقل كارب — الأفضل' },
+      { fid:123, name:'تورتيلا كيتو (دقيق لوز)',   qty:28, weight:5, phases:[],            note:'1غ كارب فقط' },
+      { fid:122, name:'خبز دقيق جوز الهند (شريحة)',qty:25, weight:4, phases:[0,2,3,4,5,6,7], note:'كارب أعلى — من المرحلة 2' },
+      { fid:124, name:'باون كيتوني (دقيق لوز)',    qty:50, weight:4, phases:[0,2,3,4,5,6,7], note:'للبرغر الكيتوني' },
+    ]
+  },
+
+  /* ────────────────────────────────────────
+     13. حلا كيتونية
+     الحصة المعيارية ≈ حصة واحدة · 3غ كارب صافٍ · 150 سعرة
+  ──────────────────────────────────────── */
+  keto_sweets: {
+    name:    'حلا كيتونية',
+    icon:    '🍫',
+    std_serving: { fat: 14, protein: 4, carb: 3, cal: 155 },
+    items: [
+      { fid:125, name:'شوكولاتة داكنة 85%+',       qty:20, weight:5, phases:[0,2,3,4,5,6,7], note:'2-3 مربعات فقط' },
+      { fid:127, name:'بسكويت كيتو (دقيق لوز)',    qty:30, weight:4, phases:[0,2,3,4,5,6,7], note:'قطعة أو اثنتان' },
+      { fid:128, name:'براني كيتو (كاكاو+لوز)',    qty:40, weight:4, phases:[0,3,4,5,6,7],    note:'من المرحلة 3' },
+      { fid:126, name:'آيس كريم كيتو',             qty:80, weight:3, phases:[0,3,4,5,6,7],    note:'صنع منزلي من الكريمة' },
+      { fid:129, name:'مافن كيتو',                 qty:60, weight:3, phases:[0,3,4,5,6,7],    note:'فطور أو سناك' },
+    ]
+  },
+
+  /* ────────────────────────────────────────
+     14. وصفات جاهزة كيتو
+     الحصة المعيارية = وجبة كاملة أو وجبة جانبية
+  ──────────────────────────────────────── */
+  ready_recipes: {
+    name:    'وصفات جاهزة',
+    icon:    '🥗',
+    std_serving: { fat: 20, protein: 15, carb: 3, cal: 250 },
+    items: [
+      { fid:132, name:'صحن تونة كيتو',            qty:180, weight:5, phases:[],            note:'علبة تونة + مايونيز + خيار' },
+      { fid:131, name:'بيض مسلوق مع أفوكادو وزيتون', qty:200, weight:5, phases:[],         note:'وجبة كاملة 5 دقائق' },
+      { fid:133, name:'لفة دجاج كيتو (تورتيلا)',  qty:200, weight:4, phases:[],            note:'غداء متكامل' },
+      { fid:130, name:'سلطة كيتو كلاسيك',         qty:150, weight:4, phases:[],            note:'جانبية لأي وجبة' },
+      { fid:114, name:'جواكامولي طازج',            qty: 80, weight:4, phases:[],            note:'دهن+ألياف+نكهة' },
+      { fid:115, name:'حمص كيتو بالطحينة',        qty: 60, weight:3, phases:[0,2,3,4,5,6,7], note:'بروتين+دهن — كارب معتدل' },
+    ]
+  },
+
+  /* ────────────────────────────────────────
+     15. منتجات المتاجر الجاهزة
+     تُفلتَر حسب المتاجر المختارة في التفضيلات
+  ──────────────────────────────────────── */
+  store_products: {
+    name:    'منتجات متاجر',
+    icon:    '🛒',
+    std_serving: { fat: 10, protein: 8, carb: 4, cal: 140 },
+    items: [
+      { fid:134, name:'زبادي يوناني كامل الدسم',  qty:150, weight:5, phases:[0,2,3,4,5,6,7],
+        stores:['panda','carrefour','othaim'], note:'5% دهن فأكثر — بدون نكهات' },
+      { fid:135, name:'جبنة كريمية (Philadelphia)', qty:40,  weight:5, phases:[],
+        stores:['panda','carrefour','othaim','lulu'], note:'40غ = ملعقتان كبيرتان' },
+      { fid: 35, name:'جبنة كريمية عامة',          qty:40,  weight:4, phases:[],
+        stores:[], note:'أي ماركة بدون نشا' },
+    ]
+  },
+
 };
 
 /* ═══════════════════════════════════════════
@@ -302,7 +372,7 @@ const MEAL_TEMPLATES = {
    targets = { fat, protein, carb, cal } — الهدف لهذه الوجبة
    seed    = رقم للتنويع بين الأيام (اليوم من السنة مثلاً)
 ═══════════════════════════════════════════ */
-function buildSingleMeal(templateKey, targets, favIds, phase, skipFids, seed){
+function buildSingleMeal(templateKey, targets, favIds, phase, skipFids, seed, mem){
   seed = seed || 0;
   skipFids = skipFids || [];
   favIds   = favIds   || [];
@@ -318,11 +388,24 @@ function buildSingleMeal(templateKey, targets, favIds, phase, skipFids, seed){
     const group = EXCHANGE_GROUPS[groupRef.group];
     if(!group) continue;
 
-    // فلتر: المرحلة + لم يُستخدم
+    // فلتر: المرحلة + لم يُستخدم + الخيارات المتقدمة
+    const advPrefs    = mem?.adv_prefs || {};
+    const userStores  = advPrefs.available_stores || [];
+
+    // استثناء المجموعات حسب الخيارات المتقدمة
+    const groupKey = groupRef.group;
+    if(groupKey === 'flour_substitute' && !advPrefs.use_flour_sub)    continue;
+    if(groupKey === 'keto_sweets'      && !advPrefs.use_keto_sweets)  continue;
+    if(groupKey === 'ready_recipes'    && !advPrefs.use_ready_recipes) continue;
+
     let pool = group.items.filter(item =>
       !usedFids.has(item.fid) &&
       (typeof FOODS !== 'undefined' ? FOODS.find(f=>f.id===item.fid) : true) &&
-      (item.phases.length === 0 || item.phases.includes(phase))
+      (item.phases.length === 0 || item.phases.includes(phase)) &&
+      // فلتر المتاجر: إذا المنتج مرتبط بمتجر → يجب أن يكون المتجر مختاراً
+      (!item.stores || item.stores.length === 0 ||
+       userStores.length === 0 ||
+       item.stores.some(s => userStores.includes(s)))
     );
     if(!pool.length) continue;
 
@@ -392,21 +475,21 @@ function buildDayPlan(mem, date){
 
   // ── الفطور ──
   const bfTargets = _scaleTargets(targets, shares[0]);
-  const breakfast  = buildSingleMeal('breakfast', bfTargets, favIds, phase, skipAll, seed);
+  const breakfast  = buildSingleMeal('breakfast', bfTargets, favIds, phase, skipAll, seed, mem);
   breakfast?.forEach(i => skipAll.push(i.fid));
 
   // ── الغداء (فقط إذا 3 وجبات) ──
   let lunch = null;
   if(mealsN === 3){
     const lnTargets = _scaleTargets(targets, shares[1]);
-    lunch = buildSingleMeal('lunch', lnTargets, favIds, phase, skipAll, seed + 100);
+    lunch = buildSingleMeal('lunch', lnTargets, favIds, phase, skipAll, seed + 100, mem);
     lunch?.forEach(i => skipAll.push(i.fid));
   }
 
   // ── العشاء ──
   const dinShare  = mealsN === 2 ? shares[1] : shares[2];
   const dnTargets = _scaleTargets(targets, dinShare);
-  const dinner    = buildSingleMeal('dinner', dnTargets, favIds, phase, skipAll, seed + 200);
+  const dinner    = buildSingleMeal('dinner', dnTargets, favIds, phase, skipAll, seed + 200, mem);
 
   return { breakfast, lunch, dinner, date:dateStr, mealsN };
 }
@@ -478,7 +561,7 @@ function getNextMealPlan(mem){
       const share   = shares[mealTypeInfo.index] || 0.33;
       const mealTargets = _scaleTargets(targets, share);
       const seed    = date.replace(/-/g,'').split('').reduce((s,c)=>s+c.charCodeAt(0),0);
-      meal = buildSingleMeal(mealTypeInfo.type, mealTargets, favIds, phase, [], seed + mealTypeInfo.index * 100);
+      meal = buildSingleMeal(mealTypeInfo.type, mealTargets, favIds, phase, [], seed + mealTypeInfo.index * 100, mem);
     }
   }
 

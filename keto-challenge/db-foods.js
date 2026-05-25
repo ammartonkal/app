@@ -1409,6 +1409,209 @@ const FOODS = [
     doc_rec: "حتى بدون سكر — كارب مرتفع. تجنبه في المراحل الأولى",
     img_url: ""
   },
+
+  /* ══════════════════════════════════════
+     الفئة: مخبوزات كيتونية (121-124)
+  ══════════════════════════════════════ */
+
+  {
+    id: 121,
+    name: "خبز دقيق اللوز (شريحة)", name_en: "Almond Flour Bread Slice",
+    cat: "مخبوزات كيتو",
+    cal: 110, fat: 9, sat_fat: 1, protein: 5, carb: 4, fiber: 2, net_carb: 2,
+    sodium: 120, potassium: 80,
+    keto_class: 1, health_class: "أ",
+    phases_allowed: [0,1,2,3,4,5,6,7],
+    rec: "أ", qty_moderate: 30, qty_max: 60, daily_freq: 2, weekly_freq: 7,
+    doc_rec: "شريحة واحدة 30غ — بديل ممتاز للخبز. تحقق من المكونات عند الشراء",
+    img_url: ""
+  },
+  {
+    id: 122,
+    name: "خبز دقيق جوز الهند (شريحة)", name_en: "Coconut Flour Bread Slice",
+    cat: "مخبوزات كيتو",
+    cal: 90, fat: 5, sat_fat: 3, protein: 4, carb: 8, fiber: 4, net_carb: 4,
+    sodium: 110, potassium: 60,
+    keto_class: 1, health_class: "أ",
+    phases_allowed: [0,2,3,4,5,6,7],
+    rec: "ب", qty_moderate: 25, qty_max: 50, daily_freq: 1, weekly_freq: 5,
+    doc_rec: "كارب أعلى من دقيق اللوز — ابدأ من المرحلة الثانية",
+    img_url: ""
+  },
+  {
+    id: 123,
+    name: "تورتيلا كيتو (دقيق لوز)", name_en: "Keto Tortilla Almond",
+    cat: "مخبوزات كيتو",
+    cal: 100, fat: 8, sat_fat: 1, protein: 5, carb: 3, fiber: 2, net_carb: 1,
+    sodium: 180, potassium: 70,
+    keto_class: 1, health_class: "أ",
+    phases_allowed: [0,1,2,3,4,5,6,7],
+    rec: "أ", qty_moderate: 28, qty_max: 56, daily_freq: 2, weekly_freq: 7,
+    doc_rec: "مثالية للرابت أو اللف — 1غ كارب صافٍ فقط",
+    img_url: ""
+  },
+  {
+    id: 124,
+    name: "باون كيتوني (دقيق لوز)", name_en: "Keto Bun",
+    cat: "مخبوزات كيتو",
+    cal: 180, fat: 15, sat_fat: 2, protein: 8, carb: 5, fiber: 3, net_carb: 2,
+    sodium: 200, potassium: 100,
+    keto_class: 1, health_class: "أ",
+    phases_allowed: [0,2,3,4,5,6,7],
+    rec: "أ", qty_moderate: 50, qty_max: 80, daily_freq: 1, weekly_freq: 5,
+    doc_rec: "خبزة كاملة للبرغر — ممتازة مع البروتين",
+    img_url: ""
+  },
+
+  /* ══════════════════════════════════════
+     الفئة: حلا كيتونية (125-129)
+  ══════════════════════════════════════ */
+
+  {
+    id: 125,
+    name: "شوكولاتة داكنة 85%+", name_en: "Dark Chocolate 85%+",
+    cat: "حلا كيتو",
+    cal: 598, fat: 52, sat_fat: 30, protein: 8, carb: 20, fiber: 11, net_carb: 9,
+    sodium: 10, potassium: 500,
+    keto_class: 1, health_class: "ب",
+    phases_allowed: [0,2,3,4,5,6,7],
+    rec: "ب", qty_moderate: 20, qty_max: 40, daily_freq: 1, weekly_freq: 5,
+    doc_rec: "20غ = 2-3 مربعات — لا تتجاوز 40غ/يوم. 85%+ فقط",
+    img_url: ""
+  },
+  {
+    id: 126,
+    name: "آيس كريم كيتو (صنع منزلي)", name_en: "Keto Ice Cream",
+    cat: "حلا كيتو",
+    cal: 180, fat: 17, sat_fat: 10, protein: 3, carb: 4, fiber: 1, net_carb: 3,
+    sodium: 40, potassium: 120,
+    keto_class: 1, health_class: "ب",
+    phases_allowed: [0,3,4,5,6,7],
+    rec: "ب", qty_moderate: 80, qty_max: 120, daily_freq: 1, weekly_freq: 3,
+    doc_rec: "أساسه كريمة خفق + محلي ستيفيا — ابدأ من المرحلة الثالثة",
+    img_url: ""
+  },
+  {
+    id: 127,
+    name: "بسكويت كيتو (دقيق لوز)", name_en: "Keto Cookie",
+    cat: "حلا كيتو",
+    cal: 130, fat: 11, sat_fat: 4, protein: 4, carb: 5, fiber: 2, net_carb: 3,
+    sodium: 80, potassium: 60,
+    keto_class: 1, health_class: "ب",
+    phases_allowed: [0,2,3,4,5,6,7],
+    rec: "ب", qty_moderate: 30, qty_max: 60, daily_freq: 1, weekly_freq: 4,
+    doc_rec: "قطعة أو قطعتان — تحقق من مكونات المنتج الجاهز",
+    img_url: ""
+  },
+  {
+    id: 128,
+    name: "براني كيتو (كاكاو + لوز)", name_en: "Keto Brownie",
+    cat: "حلا كيتو",
+    cal: 160, fat: 14, sat_fat: 5, protein: 5, carb: 6, fiber: 3, net_carb: 3,
+    sodium: 90, potassium: 120,
+    keto_class: 1, health_class: "ب",
+    phases_allowed: [0,3,4,5,6,7],
+    rec: "ب", qty_moderate: 40, qty_max: 70, daily_freq: 1, weekly_freq: 3,
+    doc_rec: "مصنوع من دقيق اللوز والكاكاو والزبدة — ممتاز كحلا مناسبة",
+    img_url: ""
+  },
+  {
+    id: 129,
+    name: "مافن كيتو (دقيق لوز + بيض)", name_en: "Keto Muffin",
+    cat: "حلا كيتو",
+    cal: 200, fat: 17, sat_fat: 5, protein: 7, carb: 6, fiber: 3, net_carb: 3,
+    sodium: 150, potassium: 100,
+    keto_class: 1, health_class: "ب",
+    phases_allowed: [0,3,4,5,6,7],
+    rec: "ب", qty_moderate: 60, qty_max: 90, daily_freq: 1, weekly_freq: 3,
+    doc_rec: "حصة واحدة — مثالي للفطور أو السناك",
+    img_url: ""
+  },
+
+  /* ══════════════════════════════════════
+     الفئة: وصفات جاهزة كيتو (130-133)
+  ══════════════════════════════════════ */
+
+  {
+    id: 130,
+    name: "سلطة كيتو كلاسيك (خس+زيت+ليمون)", name_en: "Classic Keto Salad",
+    cat: "وصفات جاهزة",
+    cal: 120, fat: 11, sat_fat: 2, protein: 2, carb: 4, fiber: 2, net_carb: 2,
+    sodium: 200, potassium: 220,
+    keto_class: 1, health_class: "أ",
+    phases_allowed: [0,1,2,3,4,5,6,7],
+    rec: "أ", qty_moderate: 150, qty_max: 300, daily_freq: 3, weekly_freq: 7,
+    doc_rec: "خس + جرجير + خيار + زيت زيتون + ليمون + ملح — أسرع وجبة جانبية",
+    img_url: ""
+  },
+  {
+    id: 131,
+    name: "بيض مسلوق مع زيتون وأفوكادو", name_en: "Boiled Egg Avocado Bowl",
+    cat: "وصفات جاهزة",
+    cal: 350, fat: 30, sat_fat: 6, protein: 14, carb: 5, fiber: 3, net_carb: 2,
+    sodium: 300, potassium: 450,
+    keto_class: 1, health_class: "أ",
+    phases_allowed: [0,1,2,3,4,5,6,7],
+    rec: "أ", qty_moderate: 200, qty_max: 300, daily_freq: 2, weekly_freq: 7,
+    doc_rec: "2 بيضة + نصف أفوكادو + 10 حبة زيتون — وجبة كاملة في 5 دقائق",
+    img_url: ""
+  },
+  {
+    id: 132,
+    name: "صحن تونة كيتو (تونة + مايونيز + خيار)", name_en: "Keto Tuna Bowl",
+    cat: "وصفات جاهزة",
+    cal: 280, fat: 22, sat_fat: 3, protein: 20, carb: 2, fiber: 1, net_carb: 1,
+    sodium: 480, potassium: 300,
+    keto_class: 1, health_class: "أ",
+    phases_allowed: [0,1,2,3,4,5,6,7],
+    rec: "أ", qty_moderate: 180, qty_max: 250, daily_freq: 1, weekly_freq: 5,
+    doc_rec: "علبة تونة + ملعقة مايونيز + خيار مفروم — نسبة كيتو ممتازة",
+    img_url: ""
+  },
+  {
+    id: 133,
+    name: "لفة دجاج كيتو (تورتيلا لوز)", name_en: "Keto Chicken Wrap",
+    cat: "وصفات جاهزة",
+    cal: 380, fat: 26, sat_fat: 6, protein: 30, carb: 6, fiber: 3, net_carb: 3,
+    sodium: 420, potassium: 380,
+    keto_class: 1, health_class: "أ",
+    phases_allowed: [0,1,2,3,4,5,6,7],
+    rec: "أ", qty_moderate: 200, qty_max: 280, daily_freq: 1, weekly_freq: 5,
+    doc_rec: "تورتيلا لوز + دجاج مشوي + أفوكادو + جرجير — غداء متكامل",
+    img_url: ""
+  },
+
+  /* ══════════════════════════════════════
+     الفئة: منتجات متاجر كيتو (134-135)
+  ══════════════════════════════════════ */
+
+  {
+    id: 134,
+    name: "زبادي يوناني كامل الدسم (منتج)", name_en: "Full Fat Greek Yogurt",
+    cat: "منتجات متاجر",
+    cal: 97, fat: 5, sat_fat: 3, protein: 9, carb: 5, fiber: 0, net_carb: 3.6,
+    sodium: 36, potassium: 141,
+    keto_class: 1, health_class: "أ",
+    phases_allowed: [0,2,3,4,5,6,7],
+    store_ref: ["panda", "carrefour", "othaim"],
+    rec: "أ", qty_moderate: 150, qty_max: 250, daily_freq: 1, weekly_freq: 5,
+    doc_rec: "تحقق من نسبة الدهن — يجب 5% فأكثر. بدون نكهات مضافة",
+    img_url: ""
+  },
+  {
+    id: 135,
+    name: "جبنة كريمية Philadelphia أو مشابه", name_en: "Cream Cheese",
+    cat: "منتجات متاجر",
+    cal: 342, fat: 34, sat_fat: 21, protein: 6, carb: 4.1, fiber: 0, net_carb: 4.1,
+    sodium: 321, potassium: 132,
+    keto_class: 1, health_class: "أ",
+    phases_allowed: [0,1,2,3,4,5,6,7],
+    store_ref: ["panda", "carrefour", "othaim", "lulu"],
+    rec: "أ", qty_moderate: 40, qty_max: 80, daily_freq: 2, weekly_freq: 7,
+    doc_rec: "ملعقتان كبيرتان 40غ — مع الخضار أو في الوصفات",
+    img_url: ""
+  },
+
 ];
 
 /* ═══════════════════════════════════════════
