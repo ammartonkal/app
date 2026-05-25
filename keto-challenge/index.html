@@ -1868,10 +1868,14 @@ function buildMealSuggestion(mem, rem, phase){
     f.cat === 'خضار' && !protFoods.find(p=>p.id===f.id) && !fatFoods.find(p=>p.id===f.id)
   );
 
+  // استثناء الأطعمة التي طلب المشترك تغييرها
+  const skip = typeof _mealSkipFids !== 'undefined' ? _mealSkipFids : [];
   function pickBest(pool){
-    const fromFav = favAllowed.filter(f => pool.find(x=>x.id===f.id));
+    const available = pool.filter(f => !skip.includes(f.id));
+    const src = available.length ? available : pool; // fallback لو انتهت الخيارات
+    const fromFav = favAllowed.filter(f => src.find(x=>x.id===f.id));
     if(fromFav.length) return fromFav[0];
-    return pool[0] || null;
+    return src[0] || null;
   }
 
   const pickedProt = pickBest(protFoods);
@@ -2016,7 +2020,7 @@ function renderSuggSection(mem, rem, phase){
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         ${hasFav?`<span class="sugg-tag-fav">⭐ من مفضلاتك</span>`:''}
-        <button class="btn sm" onclick="refreshSuggestion()" title="اقتراح آخر">🔄</button>
+        <button class="btn sm" onclick="refreshMeal([${items.map(i=>i.fid).join(',')}])" title="تغيير الاقتراح">🔄 تغيير</button>
       </div>
     </div>
     <div class="sugg-body">
@@ -2064,7 +2068,8 @@ function renderSuggSection(mem, rem, phase){
 }
 
 /* ─── بطاقة السناك (مشتركة بين الحالتين) ─── */
-let _snackSkipIds = []; // IDs التي تم تخطيها بزر التغيير
+let _snackSkipIds = []; // IDs السناك التي تم تخطيها
+let _mealSkipFids = []; // fids الوجبة التي تم تخطيها
 
 function _renderSnackCard(snack){
   const snackJSON = JSON.stringify([{fid:snack.food.id, qty:snack.qty}]);
@@ -2099,6 +2104,10 @@ function _renderSnackCard(snack){
 
 function refreshSnack(skipId){
   if(!_snackSkipIds.includes(skipId)) _snackSkipIds.push(skipId);
+  rDash();
+}
+function refreshMeal(fids){
+  (fids||[]).forEach(fid=>{ if(!_mealSkipFids.includes(fid)) _mealSkipFids.push(fid); });
   rDash();
 }
 
