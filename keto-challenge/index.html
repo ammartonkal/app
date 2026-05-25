@@ -1937,8 +1937,12 @@ function buildSnackSuggestion(mem, rem, phase){
   if(!snackPool.length) return null;
 
   const favIds  = mem?.favorites_foods || [];
-  const fromFav = snackPool.filter(f => favIds.includes(f.id));
-  const pick    = (fromFav.length ? fromFav : snackPool)[0];
+  // استثناء الأصناف التي طلب المشترك تغييرها
+  const skip    = typeof _snackSkipIds !== 'undefined' ? _snackSkipIds : [];
+  const pool    = snackPool.filter(f => !skip.includes(f.id));
+  const src     = pool.length ? pool : snackPool; // fallback لو انتهت الخيارات
+  const fromFav = src.filter(f => favIds.includes(f.id));
+  const pick    = (fromFav.length ? fromFav : src)[0];
   if(!pick) return null;
 
   // الكمية بحيث لا تتجاوز 200 سعرة
@@ -2051,8 +2055,7 @@ function renderSuggSection(mem, rem, phase){
         <div class="sugg-macro-card"><div class="sugg-macro-card-val" style="color:var(--danger)">${macros.nc}غ</div><div class="sugg-macro-card-lbl">كارب صافٍ</div></div>
       </div>
       <div class="sugg-actions">
-        <button class="btn primary" style="flex:1;justify-content:center" onclick='openSuggModal(${itemsJSON})'>✏️ مراجعة وتعديل</button>
-        <button class="btn" style="flex:1;justify-content:center" onclick='openSuggInCalc(${itemsJSON})'>📊 فتح في الحاسبة</button>
+        <button class="btn primary" style="width:100%;justify-content:center" onclick='openSuggInCalc(${itemsJSON})'>📊 جرّب وعدّل في الحاسبة ←</button>
       </div>
     </div>
   </div>
@@ -2061,7 +2064,10 @@ function renderSuggSection(mem, rem, phase){
 }
 
 /* ─── بطاقة السناك (مشتركة بين الحالتين) ─── */
+let _snackSkipIds = []; // IDs التي تم تخطيها بزر التغيير
+
 function _renderSnackCard(snack){
+  const snackJSON = JSON.stringify([{fid:snack.food.id, qty:snack.qty}]);
   return `<div class="sugg-card" style="border-color:rgba(212,131,10,.3)">
     <div class="sugg-header" style="background:rgba(212,131,10,.06)">
       <div class="sugg-header-left">
@@ -2071,10 +2077,10 @@ function _renderSnackCard(snack){
           <div class="sugg-sub">الساعة ${snack.snackTime} · ≤200 سعرة${snack.isFav?' · من مفضلاتك ⭐':''}</div>
         </div>
       </div>
-      <button class="btn sm" onclick="gp('preferences')" style="font-size:11px;color:var(--text3)">⚙️ تعديل</button>
+      <button class="btn sm" onclick="refreshSnack(${snack.food.id})" style="font-size:11px">🔄 تغيير</button>
     </div>
     <div class="sugg-body">
-      <div class="sugg-item-row" style="border-color:rgba(212,131,10,.2);background:rgba(212,131,10,.04)">
+      <div class="sugg-item-row" style="border-color:rgba(212,131,10,.2);background:rgba(212,131,10,.04);margin-bottom:10px">
         <div style="flex:1">
           <div class="sugg-item-name">${snack.food.name}${snack.isFav?' ⭐':''}</div>
           <div class="sugg-item-qty">${snack.displayQty||snack.qty+'غ'}</div>
@@ -2086,8 +2092,14 @@ function _renderSnackCard(snack){
           <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--warning)">${snack.macros.cal}</div><div class="sugg-macro-lbl">سعرة</div></div>
         </div>
       </div>
+      <button class="btn primary" style="width:100%;justify-content:center;background:var(--warning);border-color:var(--warning)" onclick='openSuggInCalc(${snackJSON})'>📊 جرّب وعدّل في الحاسبة ←</button>
     </div>
   </div>`;
+}
+
+function refreshSnack(skipId){
+  if(!_snackSkipIds.includes(skipId)) _snackSkipIds.push(skipId);
+  rDash();
 }
 
 /* ─── تحديث الاقتراح بعشوائية ─── */
