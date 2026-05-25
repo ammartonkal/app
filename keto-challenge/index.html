@@ -1932,19 +1932,25 @@ function isMainFood(f){ return !isSnackFood(f); }
 /* ─── تحديد نوع الوجبة حسب الوقت والتاريخ ─── */
 function getMealType(mem){
   const todayMeals = getTodayMeals(mem?.uid);
-  const mainDone   = todayMeals.filter(m => m.type !== 'snack' && m.type !== 'other');
   const prefs      = getMemPrefs(mem);
   const total      = prefs.meals_per_day; // 2 أو 3
 
-  // إذا لم تُسجَّل أي وجبة → فطور دائماً
+  // وجبة رئيسية = أي وجبة ليست سناك وسعراتها >= 150
+  // هذا يشمل: وجبات مباشرة + وجبات من الاقتراح (type:'other') + من الحاسبة
+  const SNACK_TYPES = ['snack'];
+  const MIN_MEAL_CAL = 150;
+  const mainDone = todayMeals.filter(m =>
+    !SNACK_TYPES.includes(m.type) &&
+    (m.totals?.cal || 0) >= MIN_MEAL_CAL
+  );
+
+  // إذا لم تُسجَّل أي وجبة رئيسية → فطور دائماً
   if(mainDone.length === 0) return {type:'breakfast', label:'الفطور', icon:'🌅', index:0};
 
   // إذا اكتملت الوجبات → لا مقترح
   if(mainDone.length >= total) return null;
 
-  const hour = new Date().getHours();
   if(total === 2){
-    // وجبتان: فطور + عشاء
     return {type:'dinner', label:'العشاء', icon:'🌙', index:1};
   }
   // ثلاث وجبات
@@ -2106,7 +2112,7 @@ function buildMealSuggestion(mem, rem, phase){
   const macros  = _calcMealRatio(items.map(i=>({fid:i.fid,qty:i.qty})));
   const hasFav  = items.some(i=>i.source==='fav');
   const todayMeals = getTodayMeals(mem?.uid);
-  const mainDone   = todayMeals.filter(m=>m.type!=='snack'&&m.type!=='other').length;
+  const mainDone   = todayMeals.filter(m=>!['snack'].includes(m.type)&&(m.totals?.cal||0)>=150).length;
 
   return {
     items, macros,
@@ -2567,8 +2573,11 @@ async function _suggRegisterMeal(){
   const macros=_calcMealRatio(items);
   const ts=Date.now();
   const date=new Date().toISOString().split('T')[0];
+  // تحديد نوع الوجبة حسب الوقت
+  const _mealTypeNow = getMealType(MEMBERS.find(m=>m.uid===CU.id));
+  const _mealTypeName = _mealTypeNow?.type || 'other';
   const meal={
-    uid:CU.id, date, ts, type:'other',
+    uid:CU.id, date, ts, type:_mealTypeName,
     name:'وجبة مقترحة',
     items:items.map(i=>{const f=FOODS.find(x=>x.id===i.fid);return{fid:i.fid,name:f?.name||'',qty:i.qty};}),
     totals:{cal:macros.cal,fat:macros.fat,protein:macros.prot,net_carb:macros.nc,fiber:0,sodium:0,potassium:0}
@@ -2654,7 +2663,8 @@ async function _calcRegisterMeal(){
   Object.keys(t).forEach(k=>t[k]=Math.round(t[k]*10)/10);
   const ts=Date.now();
   const date=new Date().toISOString().split('T')[0];
-  const meal={uid:CU.id,date,ts,type:'other',name:'من حاسبة الوصفة',
+  const _calcMealTypeNow = getMealType(MEMBERS.find(m=>m.uid===CU.id));
+  const meal={uid:CU.id,date,ts,type:_calcMealTypeNow?.type||'other',name:'من حاسبة الوصفة',
     items:calcItems.map(i=>{const f=FOODS.find(x=>x.id===i.fid);return{fid:i.fid,name:f?.name||'',qty:i.qty};}),totals:t};
   MEALS.push(meal);
   if(typeof window.DB?.saveMeal==='function') await window.DB.saveMeal(meal);
