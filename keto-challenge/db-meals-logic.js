@@ -417,13 +417,53 @@ function buildSingleMeal(templateKey, targets, favIds, phase, skipFids, seed, me
     const pick = _weightedPick(pool, seed + mealItems.length);
     if(!pick) continue;
 
-    const servings = groupRef.servings;
-    const qty      = Math.round(pick.qty * servings / 5) * 5;
-    usedFids.add(pick.fid);
+    // ── حساب الكمية عكسياً من الهدف ──
+    const food = typeof FOODS !== 'undefined' ? FOODS.find(f=>f.id===pick.fid) : null;
+    let qty = pick.qty; // الافتراضي
 
+    if(food){
+      const servings = groupRef.servings;
+      const grp = groupRef.group;
+
+      if(grp.startsWith('protein')){
+        // كمية البروتين مبنية على هدف البروتين للوجبة
+        const protPer100 = food.protein || 0;
+        if(protPer100 > 5){
+          const targetProt = (targets.protein || 20) * servings;
+          qty = Math.round(targetProt / protPer100 * 100 / 5) * 5;
+          qty = Math.min(qty, pick.qty * 1.5); // لا يتجاوز 150% من الافتراضي
+        } else {
+          qty = Math.round(pick.qty * servings / 5) * 5;
+        }
+      } else if(grp.startsWith('fat') || grp === 'nuts_addon'){
+        // كمية الدهن مبنية على هدف الدهن
+        // نحسب ما تبقى من دهن بعد البروتين المختار
+        const protFatContrib = mealItems.reduce((s,i)=>{
+          const f2 = typeof FOODS!=='undefined'?FOODS.find(x=>x.id===i.fid):null;
+          return s + (f2?f2.fat*(i.qty/100):0);
+        }, 0);
+        const fatRemain = Math.max((targets.fat||35)*servings - protFatContrib, 5);
+        const fatPer100 = food.fat || 1;
+        qty = Math.round(fatRemain / fatPer100 * 100 / 5) * 5;
+        // cap مرن حسب كثافة الدهن في الصنف
+        // الدهون الصافية (زيت) لها cap أعلى — الدهون الطبيعية (مكسرات/أفوكادو) cap أقل
+        const fatCap = (food.fat >= 80) ? pick.qty * 2.5  // زيوت صافية
+                     : (food.fat >= 40) ? pick.qty * 1.8  // مكسرات
+                     :                    pick.qty * 1.5;  // دهون مختلطة
+        qty = Math.min(qty, fatCap);
+        qty = Math.max(qty, 5);
+      } else if(grp.startsWith('veg')){
+        // الخضار بكمية ثابتة معقولة
+        qty = Math.round(pick.qty * groupRef.servings / 5) * 5;
+      } else {
+        qty = Math.round(pick.qty * groupRef.servings / 5) * 5;
+      }
+    }
+
+    usedFids.add(pick.fid);
     mealItems.push({
       fid:        pick.fid,
-      qty:        Math.max(qty, 10),
+      qty:        Math.max(Math.min(qty, 400), 5), // 5-400غ
       name:       pick.name,
       group:      groupRef.group,
       groupName:  group.name,
