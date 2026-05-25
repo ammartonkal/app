@@ -3772,11 +3772,11 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
       </div>
       <!-- تسميات — JS يضبط مواضعها -->
       <div id="mt-ratio-labels" style="position:relative;height:16px;font-size:9px">
-        <span style="position:absolute;left:0;color:var(--text3)">0</span>
+        <span style="position:absolute;right:0;color:var(--text3)">0</span>
         <span class="rt-lbl" data-v="25"   style="position:absolute;color:var(--danger)">1.0</span>
         <span class="rt-lbl" data-v="37.5" style="position:absolute;color:var(--warning)">1.5 حد</span>
         <span class="rt-lbl" data-v="50"   style="position:absolute;color:var(--accent)">2.0+</span>
-        <span style="position:absolute;right:0;color:var(--accent)">4.0</span>
+        <span style="position:absolute;left:0;color:var(--accent)">4.0</span>
       </div>
     </div>
 
@@ -3836,26 +3836,25 @@ function _positionRatioBar(krPct, rColor){
     if(!track) return;
     const W = track.getBoundingClientRect().width;
     if(!W) return;
-    const px = W * krPct / 100;
+    /* 0 على اليمين، 4.0 على اليسار — نعكس الموضع */
+    const px = W * (1 - krPct/100);
 
-    /* شريط ومؤشر — بـ pixels مطلقة بدون تأثير RTL */
     const bar = document.getElementById('mt-ratio-bar');
-    if(bar){ bar.style.width=px+'px'; bar.style.left='0'; bar.style.background=rColor; }
+    if(bar){ bar.style.left=px+'px'; bar.style.width=(W-px)+'px'; bar.style.background=rColor; }
 
     const needle = document.getElementById('mt-ratio-needle');
     if(needle){ needle.style.left=(px-2)+'px'; needle.style.right='auto'; needle.style.background=rColor; needle.style.boxShadow='0 0 6px '+rColor+'88'; }
 
-    /* خطوط مرجعية */
     track.querySelectorAll('.rt-ref').forEach(el=>{
-      el.style.left = (W * parseFloat(el.dataset.v) / 100) + 'px';
-      el.style.right = 'auto';
+      /* المرجع: 1.0=25%، 1.5=37.5%، 2.0=50% — نعكس */
+      const refPx = W * (1 - parseFloat(el.dataset.v)/100);
+      el.style.left = refPx+'px'; el.style.right='auto';
     });
 
-    /* تسميات */
     const lblCont = document.getElementById('mt-ratio-labels');
     if(lblCont) lblCont.querySelectorAll('.rt-lbl').forEach(el=>{
-      const elPx = W * parseFloat(el.dataset.v) / 100;
-      el.style.left = (elPx - el.offsetWidth/2) + 'px';
+      const refPx = W * (1 - parseFloat(el.dataset.v)/100);
+      el.style.left = (refPx - el.offsetWidth/2)+'px';
     });
   });
 }
