@@ -1577,12 +1577,13 @@ function _savePrefField(key, value){
   if(!mem) return;
   if(!mem.meal_prefs) mem.meal_prefs = Object.assign({}, DEFAULT_MEAL_PREFS);
   if(key === 'meal_time'){
-    // value = {slot, time}
     if(!mem.meal_prefs.meal_times) mem.meal_prefs.meal_times = {};
     mem.meal_prefs.meal_times[value.slot] = value.time;
   } else {
     mem.meal_prefs[key] = value;
   }
+  // إذا تغيّر عدد الوجبات → أعد بناء الخطة
+  if(key === 'meals_per_day') _invalidateDayPlan(mem);
   if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
 }
 
@@ -1777,6 +1778,7 @@ function savePreferences(){
   if(!mem) return;
   const btn = document.querySelector('[onclick="savePreferences()"]');
   if(btn){ const o=btn.textContent; btn.textContent='✅ محفوظ'; setTimeout(()=>btn.textContent=o,1500); }
+  _invalidateDayPlan(mem);
   if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
   rDash();
 }
@@ -1789,6 +1791,7 @@ function toggleFavFood(fid){
   const idx = mem.favorites_foods.indexOf(fid);
   if(idx > -1) mem.favorites_foods.splice(idx,1);
   else         mem.favorites_foods.push(fid);
+  _invalidateDayPlan(mem);
   if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
   /* تحديث الزر مباشرة بدون إعادة render كاملة */
   const btn = document.getElementById('fav-food-'+fid);
@@ -5053,6 +5056,32 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
 }
 
 /* تحديث ديناميكي */
+/* ─── إعادة بناء خطة اليوم عند تغيير الأهداف أو المفضلات ─── */
+function _invalidateDayPlan(mem){
+  if(!mem) return;
+  const today = new Date().toISOString().split('T')[0];
+
+  // امسح خطة اليوم فقط (الأيام الماضية تبقى)
+  if(mem.day_plans?.[today]){
+    delete mem.day_plans[today];
+  }
+
+  // إعادة البناء الفورية من db-meals-logic.js
+  if(typeof buildDayPlan !== 'undefined'){
+    if(!mem.day_plans) mem.day_plans = {};
+    const plan = buildDayPlan(mem, today);
+    if(plan){
+      mem.day_plans[today] = {
+        breakfast: plan.breakfast,
+        lunch:     plan.lunch,
+        dinner:    plan.dinner,
+        built_at:  Date.now(),
+        built_from:'auto'
+      };
+    }
+  }
+}
+
 function saveTargetsManual(){
   const v = window._mtv;
   if(!v){ alert('عدّل القيم أولاً'); return; }
@@ -5080,11 +5109,14 @@ function saveTargetsManual(){
   /* حفظ Firebase */
   if(window.DB) window.DB.saveMember(mem);
 
+  /* مسح خطة اليوم وإعادة بنائها بالأهداف الجديدة */
+  _invalidateDayPlan(mem);
+
   /* تحديث لوحة التحكم */
   rDash();
 
   /* رسالة تأكيد */
-  _showToast(`✅ تم حفظ الخطة بتاريخ ${today}`);
+  _showToast(`✅ تم حفظ الخطة بتاريخ ${today} — تم تحديث الوجبات المقترحة`);
 
   /* تحديث عنوان القسم */
   const sub = document.querySelector('#manual-targets-card .card-header div:last-child');
