@@ -313,6 +313,159 @@ textarea{resize:vertical;min-height:76px;}
 .sugg-modal{background:var(--surface);border-radius:var(--radius);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18);}
 .sugg-modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1;}
 .sugg-modal-body{padding:18px;}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE SYSTEM
+   Desktop  ≥ 1024px  — sidebar دائم + محتوى واسع
+   Tablet   640–1023px — sidebar يطوى + شبكة مضغوطة
+   Mobile   < 640px   — sidebar drawer + تكديس كامل
+═══════════════════════════════════════════ */
+
+/* ── Desktop: لا تغيير عن التصميم الأصلي ── */
+@media (min-width:1024px){
+  .menu-btn{display:none!important;}
+  .sidebar{transform:none!important;}
+  .sidebar-overlay{display:none!important;}
+  .two-col{grid-template-columns:1fr 1fr;}
+  .form-row{grid-template-columns:1fr 1fr;}
+  .form-row.t3{grid-template-columns:1fr 1fr 1fr;}
+  .stats-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));}
+  .sugg-macros-summary{grid-template-columns:repeat(3,1fr);}
+  .week-grid{grid-template-columns:repeat(7,1fr);}
+}
+
+/* ── Tablet: 640px – 1023px ── */
+@media (min-width:640px) and (max-width:1023px){
+  .shell{position:relative;}
+
+  /* Sidebar: drawer يخرج من اليمين */
+  .sidebar{
+    position:fixed;right:0;top:0;bottom:0;
+    width:220px;
+    transform:translateX(100%);
+    box-shadow:-4px 0 16px rgba(0,0,0,.12);
+  }
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-overlay{display:block;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .sidebar-overlay.open{opacity:1;pointer-events:auto;}
+
+  .menu-btn{display:flex!important;}
+  .content{padding:16px 14px;}
+  .topbar{padding:0 14px;}
+
+  /* شبكات: من 2 عمود → 1 */
+  .two-col{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:1fr 1fr;}
+  .form-row.t3{grid-template-columns:1fr 1fr;}
+  .stats-grid{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));}
+  .sugg-macros-summary{grid-template-columns:repeat(3,1fr);}
+  .week-grid{grid-template-columns:repeat(7,1fr);gap:4px;}
+  .week-day{padding:6px 2px;}
+  .week-day-num{font-size:13px;}
+
+  /* جداول: تمرير أفقي */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  table{min-width:500px;}
+}
+
+/* ── Mobile: < 640px ── */
+@media (max-width:639px){
+  body{font-size:13px;}
+
+  .shell{position:relative;}
+
+  /* Sidebar: drawer كامل */
+  .sidebar{
+    position:fixed;right:0;top:0;bottom:0;
+    width:80vw;max-width:280px;
+    transform:translateX(100%);
+    box-shadow:-6px 0 24px rgba(0,0,0,.15);
+  }
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-overlay{display:block;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .sidebar-overlay.open{opacity:1;pointer-events:auto;}
+
+  .menu-btn{display:flex!important;}
+
+  /* Topbar */
+  .topbar{padding:0 12px;height:48px;}
+  .page-title{font-size:14px;}
+
+  /* Content */
+  .content{padding:12px;}
+
+  /* Cards */
+  .card{padding:14px;margin-bottom:12px;}
+  .card-header{margin-bottom:10px;padding-bottom:10px;}
+
+  /* شبكات: عمود واحد دائماً */
+  .two-col{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:1fr;}
+  .form-row.t3{grid-template-columns:1fr;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .stat-card{padding:11px;}
+  .stat-val{font-size:20px;}
+
+  /* Suggestion cards */
+  .sugg-macros-summary{grid-template-columns:repeat(3,1fr);gap:5px;}
+  .sugg-macro-card{padding:6px;}
+  .sugg-macro-card-val{font-size:13px;}
+  .sugg-item-macros{gap:6px;}
+  .sugg-macro-val{font-size:11px;}
+  .sugg-item-row{padding:7px 9px;}
+  .sugg-ratio-val{font-size:16px;}
+  .sugg-actions{flex-direction:column;}
+  .sugg-actions .btn{width:100%;justify-content:center;}
+
+  /* Macro chips */
+  .mrow{gap:5px;}
+  .mchip{padding:7px 5px;}
+  .mchip-v{font-size:14px;}
+
+  /* جداول */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -12px;padding:0 12px;}
+  table{min-width:480px;font-size:12px;}
+  th,td{padding:7px 9px;}
+
+  /* أزرار */
+  .btn{font-size:12px;padding:7px 11px;}
+  .btn.sm{padding:4px 8px;font-size:11px;}
+
+  /* جدول الأسبوع */
+  .week-grid{grid-template-columns:repeat(7,1fr);gap:3px;}
+  .week-day{padding:5px 2px;}
+  .week-day-name{font-size:9px;}
+  .week-day-num{font-size:12px;}
+
+  /* النماذج */
+  input,select,textarea{font-size:13px;padding:9px 10px;}
+
+  /* Modal السناك / الاقتراح */
+  .sugg-modal{max-width:calc(100vw - 24px);}
+
+  /* صفحة التفضيلات: labels الراديو */
+  .pref-meal-options{flex-direction:column!important;}
+
+  /* Preferences فاكهة chips */
+  .fav-chips{gap:4px!important;}
+
+  /* سجل التقدم stats */
+  .progress-stats{grid-template-columns:repeat(2,1fr)!important;}
+
+  /* حاسبة الاحتياج */
+  .needs-grid{grid-template-columns:1fr!important;}
+}
+
+/* ── تحسينات اللمس لجميع الشاشات الصغيرة ── */
+@media (hover:none) and (pointer:coarse){
+  .btn{min-height:40px;}
+  .btn.sm{min-height:32px;}
+  .nav-item{padding:11px 11px;min-height:40px;}
+  .ch-task{min-height:44px;}
+  input,select{min-height:40px;}
+  .sugg-item-row{padding:10px 11px;}
+}
+
 </style>
 <script>
 // Bridge: handles button clicks before main JS loads
@@ -1315,12 +1468,19 @@ function showOnboarding(){
 }
 
 /* ═══ SIDEBAR ═══ */
-function openSb(){document.getElementById('sb').classList.add('open');document.getElementById('sov').style.display='block';}
-function closeSb(){document.getElementById('sb').classList.remove('open');document.getElementById('sov').style.display='none';}
+function openSb(){
+  document.getElementById('sb').classList.add('open');
+  document.getElementById('sov').classList.add('open');
+}
+function closeSb(){
+  document.getElementById('sb').classList.remove('open');
+  document.getElementById('sov').classList.remove('open');
+}
 
 /* ═══ NAV ═══ */
 const TITLES={dashboard:'لوحة التحكم',preferences:'تفضيلاتي الغذائية',meals:'يومياتي الغذائية',phases:'المراحل والبروتوكول',challenge_personal:'تحديي الشخصي',challenge_group:'التحدي العام',schedule:'جدول الأسبوع',foods:'الأطعمة والمغذيات',recipes:'الوصفات الكيتونية',products:'منتجات السوق',supplements:'المكملات الغذائية',restaurants:'المطاعم الكيتو-فريندلي',stores:'المتاجر وأماكن التسوق',devices:'الأجهزة والمعدات الموصى بها',calculator:'حاسبة الوصفة',needs:'حاسبة الاحتياج اليومي',members:'المشتركون',progress:'سجل التقدم',profile:'ملفي الشخصي',addmember:'تسجيل مشترك جديد'};
 function gp(id){
+  if(window.innerWidth < 1024) closeSb(); // أغلق الـ drawer على الجوال والتابليت
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const panel=document.getElementById('panel-'+id);
