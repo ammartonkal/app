@@ -3673,6 +3673,11 @@ function _buildManualTargets(mem, tdee, tFat, tProt, tCarb){
   window._mtv = {fat:tFat, prot:tProt, carb:tCarb};
   window._mtTdee = tdee;
   el.innerHTML = _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee);
+  /* ضبط مواضع شريط النسبة الكيتونية بـ pixels */
+  const _rv = tFat/((tCarb||1)+(tProt||0)*0.6);
+  const _krPct = Math.min(4,_rv||0)/4*100;
+  const _rColor = _rv>=1.5?'var(--accent)':_rv>=1?'var(--warning)':'var(--danger)';
+  _positionRatioBar(_krPct, _rColor);
 }
 
 function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
@@ -3754,25 +3759,24 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
         <div style="font-size:12px;font-weight:600;color:${rColor}" id="mt-ratio-label">النسبة الكيتونية: <span id="mt-ratio-val" style="font-family:var(--mono);font-size:14px">${kr}</span></div>
         <span style="font-size:12px;font-weight:700;color:${rColor}" id="mt-ratio-text">${rLabel}</span>
       </div>
-      <!-- الشريط الداخلي LTR: 0=يسار، 4.0=يمين -->
-      <!-- المؤشر عند left:krPct% من اليسار = يتطابق مع التسميات -->
-      <div style="position:relative;height:10px;background:rgba(0,0,0,.08);border-radius:5px;margin-bottom:6px;overflow:visible;direction:ltr">
-        <!-- خطوط مرجعية -->
-        <div style="position:absolute;left:25%;top:0;bottom:0;width:1px;background:var(--danger);opacity:.5"></div>
-        <div style="position:absolute;left:37.5%;top:0;bottom:0;width:1px;background:var(--warning);opacity:.6"></div>
-        <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--accent);opacity:.5"></div>
-        <!-- الشريط الملوّن من اليسار -->
-        <div id="mt-ratio-bar" style="position:absolute;top:0;bottom:0;left:0;width:${krPct}%;background:${rColor};border-radius:5px;opacity:.35;transition:all .3s"></div>
-        <!-- المؤشر عند القيمة الحالية -->
-        <div id="mt-ratio-needle" style="position:absolute;top:-4px;bottom:-4px;width:4px;border-radius:2px;background:${rColor};left:${krPct}%;transform:translateX(-50%);transition:all .3s;box-shadow:0 0 6px ${rColor}88;z-index:3"></div>
+      <!-- container الشريط — الـ JS يحسب المواضع بـ pixels -->
+      <div id="mt-ratio-track" style="position:relative;height:10px;background:rgba(0,0,0,.08);border-radius:5px;margin-bottom:6px;overflow:visible">
+        <!-- خطوط مرجعية — JS يضعها -->
+        <div class="rt-ref" data-v="25"  style="position:absolute;top:0;bottom:0;width:1px;background:var(--danger);opacity:.5"></div>
+        <div class="rt-ref" data-v="37.5" style="position:absolute;top:0;bottom:0;width:1px;background:var(--warning);opacity:.6"></div>
+        <div class="rt-ref" data-v="50"  style="position:absolute;top:0;bottom:0;width:1px;background:var(--accent);opacity:.5"></div>
+        <!-- الشريط -->
+        <div id="mt-ratio-bar" style="position:absolute;top:0;bottom:0;left:0;height:100%;background:${rColor};border-radius:5px;opacity:.35"></div>
+        <!-- المؤشر -->
+        <div id="mt-ratio-needle" style="position:absolute;top:-4px;bottom:-4px;width:4px;border-radius:2px;background:${rColor};box-shadow:0 0 6px ${rColor}88;z-index:3"></div>
       </div>
-      <!-- تسميات LTR: 0 يسار، 4.0 يمين — تتوافق مع left:% -->
-      <div style="display:flex;justify-content:space-between;font-size:9px;margin-top:2px;direction:ltr">
-        <span style="color:var(--text3)">0</span>
-        <span style="color:var(--danger)">1.0</span>
-        <span style="color:var(--warning)">1.5 حد</span>
-        <span style="color:var(--accent)">2.0+ ✓</span>
-        <span style="color:var(--accent)">4.0</span>
+      <!-- تسميات — JS يضبط مواضعها -->
+      <div id="mt-ratio-labels" style="position:relative;height:16px;font-size:9px">
+        <span style="position:absolute;left:0;color:var(--text3)">0</span>
+        <span class="rt-lbl" data-v="25"   style="position:absolute;color:var(--danger)">1.0</span>
+        <span class="rt-lbl" data-v="37.5" style="position:absolute;color:var(--warning)">1.5 حد</span>
+        <span class="rt-lbl" data-v="50"   style="position:absolute;color:var(--accent)">2.0+</span>
+        <span style="position:absolute;right:0;color:var(--accent)">4.0</span>
       </div>
     </div>
 
@@ -3826,11 +3830,45 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
 }
 
 /* تحديث ديناميكي */
+function _positionRatioBar(krPct, rColor){
+  requestAnimationFrame(()=>{
+    const track = document.getElementById('mt-ratio-track');
+    if(!track) return;
+    const W = track.getBoundingClientRect().width;
+    if(!W) return;
+    const px = W * krPct / 100;
+
+    /* شريط ومؤشر — بـ pixels مطلقة بدون تأثير RTL */
+    const bar = document.getElementById('mt-ratio-bar');
+    if(bar){ bar.style.width=px+'px'; bar.style.left='0'; bar.style.background=rColor; }
+
+    const needle = document.getElementById('mt-ratio-needle');
+    if(needle){ needle.style.left=(px-2)+'px'; needle.style.right='auto'; needle.style.background=rColor; needle.style.boxShadow='0 0 6px '+rColor+'88'; }
+
+    /* خطوط مرجعية */
+    track.querySelectorAll('.rt-ref').forEach(el=>{
+      el.style.left = (W * parseFloat(el.dataset.v) / 100) + 'px';
+      el.style.right = 'auto';
+    });
+
+    /* تسميات */
+    const lblCont = document.getElementById('mt-ratio-labels');
+    if(lblCont) lblCont.querySelectorAll('.rt-lbl').forEach(el=>{
+      const elPx = W * parseFloat(el.dataset.v) / 100;
+      el.style.left = (elPx - el.offsetWidth/2) + 'px';
+    });
+  });
+}
+
 window._mtUpdate = function(field, val){
   window._mtv = window._mtv||{fat:130,prot:110,carb:25};
   window._mtv[field] = parseInt(val)||0;
   const mem=MEMBERS.find(m=>m.uid===CU.id);
   _buildManualTargets(mem, window._mtTdee||2000, window._mtv.fat, window._mtv.prot, window._mtv.carb);
+  const rv=window._mtv.fat/((window._mtv.carb||0)+(window._mtv.prot||0)*0.6)||0;
+  const krPct=Math.min(4,rv)/4*100;
+  const rColor=rv>=1.5?'var(--accent)':rv>=1?'var(--warning)':'var(--danger)';
+  _positionRatioBar(krPct, rColor);
 };
 window._mtStep = function(field, step){
   window._mtv = window._mtv||{fat:130,prot:110,carb:25};
@@ -3840,6 +3878,10 @@ window._mtStep = function(field, step){
   window._mtv[field]=nv;
   const mem=MEMBERS.find(m=>m.uid===CU.id);
   _buildManualTargets(mem, window._mtTdee||2000, window._mtv.fat, window._mtv.prot, window._mtv.carb);
+  const rv=window._mtv.fat/((window._mtv.carb||0)+(window._mtv.prot||0)*0.6)||0;
+  const krPct=Math.min(4,rv)/4*100;
+  const rColor=rv>=1.5?'var(--accent)':rv>=1?'var(--warning)':'var(--danger)';
+  _positionRatioBar(krPct, rColor);
 };
 window._mtAdjustCal = function(delta){
   window._mtv=window._mtv||{fat:130,prot:110,carb:25};
