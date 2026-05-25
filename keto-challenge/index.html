@@ -1921,189 +1921,262 @@ function buildMealSuggestion(mem, rem, phase){
   };
 }
 
-/* ─── بناء اقتراح السناك ─── */
-// أصناف السناك المسموحة: مكسرات، بذور، زبادي يوناني، جبنة كريمية، أفوكادو
-// الحد الأقصى: 200 سعرة
+/* ─── قوائم السناك المعرّفة ─── */
+/*
+  كل سناك له:
+    id        : رقم فريد
+    label     : اسم العرض
+    group     : المجموعة (للتدوير بالترتيب)
+    phases    : المراحل المسموحة (فارغة = كل المراحل)
+    maxCal    : حد السعرات (افتراضي 200)
+    items     : [{fid, qty, note?}]  — fid من FOODS
+*/
+const SNACK_PRESETS = [
+
+  /* ── مجموعة 1: مكسرات (الافتراضي) ── */
+  {
+    id:1, group:'مكسرات', label:'لوز وجوز',
+    phases:[], maxCal:200,
+    items:[
+      {fid:null, name:'لوز', cat:'مكسرات وبذور', qty:20},
+      {fid:null, name:'جوز',  cat:'مكسرات وبذور', qty:15},
+    ]
+  },
+  {
+    id:2, group:'مكسرات', label:'بيكان وبذور عباد الشمس',
+    phases:[], maxCal:200,
+    items:[
+      {fid:null, name:'بيكان',              cat:'مكسرات وبذور', qty:20},
+      {fid:null, name:'بذور عباد الشمس',   cat:'مكسرات وبذور', qty:15},
+    ]
+  },
+  {
+    id:3, group:'مكسرات', label:'مكسرات مشكلة',
+    phases:[], maxCal:180,
+    items:[
+      {fid:null, name:'مكسرات مشكلة', cat:'مكسرات وبذور', qty:30},
+    ]
+  },
+
+  /* ── مجموعة 2: مكسرات + فاكهة ── */
+  {
+    id:4, group:'مكسرات وفاكهة', label:'لوز مع فراولة',
+    phases:[0,2,3,4,5,6,7], maxCal:180,
+    items:[
+      {fid:null, name:'لوز',     cat:'مكسرات وبذور', qty:20},
+      {fid:null, name:'فراولة', cat:'فاكهة',          qty:80},
+    ]
+  },
+  {
+    id:5, group:'مكسرات وفاكهة', label:'جوز مع توت أزرق',
+    phases:[0,2,3,4,5,6,7], maxCal:180,
+    items:[
+      {fid:null, name:'جوز',      cat:'مكسرات وبذور', qty:20},
+      {fid:null, name:'توت أزرق', cat:'فاكهة',         qty:60},
+    ]
+  },
+
+  /* ── مجموعة 3: جبن وألبان ── */
+  {
+    id:6, group:'جبن وألبان', label:'جبنة كريمية مع فراولة',
+    phases:[0,2,3,4,5,6,7], maxCal:200,
+    items:[
+      {fid:null, name:'جبنة كريمية', cat:'ألبان', qty:40},
+      {fid:null, name:'فراولة',      cat:'فاكهة', qty:80},
+    ]
+  },
+  {
+    id:7, group:'جبن وألبان', label:'شرائح جبن مع زيتون',
+    phases:[], maxCal:200,
+    items:[
+      {fid:null, name:'جبن شيدر', cat:'ألبان',  qty:30},
+      {fid:null, name:'زيتون',    cat:'خضار',   qty:30},
+    ]
+  },
+
+  /* ── مجموعة 4: زبادي يوناني ── */
+  {
+    id:8, group:'زبادي', label:'زبادي يوناني مع بذور شيا وزيت جوز الهند',
+    phases:[0,2,3,4,5,6,7], maxCal:200,
+    items:[
+      {fid:null, name:'زبادي يوناني كامل الدسم', cat:'ألبان',          qty:120},
+      {fid:null, name:'بذور شيا',                cat:'مكسرات وبذور', qty:10},
+      {fid:null, name:'زيت جوز الهند',           cat:'دهون',           qty:5},
+    ]
+  },
+  {
+    id:9, group:'زبادي', label:'زبادي يوناني مع زيت زيتون وبذور كتان',
+    phases:[0,2,3,4,5,6,7], maxCal:200,
+    items:[
+      {fid:null, name:'زبادي يوناني كامل الدسم', cat:'ألبان',          qty:120},
+      {fid:null, name:'زيت زيتون بكر ممتاز',     cat:'دهون',           qty:8},
+      {fid:null, name:'بذور الكتان',              cat:'مكسرات وبذور', qty:10},
+    ]
+  },
+
+  /* ── مجموعة 5: شوكولاتة داكنة ── */
+  {
+    id:10, group:'شوكولاتة', label:'شوكولاتة داكنة مع لوز',
+    phases:[0,2,3,4,5,6,7], maxCal:200,
+    items:[
+      {fid:null, name:'شوكولاتة داكنة 85%+', cat:'أخرى', qty:20},
+      {fid:null, name:'لوز',                 cat:'مكسرات وبذور', qty:15},
+    ]
+  },
+  {
+    id:11, group:'شوكولاتة', label:'شوكولاتة داكنة وحدها',
+    phases:[0,2,3,4,5,6,7], maxCal:160,
+    items:[
+      {fid:null, name:'شوكولاتة داكنة 85%+', cat:'أخرى', qty:30},
+    ]
+  },
+
+  /* ── مجموعة 6: أفوكادو ── */
+  {
+    id:12, group:'أفوكادو', label:'أفوكادو مع ملح الهيمالايا',
+    phases:[], maxCal:200,
+    items:[
+      {fid:null, name:'أفوكادو', cat:'خضار', qty:100},
+    ]
+  },
+  {
+    id:13, group:'أفوكادو', label:'أفوكادو مع بذور شيا',
+    phases:[], maxCal:200,
+    items:[
+      {fid:null, name:'أفوكادو',   cat:'خضار',          qty:80},
+      {fid:null, name:'بذور شيا', cat:'مكسرات وبذور', qty:8},
+    ]
+  },
+];
+
+/* ترتيب التدوير بين المجموعات */
+const SNACK_GROUP_ORDER = [
+  'مكسرات', 'مكسرات وفاكهة', 'جبن وألبان',
+  'زبادي', 'شوكولاتة', 'أفوكادو'
+];
+
+/* ─── بناء اقتراح السناك من القوائم المعرّفة ─── */
 function buildSnackSuggestion(mem, rem, phase){
   const prefs = getMemPrefs(mem);
   if(!prefs.has_snack) return null;
 
-  const phaseData = typeof PHASE_MACRO_TARGETS!=='undefined' ? PHASE_MACRO_TARGETS[phase] : null;
-  const maxCarb   = phaseData ? phaseData.carb_max[0] : 10;
+  const skip = typeof _snackSkipIds !== 'undefined' ? _snackSkipIds : [];
 
-  // مصادر السناك المسموحة
-  const snackPool = FOODS.filter(f =>
-    f.keto_class === 1 &&
-    (!f.phases_allowed || f.phases_allowed.includes(phase)) &&
-    f.net_carb < 5 &&
-    isSnackFood(f)
+  // الأولوية: السناك الافتراضي مكسرات (group index 0)
+  // عند التغيير: ننتقل للمجموعة التالية بالترتيب
+  const skipCount = skip.length;
+  const groupIdx  = skipCount % SNACK_GROUP_ORDER.length;
+  const targetGroup = SNACK_GROUP_ORDER[groupIdx];
+
+  // فلترة حسب المرحلة والمجموعة
+  let candidates = SNACK_PRESETS.filter(s =>
+    s.group === targetGroup &&
+    !skip.includes(s.id) &&
+    (s.phases.length === 0 || s.phases.includes(phase))
   );
-  if(!snackPool.length) return null;
 
-  const favIds  = mem?.favorites_foods || [];
-  // استثناء الأصناف التي طلب المشترك تغييرها
-  const skip    = typeof _snackSkipIds !== 'undefined' ? _snackSkipIds : [];
-  const pool    = snackPool.filter(f => !skip.includes(f.id));
-  const src     = pool.length ? pool : snackPool; // fallback لو انتهت الخيارات
-  const fromFav = src.filter(f => favIds.includes(f.id));
-  const pick    = (fromFav.length ? fromFav : src)[0];
-  if(!pick) return null;
+  // إذا لم يوجد مناسب في المجموعة → أي سناك مسموح لم يُخطَّ
+  if(!candidates.length){
+    candidates = SNACK_PRESETS.filter(s =>
+      !skip.includes(s.id) &&
+      (s.phases.length === 0 || s.phases.includes(phase))
+    );
+  }
+  // fallback: كل السناك بغض النظر عن التخطي
+  if(!candidates.length) candidates = SNACK_PRESETS;
 
-  // الكمية بحيث لا تتجاوز 200 سعرة
-  const maxCal = 200;
-  const maxQtyByCal = pick.cal > 0 ? (maxCal / pick.cal) * 100 : 40;
-  // الكمية المعتدلة من قاعدة البيانات إذا وُجدت
-  const modQty = pick.qty_moderate || 35;
-  const qty    = Math.round(Math.min(maxQtyByCal, modQty) / 5) * 5;
-  const finalQty = Math.max(qty, 10);
+  // تفضيلات المشترك: إذا أحد الأصناف في مفضلاته نقدّمه
+  const favIds = mem?.favorites_foods || [];
+  const fromFav = candidates.filter(s =>
+    s.items.some(i => {
+      const f = FOODS.find(x => x.name === i.name || (i.fid && x.id === i.fid));
+      return f && favIds.includes(f.id);
+    })
+  );
+  const preset = (fromFav.length ? fromFav : candidates)[0];
 
-  const macros = _calcMealRatio([{fid:pick.id, qty:finalQty}]);
+  // بناء items مع fid من FOODS (للربط بالحاسبة)
+  const resolvedItems = preset.items.map(i => {
+    const food = FOODS.find(x =>
+      (i.fid && x.id === i.fid) ||
+      x.name.includes(i.name) ||
+      i.name.includes(x.name.split(' ')[0])
+    );
+    return {
+      fid:        food?.id || null,
+      name:       i.name,
+      qty:        i.qty,
+      displayQty: food ? humanQty(food, i.qty) : `${i.qty}غ`,
+      food:       food || {name:i.name, cat:i.cat, id:null}
+    };
+  });
+
+  // حساب الماكرو الإجمالي
+  const knownItems = resolvedItems.filter(i => i.fid);
+  const macros = knownItems.length
+    ? _calcMealRatio(knownItems.map(i=>({fid:i.fid, qty:i.qty})))
+    : {fat:0, prot:0, nc:0, cal:0, ratio:0};
+
   return {
-    food:      pick,
-    qty:       finalQty,
-    displayQty: humanQty(pick, finalQty),
+    preset,
+    items:     resolvedItems,
     macros,
-    isFav:     favIds.includes(pick.id),
-    snackTime: prefs.meal_times?.snack || '16:00'
+    snackTime: prefs.meal_times?.snack || '16:00',
+    group:     targetGroup,
+    isFav:     fromFav.length > 0
   };
 }
 
 
-/* ─── عرض بطاقة الاقتراح في لوحة التحكم ─── */
-function renderSuggSection(mem, rem, phase){
-  const sugg = buildMealSuggestion(mem, rem, phase);
-
-  // اكتملت الوجبات اليوم
-  if(sugg === null){
-    const prefs = getMemPrefs(mem);
-    const snack = buildSnackSuggestion(mem, rem, phase);
-    return `<div>
-      <div class="sugg-card">
-        <div class="sugg-header">
-          <div class="sugg-header-left"><span style="font-size:18px">✅</span>
-            <div><div class="sugg-title">أحسنت! اكتملت وجباتك اليوم</div>
-              <div class="sugg-sub">${prefs.meals_per_day} وجبات مكتملة</div></div></div>
-        </div>
-        <div class="sugg-body" style="text-align:center;padding:14px 0;color:var(--text3);font-size:13px">
-          استمر غداً بنفس النمط 💪
-        </div>
-      </div>
-      ${snack ? _renderSnackCard(snack) : ''}
-    </div>`;
-  }
-
-  const {items, macros, ratioOk, ketoTarget, hasFav, mealTypeInfo} = sugg;
-
-  if(!items.length){
-    return `<div class="sugg-card"><div class="sugg-body">
-      <div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0">سجّل وجباتك لعرض الاقتراحات</div>
-    </div></div>`;
-  }
-
-  const ratioColor = macros.ratio >= ketoTarget ? 'var(--accent)'
-                   : macros.ratio >= ketoTarget*0.8 ? 'var(--warning)' : 'var(--danger)';
-  const ratioLabel = macros.ratio >= ketoTarget ? 'محفز للكيتون ✓'
-                   : macros.ratio >= ketoTarget*0.8 ? 'قريب من الهدف' : 'يحتاج تحسين';
-
-  const itemsJSON  = JSON.stringify(items.map(i=>({fid:i.fid,qty:i.qty})));
-  const snack      = buildSnackSuggestion(mem, rem, phase);
-
-  return `<div>
-  <div class="sugg-card">
-    <div class="sugg-header">
-      <div class="sugg-header-left">
-        <span style="font-size:20px">${mealTypeInfo.icon}</span>
-        <div>
-          <div class="sugg-title">اقتراح ${mealTypeInfo.label} — الوجبة ${sugg.mealNumber} من ${sugg.totalMeals}</div>
-          <div class="sugg-sub">حصة ${Math.round(sugg.share*100)}% من الأهداف اليومية · هدف النسبة ≥${ketoTarget}</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center">
-        ${hasFav?`<span class="sugg-tag-fav">⭐ من مفضلاتك</span>`:''}
-        <button class="btn sm" onclick="refreshMeal([${items.map(i=>i.fid).join(',')}])" title="تغيير الاقتراح">🔄 تغيير</button>
-      </div>
-    </div>
-    <div class="sugg-body">
-      <div class="sugg-items">
-        ${items.map(i=>{
-          const im = _calcMealRatio([{fid:i.fid,qty:i.qty}]);
-          return `<div class="sugg-item-row">
-            <div style="flex:1">
-              <div class="sugg-item-name">${i.food.name}${i.source==='fav'?' ⭐':''}</div>
-              <div class="sugg-item-qty">${i.displayQty||i.qty+'غ'}</div>
-            </div>
-            <div class="sugg-item-macros">
-              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--accent)">${im.fat}غ</div><div class="sugg-macro-lbl">دهون</div></div>
-              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--info)">${im.prot}غ</div><div class="sugg-macro-lbl">بروتين</div></div>
-              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--danger)">${im.nc}غ</div><div class="sugg-macro-lbl">كارب</div></div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-      <div class="sugg-ratio-row">
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">النسبة الكيتونية للوجبة</div>
-          <div style="display:flex;align-items:baseline;gap:6px">
-            <span class="sugg-ratio-val" style="color:${ratioColor}">${macros.ratio}</span>
-            <span style="font-size:11px;color:${ratioColor};font-weight:600">${ratioLabel}</span>
-          </div>
-        </div>
-        <div style="margin-right:auto;text-align:left">
-          <div style="font-size:10px;color:var(--text3)">سعرات الوجبة</div>
-          <div style="font-size:15px;font-weight:700;font-family:var(--mono)">${macros.cal} <span style="font-size:10px;color:var(--text3)">سعرة</span></div>
-        </div>
-      </div>
-      <div class="sugg-macros-summary">
-        <div class="sugg-macro-card"><div class="sugg-macro-card-val" style="color:var(--accent)">${macros.fat}غ</div><div class="sugg-macro-card-lbl">دهون</div></div>
-        <div class="sugg-macro-card"><div class="sugg-macro-card-val" style="color:var(--info)">${macros.prot}غ</div><div class="sugg-macro-card-lbl">بروتين</div></div>
-        <div class="sugg-macro-card"><div class="sugg-macro-card-val" style="color:var(--danger)">${macros.nc}غ</div><div class="sugg-macro-card-lbl">كارب صافٍ</div></div>
-      </div>
-      <div class="sugg-actions">
-        <button class="btn primary" style="width:100%;justify-content:center" onclick='openSuggInCalc(${itemsJSON})'>📊 جرّب وعدّل في الحاسبة ←</button>
-      </div>
-    </div>
-  </div>
-  ${snack ? _renderSnackCard(snack) : ''}
-  </div>`;
-}
-
-/* ─── بطاقة السناك (مشتركة بين الحالتين) ─── */
-let _snackSkipIds = []; // IDs السناك التي تم تخطيها
+let _snackSkipIds = []; // preset IDs السناك التي تم تخطيها
 let _mealSkipFids = []; // fids الوجبة التي تم تخطيها
 
 function _renderSnackCard(snack){
-  const snackJSON = JSON.stringify([{fid:snack.food.id, qty:snack.qty}]);
+  // items الصالحة للحاسبة (فقط التي عندها fid)
+  const calcItems = snack.items.filter(i=>i.fid).map(i=>({fid:i.fid,qty:i.qty}));
+  const snackJSON = JSON.stringify(calcItems);
+  const hasCalc   = calcItems.length > 0;
+
   return `<div class="sugg-card" style="border-color:rgba(212,131,10,.3)">
     <div class="sugg-header" style="background:rgba(212,131,10,.06)">
       <div class="sugg-header-left">
         <span style="font-size:18px">🥜</span>
         <div>
-          <div class="sugg-title" style="color:var(--warning)">اقتراح السناك</div>
-          <div class="sugg-sub">الساعة ${snack.snackTime} · ≤200 سعرة${snack.isFav?' · من مفضلاتك ⭐':''}</div>
+          <div class="sugg-title" style="color:var(--warning)">${snack.preset.label}${snack.isFav?' ⭐':''}</div>
+          <div class="sugg-sub">الساعة ${snack.snackTime} · ${snack.group} · ≤${snack.preset.maxCal} سعرة</div>
         </div>
       </div>
-      <button class="btn sm" onclick="refreshSnack(${snack.food.id})" style="font-size:11px">🔄 تغيير</button>
+      <button class="btn sm" onclick="refreshSnack(${snack.preset.id})" style="font-size:11px">🔄 تغيير</button>
     </div>
     <div class="sugg-body">
-      <div class="sugg-item-row" style="border-color:rgba(212,131,10,.2);background:rgba(212,131,10,.04);margin-bottom:10px">
-        <div style="flex:1">
-          <div class="sugg-item-name">${snack.food.name}${snack.isFav?' ⭐':''}</div>
-          <div class="sugg-item-qty">${snack.displayQty||snack.qty+'غ'}</div>
-        </div>
-        <div class="sugg-item-macros">
-          <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--accent)">${snack.macros.fat}غ</div><div class="sugg-macro-lbl">دهون</div></div>
-          <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--info)">${snack.macros.prot}غ</div><div class="sugg-macro-lbl">بروتين</div></div>
-          <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--danger)">${snack.macros.nc}غ</div><div class="sugg-macro-lbl">كارب</div></div>
-          <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--warning)">${snack.macros.cal}</div><div class="sugg-macro-lbl">سعرة</div></div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+        ${snack.items.map(i=>`
+          <div class="sugg-item-row" style="border-color:rgba(212,131,10,.2);background:rgba(212,131,10,.04)">
+            <div style="flex:1">
+              <div class="sugg-item-name">${i.name}</div>
+              <div class="sugg-item-qty">${i.displayQty||i.qty+'غ'}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:10px;font-size:12px">
+        <span style="color:var(--text3)">الإجمالي</span>
+        <div style="display:flex;gap:12px;font-family:var(--mono)">
+          <span style="color:var(--accent)">${snack.macros.fat}غ د</span>
+          <span style="color:var(--info)">${snack.macros.prot}غ ب</span>
+          <span style="color:var(--danger)">${snack.macros.nc}غ ك</span>
+          <span style="color:var(--warning);font-weight:600">${snack.macros.cal} سعرة</span>
         </div>
       </div>
-      <button class="btn primary" style="width:100%;justify-content:center;background:var(--warning);border-color:var(--warning)" onclick='openSuggInCalc(${snackJSON})'>📊 جرّب وعدّل في الحاسبة ←</button>
+      ${hasCalc
+        ? `<button class="btn primary" style="width:100%;justify-content:center;background:var(--warning);border-color:var(--warning)" onclick='openSuggInCalc(${snackJSON})'>📊 جرّب وعدّل في الحاسبة ←</button>`
+        : `<div style="font-size:11px;color:var(--text3);text-align:center">أضف الأصناف يدوياً في الحاسبة</div>`}
     </div>
   </div>`;
 }
 
-function refreshSnack(skipId){
-  if(!_snackSkipIds.includes(skipId)) _snackSkipIds.push(skipId);
+function refreshSnack(skipPresetId){
+  // نضيف الـ preset ID للتخطي، وبذلك ينتقل للمجموعة التالية
+  if(!_snackSkipIds.includes(skipPresetId)) _snackSkipIds.push(skipPresetId);
   rDash();
 }
 function refreshMeal(fids){
