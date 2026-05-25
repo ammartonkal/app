@@ -535,7 +535,8 @@ function buildDayPlan(mem, date){
 }
 
 /* ── تعديل العشاء حسب المتبقي الفعلي ── */
-function buildDinnerFromRemaining(mem, consumed){
+function buildDinnerFromRemaining(mem, consumed, skipFids){
+  skipFids = skipFids || [];
   const phase   = mem?.phase || 1;
   const favIds  = mem?.favorites_foods || [];
   const targets = typeof getTargetForDate !== 'undefined'
@@ -568,7 +569,8 @@ function _scaleTargets(targets, share){
    الواجهة: الوجبة المقترحة التالية
    getNextMealPlan(mem) — يعيد { meal, type, template }
 ═══════════════════════════════════════════ */
-function getNextMealPlan(mem){
+function getNextMealPlan(mem, skipFids){
+  skipFids = skipFids || [];
   if(typeof getMealType === 'undefined') return null;
 
   const mealTypeInfo = getMealType(mem);
@@ -601,7 +603,7 @@ function getNextMealPlan(mem){
       const share   = shares[mealTypeInfo.index] || 0.33;
       const mealTargets = _scaleTargets(targets, share);
       const seed    = date.replace(/-/g,'').split('').reduce((s,c)=>s+c.charCodeAt(0),0);
-      meal = buildSingleMeal(mealTypeInfo.type, mealTargets, favIds, phase, [], seed + mealTypeInfo.index * 100, mem);
+      meal = buildSingleMeal(mealTypeInfo.type, mealTargets, favIds, phase, skipFids, seed + mealTypeInfo.index * 100, mem);
     }
   }
 

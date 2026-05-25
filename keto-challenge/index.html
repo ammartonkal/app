@@ -2132,7 +2132,7 @@ function humanQty(food, grams){
 function buildMealSuggestion(mem, rem, phase){
   // استدعاء getNextMealPlan من db-meals-logic.js
   if(typeof getNextMealPlan === 'undefined') return null;
-  const result = getNextMealPlan(mem);
+  const result = getNextMealPlan(mem, _mealSkipFids||[]);
   if(!result) return null;
 
   const {meal, mealTypeInfo, template} = result;
@@ -2433,11 +2433,14 @@ function refreshSnack(skipPresetId){
 }
 function refreshMeal(fids){
   (fids||[]).forEach(fid=>{ if(!_mealSkipFids.includes(fid)) _mealSkipFids.push(fid); });
-  // امسح الخطة المحفوظة لليوم حتى يتم إعادة بناء الوجبة
+  // امسح الوجبة التالية فقط من الخطة — لا نمسح الوجبات الماضية
   const mem = MEMBERS.find(m=>m.uid===CU?.id);
   if(mem){
-    const today = new Date().toISOString().split('T')[0];
-    if(mem.day_plans?.[today]) delete mem.day_plans[today];
+    const today    = new Date().toISOString().split('T')[0];
+    const typeInfo = typeof getMealType!=='undefined' ? getMealType(mem) : null;
+    if(typeInfo && mem.day_plans?.[today]?.[typeInfo.type]){
+      delete mem.day_plans[today][typeInfo.type];
+    }
   }
   rDash();
 }
