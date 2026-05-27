@@ -2432,9 +2432,27 @@ function refreshSnack(skipPresetId){
   rDash();
 }
 function refreshMeal(fids){
-  (fids||[]).forEach(fid=>{ if(!_mealSkipFids.includes(fid)) _mealSkipFids.push(fid); });
-  // امسح الوجبة التالية فقط من الخطة — لا نمسح الوجبات الماضية
-  const mem = MEMBERS.find(m=>m.uid===CU?.id);
+  const mem     = MEMBERS.find(m=>m.uid===CU?.id);
+  const phase   = mem?.phase || 1;
+  const favIds  = mem?.favorites_foods || [];
+
+  // عدد البدائل المتاحة في مجموعات الوجبة الرئيسية
+  const mainPoolSize = typeof EXCHANGE_GROUPS !== 'undefined'
+    ? Object.values(EXCHANGE_GROUPS)
+        .filter(g => g.name && !g.name.includes('سناك') && !g.name.includes('حلا'))
+        .reduce((max, g) => Math.max(max, (g.items||[]).filter(i =>
+          i.phases.length===0 || i.phases.includes(phase)
+        ).length), 0)
+    : 6;
+
+  // إذا تجاوز skipList حجم البدائل المتاحة → أعد التعيين (دورة جديدة)
+  if(_mealSkipFids.length >= mainPoolSize){
+    _mealSkipFids = [];
+  } else {
+    (fids||[]).forEach(fid=>{ if(!_mealSkipFids.includes(fid)) _mealSkipFids.push(fid); });
+  }
+
+  // امسح الوجبة التالية فقط من الخطة
   if(mem){
     const today    = new Date().toISOString().split('T')[0];
     const typeInfo = typeof getMealType!=='undefined' ? getMealType(mem) : null;

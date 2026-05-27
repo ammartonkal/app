@@ -383,6 +383,12 @@ function buildSingleMeal(templateKey, targets, favIds, phase, skipFids, seed, me
   const mealItems = [];
   let   usedFids  = new Set(skipFids);
 
+  // حساب عدد مجموعات الدهن في هذا القالب لتوزيع الـ fat_budget عليها
+  const fatGroupCount = template.groups.filter(g =>
+    g.group.startsWith('fat') || g.group === 'nuts_addon'
+  ).length || 1;
+  let fatGroupIdx = 0; // عداد مجموعات الدهن التي مررنا عليها
+
   /* لكل مجموعة في القالب: اختر صنفاً ← */
   for(const groupRef of template.groups){
     const group = EXCHANGE_GROUPS[groupRef.group];
@@ -436,22 +442,46 @@ function buildSingleMeal(templateKey, targets, favIds, phase, skipFids, seed, me
           qty = Math.round(pick.qty * servings / 5) * 5;
         }
       } else if(grp.startsWith('fat') || grp === 'nuts_addon'){
-        // كمية الدهن مبنية على هدف الدهن
-        // نحسب ما تبقى من دهن بعد البروتين المختار
+        // توزيع fat_budget على عدد مجموعات الدهن في الوجبة
         const protFatContrib = mealItems.reduce((s,i)=>{
           const f2 = typeof FOODS!=='undefined'?FOODS.find(x=>x.id===i.fid):null;
           return s + (f2?f2.fat*(i.qty/100):0);
         }, 0);
-        const fatRemain = Math.max((targets.fat||35)*servings - protFatContrib, 5);
+        const totalFatTarget = (targets.fat||35);
+        const totalFatRemain = Math.max(totalFatTarget - protFatContrib, 5);
+        // حصة هذه المجموعة من إجمالي الدهن المتبقي
+        const remainingFatGroups = fatGroupCount - fatGroupIdx;
+        const fatShare = totalFatRemain / Math.max(remainingFatGroups, 1);
+        fatGroupIdx++;
+
         const fatPer100 = food.fat || 1;
-        qty = Math.round(fatRemain / fatPer100 * 100 / 5) * 5;
-        // cap مرن حسب كثافة الدهن في الصنف
-        // الدهون الصافية (زيت) لها cap أعلى — الدهون الطبيعية (مكسرات/أفوكادو) cap أقل
-        const fatCap = (food.fat >= 80) ? pick.qty * 2.5  // زيوت صافية
-                     : (food.fat >= 40) ? pick.qty * 1.8  // مكسرات
-                     :                    pick.qty * 1.5;  // دهون مختلطة
+        qty = Math.round(fatShare / fatPer100 * 100 / 5) * 5;
+        const fatCap = (food.fat >= 80) ? pick.qty * 2.5
+                     : (food.fat >= 40) ? pick.qty * 1.8
+                     :                    pick.qty * 1.5;
         qty = Math.min(qty, fatCap);
         qty = Math.max(qty, 5);
+
+        // تحقق من النسبة الكيتونية بعد إضافة الدهن
+        // إذا كانت النسبة دون الهدف نزيد الكمية قليلاً
+        if(fatGroupIdx === fatGroupCount){
+          const testItems = [...mealItems, {fid:food.id, qty}];
+          const testMacros = testItems.reduce((m,i)=>{
+            const f2=typeof FOODS!=='undefined'?FOODS.find(x=>x.id===i.fid):null;
+            if(!f2) return m;
+            const q=i.qty/100;
+            return {fat:m.fat+f2.fat*q, prot:m.prot+f2.protein*q, nc:m.nc+f2.net_carb*q};
+          },{fat:0,prot:0,nc:0});
+          const testRatio = (testMacros.prot*0.6+testMacros.nc) > 0
+            ? testMacros.fat/(testMacros.prot*0.6+testMacros.nc) : 0;
+          const ketoTarget = 1.5; // أدنى هدف مقبول
+          if(testRatio < ketoTarget && food.fat > 0){
+            // زد الكمية بما يكفي للوصول للنسبة المستهدفة
+            const neededFat = ketoTarget*(testMacros.prot*0.6+testMacros.nc) - (testMacros.fat - food.fat*(qty/100));
+            const adjustedQty = Math.round(neededFat/food.fat*100/5)*5;
+            qty = Math.max(qty, Math.min(adjustedQty, fatCap));
+          }
+        }
       } else if(grp.startsWith('veg')){
         // الخضار بكمية ثابتة معقولة
         qty = Math.round(pick.qty * groupRef.servings / 5) * 5;
