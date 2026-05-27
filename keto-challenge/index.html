@@ -2273,6 +2273,14 @@ function buildMealSuggestion(mem, rem, phase){
         }
         // فلتر skipFids
         if((_mealSkipFids||[]).some(fid => t.components.find(c=>c.fid===fid))) return false;
+        // فلتر المفضلة: إذا عند المشترك مفضلات دهون أو بروتين
+        // → اقترح فقط الوصفات التي تحتوي مكوناً من المفضلة
+        if(favIds_.length > 0){
+          const templateHasFav = t.components.some(c => favIds_.includes(c.fid));
+          // إذا لا يوجد أي مكوّن مفضل → استبعد هذه الوصفة
+          // لكن نتسامح بـ 1 مكوّن على الأقل (مش لازم كلها مفضلة)
+          if(!templateHasFav) return false;
+        }
         return true;
       });
 
@@ -2730,6 +2738,11 @@ function getSwapAlternatives(item, mealType, allItems, mem, phase){
       if(mealSatLim && grpKey.startsWith('fat')){
         const altSat = (food.sat_fat||0) * alt.qty / 100;
         if(usedSatNow + altSat > mealSatLim * 1.2) return false;
+      }
+      // فلتر المفضلة: اعرض فقط البدائل من المفضلة (مع السماح بالصنف الحالي دائماً)
+      if(favIds.length > 0 && alt.fid !== item.fid){
+        const groupHasFav = group.items.some(gi => favIds.includes(gi.fid));
+        if(groupHasFav && !favIds.includes(alt.fid)) return false;
       }
       return true;
     })

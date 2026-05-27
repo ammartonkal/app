@@ -419,9 +419,11 @@ function buildSingleMeal(templateKey, targets, favIds, phase, skipFids, seed, me
       if(item.phases.length > 0 && !item.phases.includes(phase)) return false;
       if(item.stores && item.stores.length > 0 && userStores.length > 0 &&
          !item.stores.some(s => userStores.includes(s))) return false;
-      // إذا مجموعة خضار وعند المشترك مفضلات → اقبل فقط ما في المفضلة
-      if(groupKey.startsWith('veg') && favIds.length > 0){
-        if(!favIds.includes(item.fid)) return false;
+      // إذا عند المشترك مفضلات في هذه الفئة → اقبل فقط ما في المفضلة
+      // هذا يضمن أن أي صنف شطبه المشترك من المفضلة لا يظهر في الاقتراح
+      if(favIds.length > 0){
+        const groupHasFav = group.items.some(gi => favIds.includes(gi.fid));
+        if(groupHasFav && !favIds.includes(item.fid)) return false;
       }
 
       // فلتر sat_fat: إذا كان هذا الصنف دهناً محدود المشبع
