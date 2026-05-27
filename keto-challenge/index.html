@@ -1588,7 +1588,7 @@ function getSatFatDailyLimit(mem){
   const targets = typeof getTargetForDate !== 'undefined'
     ? getTargetForDate(mem) : {cal:1800};
   const cal  = targets.cal || 1800;
-  const pcts = {'<7%':0.07, '<10%':0.10, '<20%':0.20};
+  const pcts = {'lt7':0.07, 'lt10':0.10, 'lt20':0.20, '<7%':0.07, '<10%':0.10, '<20%':0.20};
   const pct  = pcts[limit];
   if(!pct) return null;
   return Math.round(cal * pct / 9 * 10) / 10;
@@ -1617,61 +1617,74 @@ function getMemPrefs(mem){
 function _renderSatFatPref(prefs){
   const cur = prefs.sat_fat_limit || 'open';
   const opts = [
-    {val:'open', icon:'🟢', label:'مفتوح',                    sub:'لا قيود على الدهون المشبعة'},
-    {val:'<20%', icon:'🟡', label:'أقل من 20% من السعرات',   sub:'كيتو صحي عام — يسمح بالزبدة بكميات معتدلة'},
-    {val:'<10%', icon:'🟠', label:'أقل من 10% من السعرات',   sub:'كيتو متحفظ — يفضّل زيت الزيتون والمكسرات'},
-    {val:'<7%',  icon:'🔴', label:'أقل من 7% (AHA)',          sub:'للمشتركين بأمراض قلبية أو ارتفاع LDL'},
+    {val:'open', icon:'🟢', label:'مفتوح',                  sub:'لا قيود على الدهون المشبعة'},
+    {val:'lt20', icon:'🟡', label:'أقل من 20% من السعرات', sub:'كيتو صحي عام — يسمح بالزبدة بكميات معتدلة'},
+    {val:'lt10', icon:'🟠', label:'أقل من 10% من السعرات', sub:'كيتو متحفظ — يفضّل زيت الزيتون والمكسرات'},
+    {val:'lt7',  icon:'🔴', label:'أقل من 7% (AHA)',        sub:'للمشتركين بأمراض قلبية أو ارتفاع LDL'},
   ];
   const mem = MEMBERS.find(m=>m.uid===CU?.id);
   const lim = typeof getSatFatDailyLimit!=='undefined' ? getSatFatDailyLimit(mem) : null;
   const calTarget = (typeof getTargetForDate!=='undefined'?getTargetForDate(mem):null)?.cal||1800;
   const infoHtml = lim
-    ? '<div style="margin-top:8px;padding:8px 12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:11px;color:var(--text3)">📊 حدك اليومي = <strong style="color:var(--text)">'+lim+'غ</strong> دهون مشبعة (بناءً على '+calTarget+' سعرة)</div>'
+    ? '<div style="margin-top:8px;padding:8px 12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:11px;color:var(--text3)">📊 حدك اليومي = <strong style="color:var(--text)">'+lim+'غ</strong> دهون مشبعة ('+calTarget+' سعرة)</div>'
     : '';
-  const rows = opts.map(function(o){
+  let rows = '';
+  opts.forEach(function(o){
     const sel = cur === o.val;
     const bg  = sel ? 'var(--accent-light)' : 'var(--surface2)';
     const bc  = sel ? 'var(--accent)' : 'var(--border)';
     const fw  = sel ? '600' : '400';
     const fc  = sel ? 'var(--accent)' : 'var(--text)';
     const ck  = sel ? '<span style="font-size:16px;color:var(--accent)">✓</span>' : '';
-    return '<div onclick="_savePrefField('sat_fat_limit',''+o.val+'');rPreferences();"'+
-           ' style="display:flex;align-items:center;gap:10px;padding:10px 13px;'+
-           'background:'+bg+';border:2px solid '+bc+';border-radius:var(--radius-sm);cursor:pointer;transition:all .15s">'+
-           '<span style="font-size:18px">'+o.icon+'</span>'+
-           '<div style="flex:1">'+
-           '<div style="font-size:13px;font-weight:'+fw+';color:'+fc+'">'+o.label+'</div>'+
-           '<div style="font-size:11px;color:var(--text3);margin-top:1px">'+o.sub+'</div>'+
-           '</div>'+ck+'</div>';
-  }).join('');
+    rows += '<div onclick="_setSatFat(this)" data-val="'+o.val+'"'+
+            ' style="display:flex;align-items:center;gap:10px;padding:10px 13px;'+
+            'background:'+bg+';border:2px solid '+bc+';border-radius:var(--radius-sm);'+
+            'cursor:pointer;transition:all .15s">'+
+            '<span style="font-size:18px">'+o.icon+'</span>'+
+            '<div style="flex:1">'+
+            '<div style="font-size:13px;font-weight:'+fw+';color:'+fc+'">'+o.label+'</div>'+
+            '<div style="font-size:11px;color:var(--text3);margin-top:1px">'+o.sub+'</div>'+
+            '</div>'+ck+'</div>';
+  });
   return '<div style="margin-bottom:14px">'+
          '<div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">🧈 حد الدهون المشبعة اليومي</div>'+
          '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">يُؤثر على اقتراح الوصفات وبدائل الدهون</div>'+
          '<div style="display:flex;flex-direction:column;gap:7px">'+rows+'</div>'+
-         infoHtml+
-         '</div>';
+         infoHtml+'</div>';
+}
+
+function _setSatFat(el){
+  var val = typeof el === 'string' ? el : el.getAttribute('data-val');
+  if(!val) return;
+  _savePrefField('sat_fat_limit', val);
+  rPreferences();
 }
 
 function _renderEggCountPref(prefs){
   const cur = prefs.preferred_egg_count || 2;
-  const emojis = {1:'🥚',2:'🥚🥚',3:'🥚🥚🥚',4:'🥚🥚🥚🥚'};
-  const btns = [1,2,3,4].map(function(n){
+  const emo = ['','🥚','🥚🥚','🥚🥚🥚','🥚🥚🥚🥚'];
+  let btns = '';
+  [1,2,3,4].forEach(function(n){
     const sel = cur === n;
     const bc  = sel ? 'var(--accent)' : 'var(--border)';
     const bg  = sel ? 'var(--accent-light)' : 'var(--surface2)';
     const fw  = sel ? '600' : '400';
     const fc  = sel ? 'var(--accent)' : 'var(--text2)';
-    return '<div onclick="_savePrefField('preferred_egg_count','+n+')"'+
-           ' style="flex:1;text-align:center;padding:10px 6px;cursor:pointer;'+
-           'border:2px solid '+bc+';background:'+bg+';border-radius:var(--radius-sm);transition:all .15s">'+
-           '<div style="font-size:16px">'+emojis[n]+'</div>'+
-           '<div style="font-size:12px;font-weight:'+fw+';color:'+fc+';margin-top:4px">'+n+'</div>'+
-           '</div>';
-  }).join('');
+    btns += '<div onclick="_setEggCount('+n+')"'+
+            ' style="flex:1;text-align:center;padding:10px 6px;cursor:pointer;'+
+            'border:2px solid '+bc+';background:'+bg+';border-radius:var(--radius-sm);transition:all .15s">'+
+            '<div style="font-size:16px">'+emo[n]+'</div>'+
+            '<div style="font-size:12px;font-weight:'+fw+';color:'+fc+';margin-top:4px">'+n+'</div>'+
+            '</div>';
+  });
   return '<div style="margin-bottom:14px">'+
          '<div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">🥚 عدد بيضات الفطور المفضل</div>'+
-         '<div style="display:flex;gap:8px">'+btns+'</div>'+
-         '</div>';
+         '<div style="display:flex;gap:8px">'+btns+'</div></div>';
+}
+
+function _setEggCount(n){
+  _savePrefField('preferred_egg_count', n);
+  rPreferences();
 }
 
 function _toggleAdvPref(key){
