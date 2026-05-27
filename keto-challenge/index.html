@@ -2283,9 +2283,24 @@ function buildMealSuggestion(mem, rem, phase){
         const scaled_ = eggCount_ !== picked_.egg_count
           ? scaleEggRecipe(picked_, eggCount_) : picked_;
         // أضف خضار مقترحة
-        const suggestedVeg_ = typeof getSuggestedAddons !== 'undefined'
-          ? getSuggestedAddons(scaled_.method, phase_).slice(0,1)
-          : [];
+        // اختيار الخضار: من المفضلة أولاً — إذا لا مفضلة خضار نأخذ الأول المتاح
+        // إذا شطب المشترك خضاراً من مفضلته لا يُقترح
+        const suggestedVeg_ = (function(){
+          if(typeof getSuggestedAddons === 'undefined') return [];
+          const allAddons = getSuggestedAddons(scaled_.method, phase_, favIds_);
+          if(!allAddons.length) return [];
+          // إذا عنده مفضلات خضار → اختر منها فقط
+          if(favIds_.length){
+            const fromFav = allAddons.filter(a => favIds_.includes(a.fid));
+            if(fromFav.length) return fromFav.slice(0,1);
+            // لا مفضلات خضار → لا نضيف خضار (المشترك لم يختر شيئاً)
+            // إلا إذا لم يضف أي مفضلة على الإطلاق (حساب جديد)
+            const hasFavFoods = favIds_.length > 0;
+            if(hasFavFoods) return []; // عنده مفضلات لكن لا خضار مفضلة → لا تضف
+          }
+          // لا مفضلات → اقترح الأول المتاح
+          return allAddons.slice(0,1);
+        })();
 
         const allItems_ = [
           ...scaled_.components.map(c=>({fid:c.fid,qty:c.qty})),

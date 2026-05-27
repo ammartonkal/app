@@ -2121,11 +2121,20 @@ function buildEggMealWithAddons(templateId, eggCount, vegAddonFids, sideId){
 }
 
 /* ─── اقتراح الإضافات المناسبة لطريقة التحضير ─── */
-function getSuggestedAddons(method, phase){
-  return BREAKFAST_VEG_ADDONS.filter(a =>
+/* favIds: مفضلات المشترك — إذا موجودة نعطيها الأولوية */
+function getSuggestedAddons(method, phase, favIds){
+  favIds = favIds || [];
+  const compatible = BREAKFAST_VEG_ADDONS.filter(a =>
     a.method.includes(method) &&
     (typeof FOODS !== 'undefined' ? FOODS.find(f=>f.id===a.fid) : true)
   );
+  if(!compatible.length) return [];
+  // إذا عنده مفضلات → أعد فقط المتوافقة مع المفضلة
+  if(favIds.length){
+    const fromFav = compatible.filter(a => favIds.includes(a.fid));
+    return fromFav; // قد تكون فارغة → يعني لا خضار مقترح
+  }
+  return compatible;
 }
 
 /* ─── الوصفة النهائية كاملة للعرض ─── */

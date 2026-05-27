@@ -419,6 +419,10 @@ function buildSingleMeal(templateKey, targets, favIds, phase, skipFids, seed, me
       if(item.phases.length > 0 && !item.phases.includes(phase)) return false;
       if(item.stores && item.stores.length > 0 && userStores.length > 0 &&
          !item.stores.some(s => userStores.includes(s))) return false;
+      // إذا مجموعة خضار وعند المشترك مفضلات → اقبل فقط ما في المفضلة
+      if(groupKey.startsWith('veg') && favIds.length > 0){
+        if(!favIds.includes(item.fid)) return false;
+      }
 
       // فلتر sat_fat: إذا كان هذا الصنف دهناً محدود المشبع
       if(mealSatLimit && (groupKey.startsWith('fat') || groupKey === 'nuts_addon')){
@@ -442,7 +446,7 @@ function buildSingleMeal(templateKey, targets, favIds, phase, skipFids, seed, me
     if(fromFav.length) pool = fromFav;
 
     // اختيار بالوزن مع تنويع بالـ seed
-    const pick = _weightedPick(pool, seed + mealItems.length);
+    const pick = _weightedPick(pool, seed + mealItems.length, groupKey);
     if(!pick) continue;
 
     // ── حساب الكمية عكسياً من الهدف ──
