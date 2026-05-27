@@ -1614,6 +1614,66 @@ function getMemPrefs(mem){
 }
 
 /* ─── حفظ فوري لأي تغيير في التفضيلات بدون إعادة رسم ─── */
+function _renderSatFatPref(prefs){
+  const cur = prefs.sat_fat_limit || 'open';
+  const opts = [
+    {val:'open', icon:'🟢', label:'مفتوح',                    sub:'لا قيود على الدهون المشبعة'},
+    {val:'<20%', icon:'🟡', label:'أقل من 20% من السعرات',   sub:'كيتو صحي عام — يسمح بالزبدة بكميات معتدلة'},
+    {val:'<10%', icon:'🟠', label:'أقل من 10% من السعرات',   sub:'كيتو متحفظ — يفضّل زيت الزيتون والمكسرات'},
+    {val:'<7%',  icon:'🔴', label:'أقل من 7% (AHA)',          sub:'للمشتركين بأمراض قلبية أو ارتفاع LDL'},
+  ];
+  const mem = MEMBERS.find(m=>m.uid===CU?.id);
+  const lim = typeof getSatFatDailyLimit!=='undefined' ? getSatFatDailyLimit(mem) : null;
+  const calTarget = (typeof getTargetForDate!=='undefined'?getTargetForDate(mem):null)?.cal||1800;
+  const infoHtml = lim
+    ? '<div style="margin-top:8px;padding:8px 12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:11px;color:var(--text3)">📊 حدك اليومي = <strong style="color:var(--text)">'+lim+'غ</strong> دهون مشبعة (بناءً على '+calTarget+' سعرة)</div>'
+    : '';
+  const rows = opts.map(function(o){
+    const sel = cur === o.val;
+    const bg  = sel ? 'var(--accent-light)' : 'var(--surface2)';
+    const bc  = sel ? 'var(--accent)' : 'var(--border)';
+    const fw  = sel ? '600' : '400';
+    const fc  = sel ? 'var(--accent)' : 'var(--text)';
+    const ck  = sel ? '<span style="font-size:16px;color:var(--accent)">✓</span>' : '';
+    return '<div onclick="_savePrefField('sat_fat_limit',''+o.val+'');rPreferences();"'+
+           ' style="display:flex;align-items:center;gap:10px;padding:10px 13px;'+
+           'background:'+bg+';border:2px solid '+bc+';border-radius:var(--radius-sm);cursor:pointer;transition:all .15s">'+
+           '<span style="font-size:18px">'+o.icon+'</span>'+
+           '<div style="flex:1">'+
+           '<div style="font-size:13px;font-weight:'+fw+';color:'+fc+'">'+o.label+'</div>'+
+           '<div style="font-size:11px;color:var(--text3);margin-top:1px">'+o.sub+'</div>'+
+           '</div>'+ck+'</div>';
+  }).join('');
+  return '<div style="margin-bottom:14px">'+
+         '<div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">🧈 حد الدهون المشبعة اليومي</div>'+
+         '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">يُؤثر على اقتراح الوصفات وبدائل الدهون</div>'+
+         '<div style="display:flex;flex-direction:column;gap:7px">'+rows+'</div>'+
+         infoHtml+
+         '</div>';
+}
+
+function _renderEggCountPref(prefs){
+  const cur = prefs.preferred_egg_count || 2;
+  const emojis = {1:'🥚',2:'🥚🥚',3:'🥚🥚🥚',4:'🥚🥚🥚🥚'};
+  const btns = [1,2,3,4].map(function(n){
+    const sel = cur === n;
+    const bc  = sel ? 'var(--accent)' : 'var(--border)';
+    const bg  = sel ? 'var(--accent-light)' : 'var(--surface2)';
+    const fw  = sel ? '600' : '400';
+    const fc  = sel ? 'var(--accent)' : 'var(--text2)';
+    return '<div onclick="_savePrefField('preferred_egg_count','+n+')"'+
+           ' style="flex:1;text-align:center;padding:10px 6px;cursor:pointer;'+
+           'border:2px solid '+bc+';background:'+bg+';border-radius:var(--radius-sm);transition:all .15s">'+
+           '<div style="font-size:16px">'+emojis[n]+'</div>'+
+           '<div style="font-size:12px;font-weight:'+fw+';color:'+fc+';margin-top:4px">'+n+'</div>'+
+           '</div>';
+  }).join('');
+  return '<div style="margin-bottom:14px">'+
+         '<div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">🥚 عدد بيضات الفطور المفضل</div>'+
+         '<div style="display:flex;gap:8px">'+btns+'</div>'+
+         '</div>';
+}
+
 function _toggleAdvPref(key){
   const mem = MEMBERS.find(m => m.uid === CU?.id);
   if(!mem) return;
@@ -1772,60 +1832,10 @@ function rPreferences(){
         style="width:100%;font-family:var(--mono);font-size:13px;padding:5px 8px">
     </div>
 
-    <div style="margin-bottom:14px">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">🧈 حد الدهون المشبعة اليومي</div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">
-        يُؤثر على اقتراح الوصفات وبدائل الدهون — مبني على إجمالي السعرات اليومية
-      </div>
-      <div style="display:flex;flex-direction:column;gap:7px">
-        ${[
-          {val:'open', icon:'🟢', label:'مفتوح', sub:'لا قيود على الدهون المشبعة'},
-          {val:'<20%', icon:'🟡', label:'أقل من 20% من السعرات', sub:'كيتو صحي عام — يسمح بالزبدة بكميات معتدلة'},
-          {val:'<10%', icon:'🟠', label:'أقل من 10% من السعرات', sub:'كيتو متحفظ — يفضّل زيت الزيتون والمكسرات'},
-          {val:'<7%',  icon:'🔴', label:'أقل من 7% (AHA)', sub:'للمشتركين بأمراض قلبية أو ارتفاع LDL'},
-        ].map(opt => {
-          const selected = (prefs.sat_fat_limit||'open') === opt.val;
-          return \`<div onclick="_savePrefField('sat_fat_limit','\${opt.val}');rPreferences();"
-            style="display:flex;align-items:center;gap:10px;padding:10px 13px;
-                   background:\${selected?'var(--accent-light)':'var(--surface2)'};
-                   border:2px solid \${selected?'var(--accent)':'var(--border)'};
-                   border-radius:var(--radius-sm);cursor:pointer;transition:all .15s">
-            <span style="font-size:18px">\${opt.icon}</span>
-            <div style="flex:1">
-              <div style="font-size:13px;font-weight:\${selected?'600':'400'};color:\${selected?'var(--accent)':'var(--text)'}">\${opt.label}</div>
-              <div style="font-size:11px;color:var(--text3);margin-top:1px">\${opt.sub}</div>
-            </div>
-            \${selected ? '<span style="font-size:16px;color:var(--accent)">✓</span>' : ''}
-          </div>\`;
-        }).join('')}
-      </div>
-      ${(()=>{
-        const lim = getSatFatDailyLimit(mem);
-        return lim ? `<div style="margin-top:8px;padding:8px 12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:11px;color:var(--text3)">
-          📊 حدك اليومي = <strong style="color:var(--text)">${lim}غ</strong> دهون مشبعة
-          (بناءً على هدف ${(typeof getTargetForDate!=='undefined'?getTargetForDate(mem):null)?.cal||1800} سعرة)
-        </div>` : '';
-      })()}
-    </div>
-
-    <div style="margin-bottom:14px">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">🥚 عدد بيضات الفطور المفضل</div>
-      <div style="display:flex;gap:8px">
-        ${[1,2,3,4].map(n=>{
-          const sel = (prefs.preferred_egg_count||2) === n;
-          return \`<div onclick="_savePrefField('preferred_egg_count',\${n})"
-            style="flex:1;text-align:center;padding:10px 6px;cursor:pointer;
-                   border:2px solid \${sel?'var(--accent)':'var(--border)'};
-                   background:\${sel?'var(--accent-light)':'var(--surface2)'};
-                   border-radius:var(--radius-sm);transition:all .15s">
-            <div style="font-size:18px">\${'🥚'.repeat(n)}</div>
-            <div style="font-size:12px;font-weight:\${sel?'600':'400'};color:\${sel?'var(--accent)':'var(--text2)';margin-top:4px}">\${n}</div>
-          </div>\`;
-        }).join('')}
-      </div>
-    </div>
-
+    ${_renderSatFatPref(prefs)}
+    ${_renderEggCountPref(prefs)}
     <div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:5px">📝 ملاحظات غذائية وحساسيات</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:5px">📝 ملاحظات غذائية وحساسيات</div>
       <textarea id="pref-notes" placeholder="مثال: لا أحب السمك، حساسية من المكسرات..."
         onchange="_savePrefField('dietary_notes',this.value)"
