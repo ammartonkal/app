@@ -1657,7 +1657,10 @@ function _setSatFat(el){
   var val = typeof el === 'string' ? el : el.getAttribute('data-val');
   if(!val) return;
   _savePrefField('sat_fat_limit', val);
+  const mem = MEMBERS.find(m=>m.uid===CU?.id);
+  _invalidateDayPlan(mem);
   rPreferences();
+  rDash();
 }
 
 function _renderEggCountPref(prefs){
@@ -1684,7 +1687,10 @@ function _renderEggCountPref(prefs){
 
 function _setEggCount(n){
   _savePrefField('preferred_egg_count', n);
+  const mem = MEMBERS.find(m=>m.uid===CU?.id);
+  _invalidateDayPlan(mem);
   rPreferences();
+  rDash();
 }
 
 function _toggleAdvPref(key){
@@ -1726,7 +1732,9 @@ function _savePrefField(key, value){
     mem.meal_prefs[key] = value;
   }
   // إذا تغيّر عدد الوجبات → أعد بناء الخطة
-  if(key === 'meals_per_day') _invalidateDayPlan(mem);
+  // أي تغيير يؤثر على بناء الوجبات → امسح الخطة وأعد بناءها
+  const MEAL_AFFECTING_KEYS = ['meals_per_day','sat_fat_limit','preferred_egg_count','has_snack'];
+  if(MEAL_AFFECTING_KEYS.includes(key)) _invalidateDayPlan(mem);
   if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
 }
 
