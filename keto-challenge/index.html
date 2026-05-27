@@ -1567,16 +1567,46 @@ function popSels(){['rb-isel','csel'].forEach(sid=>{const s=document.getElementB
 
 /* الإعدادات الافتراضية لتفضيلات الوجبات */
 const DEFAULT_MEAL_PREFS = {
-  meals_per_day: 3,           // عدد الوجبات (2 أو 3)
-  has_snack: true,            // هل يأكل سناك؟
-  meal_times: {               // مواعيد الوجبات
+  meals_per_day: 3,
+  has_snack: true,
+  meal_times: {
     breakfast: '08:00',
     lunch: '13:00',
     dinner: '19:00',
     snack: '16:00'
   },
-  dietary_notes: ''           // ملاحظات وحساسيات
+  dietary_notes: '',
+  sat_fat_limit: 'open'  // 'open' | '<20%' | '<10%' | '<7%'
 };
+
+/* ─── حساب الحد اليومي للدهون المشبعة بالغرام ─── */
+function getSatFatDailyLimit(mem){
+  const prefs = getMemPrefs(mem);
+  const limit = prefs.sat_fat_limit || 'open';
+  if(limit === 'open') return null;
+  const targets = typeof getTargetForDate !== 'undefined'
+    ? getTargetForDate(mem) : {cal:1800};
+  const cal  = targets.cal || 1800;
+  const pcts = {'<7%':0.07, '<10%':0.10, '<20%':0.20};
+  const pct  = pcts[limit];
+  if(!pct) return null;
+  return Math.round(cal * pct / 9 * 10) / 10;
+}
+
+/* ─── sat_fat لقائمة مكونات ─── */
+function calcSatFat(items){
+  if(!items || !items.length) return 0;
+  return Math.round(items.reduce((sum, item) => {
+    const f = FOODS.find(x => x.id === item.fid);
+    return sum + (f ? (f.sat_fat||0) * item.qty / 100 : 0);
+  }, 0) * 10) / 10;
+}
+
+/* ─── فحص sat_fat للوجبة ─── */
+function isMealSatFatOk(items, mealShare, dailyLimit){
+  if(!dailyLimit) return true;
+  return calcSatFat(items) <= dailyLimit * mealShare;
+}
 
 function getMemPrefs(mem){
   return Object.assign({}, DEFAULT_MEAL_PREFS, mem?.meal_prefs || {});
@@ -1739,6 +1769,42 @@ function rPreferences(){
         value="${prefs.meal_times?.snack||'16:00'}"
         onchange="_savePrefField('meal_time',{slot:'snack',time:this.value})"
         style="width:100%;font-family:var(--mono);font-size:13px;padding:5px 8px">
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">🧈 حد الدهون المشبعة اليومي</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">
+        يُؤثر على اقتراح الوصفات وبدائل الدهون — مبني على إجمالي السعرات اليومية
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        ${[
+          {val:'open', icon:'🟢', label:'مفتوح', sub:'لا قيود على الدهون المشبعة'},
+          {val:'<20%', icon:'🟡', label:'أقل من 20% من السعرات', sub:'كيتو صحي عام — يسمح بالزبدة بكميات معتدلة'},
+          {val:'<10%', icon:'🟠', label:'أقل من 10% من السعرات', sub:'كيتو متحفظ — يفضّل زيت الزيتون والمكسرات'},
+          {val:'<7%',  icon:'🔴', label:'أقل من 7% (AHA)', sub:'للمشتركين بأمراض قلبية أو ارتفاع LDL'},
+        ].map(opt => {
+          const selected = (prefs.sat_fat_limit||'open') === opt.val;
+          return \`<div onclick="_savePrefField('sat_fat_limit','\${opt.val}');rPreferences();"
+            style="display:flex;align-items:center;gap:10px;padding:10px 13px;
+                   background:\${selected?'var(--accent-light)':'var(--surface2)'};
+                   border:2px solid \${selected?'var(--accent)':'var(--border)'};
+                   border-radius:var(--radius-sm);cursor:pointer;transition:all .15s">
+            <span style="font-size:18px">\${opt.icon}</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:\${selected?'600':'400'};color:\${selected?'var(--accent)':'var(--text)'}">\${opt.label}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:1px">\${opt.sub}</div>
+            </div>
+            \${selected ? '<span style="font-size:16px;color:var(--accent)">✓</span>' : ''}
+          </div>\`;
+        }).join('')}
+      </div>
+      ${(()=>{
+        const lim = getSatFatDailyLimit(mem);
+        return lim ? `<div style="margin-top:8px;padding:8px 12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:11px;color:var(--text3)">
+          📊 حدك اليومي = <strong style="color:var(--text)">${lim}غ</strong> دهون مشبعة
+          (بناءً على هدف ${(typeof getTargetForDate!=='undefined'?getTargetForDate(mem):null)?.cal||1800} سعرة)
+        </div>` : '';
+      })()}
     </div>
 
     <div>
@@ -2496,12 +2562,28 @@ function getSwapAlternatives(item, mealType, allItems, mem, phase){
   const share  = shares[mealIdx] || 0.33;
   const targets = typeof getTargetForDate!=='undefined' ? getTargetForDate(mem) : {fat:130,protein:110,carb:25};
 
+  const dailySatLim = typeof getSatFatDailyLimit !== 'undefined' ? getSatFatDailyLimit(mem) : null;
+  const mealSatLim  = dailySatLim ? dailySatLim * share : null;
+  const usedSatNow  = mealSatLim
+    ? allItems.filter(x=>x.fid!==item.fid).reduce((s,x)=>{
+        const f=FOODS.find(z=>z.id===x.fid);
+        return s+(f?(f.sat_fat||0)*x.qty/100:0);
+      },0)
+    : 0;
+
   return group.items
-    .filter(alt =>
-      !usedFids.has(alt.fid) &&
-      (alt.phases.length===0 || alt.phases.includes(phase)) &&
-      FOODS.find(f=>f.id===alt.fid)
-    )
+    .filter(alt => {
+      if(usedFids.has(alt.fid)) return false;
+      if(alt.phases.length>0 && !alt.phases.includes(phase)) return false;
+      const food = FOODS.find(f=>f.id===alt.fid);
+      if(!food) return false;
+      // فلتر sat_fat: إذا كان الدهن سيتجاوز الحد
+      if(mealSatLim && grpKey.startsWith('fat')){
+        const altSat = (food.sat_fat||0) * alt.qty / 100;
+        if(usedSatNow + altSat > mealSatLim * 1.2) return false;
+      }
+      return true;
+    })
     .map(alt => {
       const food = FOODS.find(f=>f.id===alt.fid);
       // احسب الكمية المناسبة من الهدف

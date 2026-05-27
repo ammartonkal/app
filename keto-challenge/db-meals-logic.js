@@ -404,15 +404,37 @@ function buildSingleMeal(templateKey, targets, favIds, phase, skipFids, seed, me
     if(groupKey === 'keto_sweets'      && !advPrefs.use_keto_sweets)  continue;
     if(groupKey === 'ready_recipes'    && !advPrefs.use_ready_recipes) continue;
 
-    let pool = group.items.filter(item =>
-      !usedFids.has(item.fid) &&
-      (typeof FOODS !== 'undefined' ? FOODS.find(f=>f.id===item.fid) : true) &&
-      (item.phases.length === 0 || item.phases.includes(phase)) &&
-      // فلتر المتاجر: إذا المنتج مرتبط بمتجر → يجب أن يكون المتجر مختاراً
-      (!item.stores || item.stores.length === 0 ||
-       userStores.length === 0 ||
-       item.stores.some(s => userStores.includes(s)))
-    );
+    // حد الدهون المشبعة اليومي
+    const dailySatLimit = typeof getSatFatDailyLimit !== 'undefined'
+      ? getSatFatDailyLimit(mem) : null;
+    const mealShareVal  = (MEAL_SHARE?.[getMemPrefs(mem).meals_per_day] || [0.33,0.33,0.34])[
+      {breakfast:0,lunch:1,dinner:2}[templateKey] || 0
+    ];
+    const mealSatLimit  = dailySatLimit ? dailySatLimit * mealShareVal : null;
+
+    let pool = group.items.filter(item => {
+      if(usedFids.has(item.fid)) return false;
+      const food = typeof FOODS !== 'undefined' ? FOODS.find(f=>f.id===item.fid) : null;
+      if(!food) return false;
+      if(item.phases.length > 0 && !item.phases.includes(phase)) return false;
+      if(item.stores && item.stores.length > 0 && userStores.length > 0 &&
+         !item.stores.some(s => userStores.includes(s))) return false;
+
+      // فلتر sat_fat: إذا كان هذا الصنف دهناً محدود المشبع
+      if(mealSatLimit && (groupKey.startsWith('fat') || groupKey === 'nuts_addon')){
+        const satPer100 = food.sat_fat || 0;
+        // sat_fat المتوقعة من هذا الصنف بالكمية الافتراضية
+        const estSat = satPer100 * item.qty / 100;
+        // sat_fat المستهلكة من مكونات الوجبة حتى الآن
+        const usedSat = mealItems.reduce((s,i)=>{
+          const f2=typeof FOODS!=='undefined'?FOODS.find(x=>x.id===i.fid):null;
+          return s + (f2?(f2.sat_fat||0)*i.qty/100:0);
+        },0);
+        // إذا كان الصنف سيتجاوز الحد مع الكمية الافتراضية → استبعده
+        if(usedSat + estSat > mealSatLimit * 1.2) return false; // 20% تسامح
+      }
+      return true;
+    });
     if(!pool.length) continue;
 
     // أولوية المفضلة
