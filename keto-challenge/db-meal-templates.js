@@ -2013,3 +2013,140 @@ function getBestEggTemplate(mem, phase){
   const fromFav = all.filter(t => t.components.some(c => favIds.includes(c.fid)));
   return (fromFav.length ? fromFav : all)[0] || null;
 }
+
+/* ════════════════════════════════════════════════════════════════
+   نظام الإضافات (Add-ons) — خضروات الفطور والسلطات الجانبية
+   بدل تضاعف الوصفات، نضيف الخضار ديناميكياً على أي وصفة
+════════════════════════════════════════════════════════════════ */
+
+/* ─── خضروات داخل الوجبة (مطبوخة أو مضافة) ─── */
+const BREAKFAST_VEG_ADDONS = [
+  { fid:64, name:'سبانخ طازجة',    qty:60,  method:['مقلي-عيون','sunny-side-up','أومليت','مخفوق','فرن'], note:'تُضاف مع الزيت قبل البيض' },
+  { fid:68, name:'مشروم',          qty:60,  method:['مقلي-عيون','sunny-side-up','أومليت','مخفوق','فرن'], note:'يُحمَّر أولاً بالزبدة' },
+  { fid:71, name:'فلفل رومي أخضر', qty:50,  method:['أومليت','فرن','مخفوق'],                             note:'مقطع شرائح رفيعة' },
+  { fid:75, name:'طماطم',          qty:60,  method:['مسلوق','بوشد','sunny-side-up','أومليت'],            note:'طازجة أو مقطعة جانباً' },
+  { fid:62, name:'جرجير',          qty:40,  method:['مسلوق','بوشد','sunny-side-up'],                     note:'طازج — يُقدَّم جانباً' },
+  { fid:78, name:'بصل أخضر',       qty:20,  method:['أومليت','فرن','مخفوق'],                             note:'مفروم ناعم للنكهة' },
+];
+
+/* ─── سلطات جانبية (تُقدَّم مع أي وجبة فطور) ─── */
+const BREAKFAST_SIDE_SALADS = [
+  {
+    id: 'SIDE_S1',
+    name: 'سلطة خيار وجرجير بالزيت',
+    components: [
+      { fid:74, name:'خيار',        qty:80  },
+      { fid:62, name:'جرجير',       qty:40  },
+      { fid:1,  name:'زيت زيتون',   qty:14  },
+    ],
+    macros: { fat:14.2, protein:1.6, net_carb:2.2, cal:141 },
+    keto_ratio: 5.6,
+  },
+  {
+    id: 'SIDE_S2',
+    name: 'سلطة خس وطماطم وزيت',
+    components: [
+      { fid:63, name:'خس',          qty:60  },
+      { fid:75, name:'طماطم',       qty:60  },
+      { fid:1,  name:'زيت زيتون',   qty:14  },
+    ],
+    macros: { fat:14.3, protein:1.4, net_carb:2.1, cal:145 },
+    keto_ratio: 5.7,
+  },
+  {
+    id: 'SIDE_S3',
+    name: 'سلطة كوسا وجرجير بالزيت',
+    components: [
+      { fid:73, name:'كوسا',        qty:80  },
+      { fid:62, name:'جرجير',       qty:40  },
+      { fid:1,  name:'زيت زيتون',   qty:14  },
+    ],
+    macros: { fat:14.4, protein:2.2, net_carb:2.9, cal:147 },
+    keto_ratio: 4.6,
+  },
+  {
+    id: 'SIDE_S4',
+    name: 'سلطة أفوكادو بالليمون',
+    components: [
+      { fid:61, name:'أفوكادو',     qty:80  },
+      { fid:74, name:'خيار',        qty:60  },
+      { fid:1,  name:'زيت زيتون',   qty:8   },
+    ],
+    macros: { fat:21.1, protein:2.2, net_carb:2.8, cal:214 },
+    keto_ratio: 5.7,
+  },
+];
+
+/* ─── دمج الوجبة مع الإضافات ─── */
+function buildEggMealWithAddons(templateId, eggCount, vegAddonFids, sideId){
+  // 1. ابحث عن القالب
+  let template = BREAKFAST_EGG_TEMPLATES.find(t => t.id === templateId);
+  if(!template) return null;
+
+  // 2. حجّم القالب حسب عدد البيضات
+  if(eggCount !== template.egg_count){
+    template = scaleEggRecipe(template, eggCount);
+  }
+
+  // 3. أضف الخضار المطلوبة
+  const addedVeg = [];
+  if(vegAddonFids && vegAddonFids.length){
+    vegAddonFids.forEach(fid => {
+      const addon = BREAKFAST_VEG_ADDONS.find(a => a.fid === fid);
+      if(addon && (addon.method.includes(template.method) || addon.method.length === 0)){
+        addedVeg.push({ fid: addon.fid, name: addon.name, qty: addon.qty, note: addon.note });
+      }
+    });
+  }
+
+  // 4. أضف السلطة الجانبية
+  const side = sideId ? BREAKFAST_SIDE_SALADS.find(s => s.id === sideId) : null;
+
+  // 5. احسب الماكرو الكلي
+  const allItems = [
+    ...template.components,
+    ...template.veg,
+    ...addedVeg,
+    ...(side ? side.components : []),
+  ];
+  const totalMacros = calcTemplateMacros({ components: allItems, veg: [] });
+
+  return {
+    ...template,
+    veg:        [...(template.veg||[]), ...addedVeg],
+    side:       side || null,
+    macros:     totalMacros,
+    keto_ratio: calcKetoRatio(totalMacros),
+  };
+}
+
+/* ─── اقتراح الإضافات المناسبة لطريقة التحضير ─── */
+function getSuggestedAddons(method, phase){
+  return BREAKFAST_VEG_ADDONS.filter(a =>
+    a.method.includes(method) &&
+    (typeof FOODS !== 'undefined' ? FOODS.find(f=>f.id===a.fid) : true)
+  );
+}
+
+/* ─── الوصفة النهائية كاملة للعرض ─── */
+function formatMealForDisplay(builtMeal){
+  if(!builtMeal) return null;
+  return {
+    id:          builtMeal.id,
+    name:        builtMeal.name_ar,
+    method:      builtMeal.method,
+    cooking_tip: builtMeal.cooking_tip || '',
+    components:  builtMeal.components.map(c => ({
+      fid:  c.fid,
+      name: c.name,
+      qty:  c.qty,
+      displayQty: typeof humanQty !== 'undefined' && typeof FOODS !== 'undefined'
+        ? humanQty(FOODS.find(f=>f.id===c.fid) || {name:c.name}, c.qty)
+        : c.qty + 'غ',
+    })),
+    veg:         builtMeal.veg || [],
+    side:        builtMeal.side || null,
+    macros:      builtMeal.macros,
+    keto_ratio:  builtMeal.keto_ratio,
+  };
+}

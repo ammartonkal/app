@@ -514,6 +514,7 @@ function quickLogin(e,p){
 <!-- ════ DATABASE FILES ════ -->
 <script src="db-foods.js"></script>
 <script src="db-meals-logic.js"></script>
+<script src="db-meal-templates.js"></script>
 <script src="db-recipes.js"></script>
 <script src="db-supplements.js"></script>
 <script src="db-products.js"></script>
@@ -1807,6 +1808,23 @@ function rPreferences(){
       })()}
     </div>
 
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">🥚 عدد بيضات الفطور المفضل</div>
+      <div style="display:flex;gap:8px">
+        ${[1,2,3,4].map(n=>{
+          const sel = (prefs.preferred_egg_count||2) === n;
+          return \`<div onclick="_savePrefField('preferred_egg_count',\${n})"
+            style="flex:1;text-align:center;padding:10px 6px;cursor:pointer;
+                   border:2px solid \${sel?'var(--accent)':'var(--border)'};
+                   background:\${sel?'var(--accent-light)':'var(--surface2)'};
+                   border-radius:var(--radius-sm);transition:all .15s">
+            <div style="font-size:18px">\${'🥚'.repeat(n)}</div>
+            <div style="font-size:12px;font-weight:\${sel?'600':'400'};color:\${sel?'var(--accent)':'var(--text2)';margin-top:4px}">\${n}</div>
+          </div>\`;
+        }).join('')}
+      </div>
+    </div>
+
     <div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:5px">📝 ملاحظات غذائية وحساسيات</div>
       <textarea id="pref-notes" placeholder="مثال: لا أحب السمك، حساسية من المكسرات..."
@@ -2198,6 +2216,90 @@ function humanQty(food, grams){
 function buildMealSuggestion(mem, rem, phase){
   // استدعاء getNextMealPlan من db-meals-logic.js
   if(typeof getNextMealPlan === 'undefined') return null;
+  // للفطور: استخدم BREAKFAST_EGG_TEMPLATES إذا متاحة
+  if(typeof BREAKFAST_EGG_TEMPLATES !== 'undefined'){
+    const mealTypeCheck = getMealType(mem);
+    if(mealTypeCheck?.type === 'breakfast'){
+      const favIds_   = mem?.favorites_foods || [];
+      const phase_    = mem?.phase || 1;
+      const prefs_    = getMemPrefs(mem);
+      const eggCount_ = prefs_.preferred_egg_count || 2;
+
+      // اختر قالباً مناسباً مع مراعاة المفضلات و sat_fat
+      const dailySatLim_ = typeof getSatFatDailyLimit !== 'undefined' ? getSatFatDailyLimit(mem) : null;
+      const bfShare_     = (MEAL_SHARE?.[prefs_.meals_per_day] || [0.30,0.35,0.35])[0];
+      const mealSatLim_  = dailySatLim_ ? dailySatLim_ * bfShare_ : null;
+
+      const eligible_ = BREAKFAST_EGG_TEMPLATES.filter(t => {
+        if(t.phases.length > 0 && !t.phases.includes(phase_)) return false;
+        if(t.keto_ratio < 1.4) return false;
+        // فلتر sat_fat
+        if(mealSatLim_){
+          const tSat = t.components.reduce((s,c)=>{
+            const f=FOODS.find(x=>x.id===c.fid); return s+(f?(f.sat_fat||0)*c.qty/100:0);
+          },0);
+          if(tSat > mealSatLim_ * 1.2) return false;
+        }
+        // فلتر skipFids
+        if((_mealSkipFids||[]).some(fid => t.components.find(c=>c.fid===fid))) return false;
+        return true;
+      });
+
+      const fromFav_ = eligible_.filter(t => t.components.some(c => favIds_.includes(c.fid)));
+      const picked_  = (fromFav_.length ? fromFav_ : eligible_)[0];
+
+      if(picked_){
+        const scaled_ = eggCount_ !== picked_.egg_count
+          ? scaleEggRecipe(picked_, eggCount_) : picked_;
+        // أضف خضار مقترحة
+        const suggestedVeg_ = typeof getSuggestedAddons !== 'undefined'
+          ? getSuggestedAddons(scaled_.method, phase_).slice(0,1)
+          : [];
+
+        const allItems_ = [
+          ...scaled_.components.map(c=>({fid:c.fid,qty:c.qty})),
+          ...suggestedVeg_.map(v=>({fid:v.fid,qty:v.qty})),
+        ];
+        const macros_ = _calcMealRatio(allItems_);
+        const hasFav_ = scaled_.components.some(c=>favIds_.includes(c.fid));
+
+        const todayM_ = getTodayMeals(mem?.uid);
+        const mainD_  = todayM_.filter(m=>!['snack'].includes(m.type)&&(m.totals?.cal||0)>=150).length;
+        const prefs2_ = getMemPrefs(mem);
+
+        return {
+          items: [
+            ...scaled_.components.map(c=>{
+              const food=FOODS.find(x=>x.id===c.fid);
+              return food ? {fid:c.fid,qty:c.qty,food,
+                displayQty:humanQty(food,c.qty),
+                source:favIds_.includes(c.fid)?'fav':'std',
+                groupName:'بروتين الفطور',note:c.note||''} : null;
+            }).filter(Boolean),
+            ...suggestedVeg_.map(v=>{
+              const food=FOODS.find(x=>x.id===v.fid);
+              return food ? {fid:v.fid,qty:v.qty,food,
+                displayQty:humanQty(food,v.qty),
+                source:'std',groupName:'خضار الفطور',note:v.note||''} : null;
+            }).filter(Boolean),
+          ],
+          macros: macros_,
+          ratioOk: macros_.ratio >= 1.5,
+          ketoTarget: 1.5,
+          hasFav: hasFav_,
+          phase,
+          mealTypeInfo: mealTypeCheck,
+          mealNumber:  mainD_ + 1,
+          totalMeals:  prefs2_.meals_per_day,
+          remaining:   prefs2_.meals_per_day - mainD_,
+          share:       bfShare_,
+          templateId:  scaled_.id,
+          cookingTip:  scaled_.cooking_tip || '',
+        };
+      }
+    }
+  }
+
   const result = getNextMealPlan(mem, _mealSkipFids||[]);
   if(!result) return null;
 
@@ -2413,6 +2515,7 @@ function renderSuggSection(mem, rem, phase){
         <div>
           <div class="sugg-title">اقتراح ${mealTypeInfo.label} — الوجبة ${sugg.mealNumber} من ${sugg.totalMeals}</div>
           <div class="sugg-sub">حصة ${Math.round((sugg.share||0.33)*100)}% من الأهداف اليومية · هدف النسبة ≥${ketoTarget}</div>
+          ${sugg.cookingTip ? `<div style="font-size:10px;color:var(--accent);margin-top:2px">👨‍🍳 ${sugg.cookingTip}</div>` : ''}
         </div>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
