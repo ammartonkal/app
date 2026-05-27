@@ -515,6 +515,7 @@ function quickLogin(e,p){
 <script src="db-foods.js"></script>
 <script src="db-meals-logic.js"></script>
 <script src="db-meal-templates.js"></script>
+<script src="db-lunch-dinner-templates.js"></script>
 <script src="db-recipes.js"></script>
 <script src="db-supplements.js"></script>
 <script src="db-products.js"></script>
@@ -2354,6 +2355,104 @@ function buildMealSuggestion(mem, rem, phase){
     }
   }
 
+  // للغداء: استخدم LUNCH_TEMPLATES
+  if(typeof LUNCH_TEMPLATES !== 'undefined'){
+    const mealTypeCheck = getMealType(mem);
+    if(mealTypeCheck?.type === 'lunch'){
+      const todayMeals_ = getTodayMeals(mem?.uid);
+      const remaining_  = typeof calcRemainingAfterMeals!=='undefined'
+        ? calcRemainingAfterMeals(mem, todayMeals_)
+        : {fat:40,protein:30,carb:8,cal:500};
+      const dailySatLim_ = typeof getSatFatDailyLimit!=='undefined' ? getSatFatDailyLimit(mem) : null;
+      const prefs_  = getMemPrefs(mem);
+      const shares_ = MEAL_SHARE?.[prefs_.meals_per_day] || [0.30,0.35,0.35];
+      const share_  = shares_[1] || 0.35;
+      const satLim_ = dailySatLim_ ? dailySatLim_ * share_ : null;
+      const favIds_ = mem?.favorites_foods || [];
+      const phase_  = mem?.phase || 1;
+
+      let tpl = typeof getBestLunchTemplate!=='undefined'
+        ? getBestLunchTemplate(remaining_, favIds_, phase_, satLim_, _mealSkipFids||[])
+        : null;
+
+      if(tpl){
+        tpl = typeof scaleMealToRemaining!=='undefined'
+          ? scaleMealToRemaining(tpl, remaining_) : tpl;
+
+        const items = tpl.components.map(c=>{
+          const food=FOODS.find(x=>x.id===c.fid);
+          return food ? {fid:c.fid,qty:c.qty,food,
+            displayQty:humanQty(food,c.qty),
+            source:favIds_.includes(c.fid)?'fav':'std',
+            groupName:c.role==='protein'?'بروتين الغداء':c.role==='fat'?'دهون':'خضار',
+            note:''} : null;
+        }).filter(Boolean);
+
+        const macros_  = _calcMealRatio(items.map(i=>({fid:i.fid,qty:i.qty})));
+        const mainDone_ = getTodayMeals(mem?.uid).filter(m=>!['snack'].includes(m.type)&&(m.totals?.cal||0)>=150).length;
+
+        return {
+          items, macros:macros_,
+          ratioOk: macros_.ratio >= 1.5,
+          ketoTarget: 1.5, hasFav: items.some(i=>i.source==='fav'),
+          phase, mealTypeInfo: mealTypeCheck,
+          mealNumber: mainDone_+1, totalMeals: prefs_.meals_per_day,
+          remaining: prefs_.meals_per_day - mainDone_, share: share_,
+          cookingTip: tpl.cooking_tip || '',
+        };
+      }
+    }
+  }
+
+  // للعشاء: استخدم DINNER_TEMPLATES مع المتبقي الفعلي
+  if(typeof DINNER_TEMPLATES !== 'undefined'){
+    const mealTypeCheck = getMealType(mem);
+    if(mealTypeCheck?.type === 'dinner'){
+      const todayMeals_ = getTodayMeals(mem?.uid);
+      const remaining_  = typeof calcRemainingAfterMeals!=='undefined'
+        ? calcRemainingAfterMeals(mem, todayMeals_)
+        : {fat:35,protein:25,carb:5,cal:400};
+      const dailySatLim_ = typeof getSatFatDailyLimit!=='undefined' ? getSatFatDailyLimit(mem) : null;
+      const prefs_  = getMemPrefs(mem);
+      const shares_ = MEAL_SHARE?.[prefs_.meals_per_day] || [0.30,0.35,0.35];
+      const share_  = shares_[2] || 0.35;
+      const satLim_ = dailySatLim_ ? dailySatLim_ * share_ : null;
+      const favIds_ = mem?.favorites_foods || [];
+      const phase_  = mem?.phase || 1;
+
+      let tpl = typeof getBestDinnerTemplate!=='undefined'
+        ? getBestDinnerTemplate(remaining_, favIds_, phase_, satLim_, _mealSkipFids||[])
+        : null;
+
+      if(tpl){
+        tpl = typeof scaleMealToRemaining!=='undefined'
+          ? scaleMealToRemaining(tpl, remaining_) : tpl;
+
+        const items = tpl.components.map(c=>{
+          const food=FOODS.find(x=>x.id===c.fid);
+          return food ? {fid:c.fid,qty:c.qty,food,
+            displayQty:humanQty(food,c.qty),
+            source:favIds_.includes(c.fid)?'fav':'std',
+            groupName:c.role==='protein'?'بروتين العشاء':c.role==='fat'?'دهون':'خضار',
+            note:''} : null;
+        }).filter(Boolean);
+
+        const macros_  = _calcMealRatio(items.map(i=>({fid:i.fid,qty:i.qty})));
+        const mainDone_ = getTodayMeals(mem?.uid).filter(m=>!['snack'].includes(m.type)&&(m.totals?.cal||0)>=150).length;
+
+        return {
+          items, macros:macros_,
+          ratioOk: macros_.ratio >= 1.5,
+          ketoTarget: 1.5, hasFav: items.some(i=>i.source==='fav'),
+          phase, mealTypeInfo: mealTypeCheck,
+          mealNumber: mainDone_+1, totalMeals: prefs_.meals_per_day,
+          remaining: prefs_.meals_per_day - mainDone_, share: share_,
+          cookingTip: tpl.cooking_tip || '',
+        };
+      }
+    }
+  }
+
   const result = getNextMealPlan(mem, _mealSkipFids||[]);
   if(!result) return null;
 
@@ -2560,6 +2659,11 @@ function renderSuggSection(mem, rem, phase){
 
   const itemsJSON = JSON.stringify(items.map(i=>({fid:i.fid,qty:i.qty})));
   const snack     = buildSnackSuggestion(mem, rem, phase);
+  // عرض السناك فقط إذا حان وقته
+  const prefs_sn  = getMemPrefs(mem);
+  const todayMls_ = getTodayMeals(mem?.uid);
+  const showSnack_ = typeof shouldShowSnack!=='undefined'
+    ? shouldShowSnack(mem, todayMls_, prefs_sn) : prefs_sn.has_snack;
 
   return `<div>
   <div class="sugg-card">
