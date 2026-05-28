@@ -248,7 +248,8 @@ function _renderCalcItems(){
     // تحقق إذا عنده wizard
     const hasWizard = !!unitType;
 
-    return '<div class="calc-item-row">' +
+    const rowId = 'calc-row-' + String(item.fid).replace(':','_');
+    return '<div class="calc-item-row" id="' + rowId + '">' +
       '<div class="calc-item-name">' + name + '</div>' +
       '<div style="flex:1;text-align:center">' +
         '<div style="font-size:11px;color:var(--text3)">' + displayText + '</div>' +
@@ -281,29 +282,33 @@ function _openUnitWizard(fid){
   const isExt = String(fid).startsWith('ext:');
   const unitType = isExt ? fid.replace('ext:','') : getUnitTypeForFid(parseInt(fid)||fid);
   if(!unitType) return;
-
   const def = UNIT_INTELLIGENCE[unitType];
   if(!def) return;
 
-  const container = document.createElement('div');
-  container.id = 'unit-wizard-overlay';
-  container.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:600;display:flex;align-items:flex-end;justify-content:center;padding:0 0 20px';
-  container.onclick = function(e){ if(e.target===container) _closeWizard(); };
+  // أغلق أي wizard مفتوح
+  document.querySelectorAll('.inline-wizard').forEach(function(el){ el.remove(); });
 
-  container.innerHTML = '<div style="background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:500px;max-height:80vh;overflow-y:auto;padding:20px">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
-      '<div style="font-size:14px;font-weight:600">⚖️ ' + def.label + '</div>' +
-      '<button class="btn sm" onclick="_closeWizard()">✕</button>' +
+  // اعثر على صف الصنف وأضف الـ wizard تحته مباشرة
+  const rowId = 'calc-row-' + String(fid).replace(':','_');
+  const row   = document.getElementById(rowId);
+  if(!row) { rCalc(); return; } // fallback
+
+  const wiz = document.createElement('div');
+  wiz.className = 'inline-wizard';
+  wiz.style.cssText = 'background:var(--surface2);border:1px solid var(--accent);border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:12px 14px;margin-top:-1px;margin-bottom:7px';
+  wiz.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
+      '<div style="font-size:12px;font-weight:600;color:var(--accent)">⚖️ تعديل الكمية — ' + def.label + '</div>' +
+      '<button class="btn sm" onclick="this.closest('.inline-wizard').remove()">✕</button>' +
     '</div>' +
-    (def.warning ? '<div class="unit-warning-badge">⚠️ ' + def.warning + '</div>' : '') +
+    (def.warning ? '<div class="unit-warning-badge">' + def.warning + '</div>' : '') +
     _buildWizardHTML(def, unitType, parseInt(fid)||fid) +
-    '<div style="display:flex;gap:8px;margin-top:14px">' +
-      '<button class="btn primary" style="flex:1;justify-content:center" onclick="_applyWizard()">✓ تطبيق</button>' +
-      '<button class="btn" onclick="_closeWizard()">إلغاء</button>' +
-    '</div>' +
-  '</div>';
+    '<div style="display:flex;gap:8px;margin-top:10px">' +
+      '<button class="btn primary sm" style="flex:1;justify-content:center" onclick="_applyWizard()">✓ تطبيق</button>' +
+      '<button class="btn sm" onclick="this.closest('.inline-wizard').remove()">إلغاء</button>' +
+    '</div>';
 
-  document.body.appendChild(container);
+  row.insertAdjacentElement('afterend', wiz);
 }
 
 function _buildWizardHTML(def, unitType, fid){
@@ -443,7 +448,25 @@ function _calcSearchFood(query){
 }
 
 function _renderCalcNutrition(){
-  const m = _calcMealRatio(calcItems.filter(i=>typeof i.fid==='number'));
+  // احسب ماكرو كل المكونات (داخلية + خارجية)
+  const regularItems = calcItems.filter(i=>typeof i.fid==='number');
+  const m0 = _calcMealRatio(regularItems);
+  // أضف ماكرو الأصناف الخارجية (خبز، أرز)
+  let extFat=0,extProt=0,extNc=0,extCal=0;
+  calcItems.filter(i=>typeof i.fid==='string').forEach(function(item){
+    const uType = item.fid.replace('ext:','');
+    const extM = (typeof getExternalMacros!=='undefined') ? getExternalMacros(uType, item._sel||{}, item.qty) : null;
+    if(extM){ extFat+=extM.fat||0; extProt+=extM.prot||0; extNc+=extM.nc||0; extCal+=extM.cal||0; }
+  });
+  const m = {
+    fat:  Math.round((m0.fat  + extFat)*10)/10,
+    prot: Math.round((m0.prot + extProt)*10)/10,
+    nc:   Math.round((m0.nc   + extNc)*10)/10,
+    cal:  Math.round(m0.cal   + extCal),
+    ratio: 0
+  };
+  const _d = m.prot*0.6 + m.nc;
+  m.ratio = _d > 0 ? Math.round(m.fat/_d*100)/100 : 0;
   const ratioColor = m.ratio >= 2.0 ? 'var(--accent)' : m.ratio >= 1.5 ? '#f59e0b' : 'var(--danger)';
   const ratioLabel = m.ratio >= 2.0 ? 'ممتاز 🔥' : m.ratio >= 1.5 ? 'محفز ✓' : 'يحتاج تحسين';
   const ketoP = Math.min(Math.round(m.ratio / 3 * 100), 100);
@@ -473,13 +496,22 @@ function _renderCalcNutrition(){
 
 
 function _calcSatFatTotal(){
-  return Math.round(calcItems.reduce((s,i)=>{const f=FOODS.find(x=>x.id===i.fid);return s+(f?(f.sat_fat||0)*i.qty/100:0);},0)*10)/10;
+  return Math.round(calcItems.reduce(function(s,i){
+    if(typeof i.fid==='string') return s; // external — no sat_fat data
+    const f=FOODS.find(x=>x.id===i.fid); return s+(f?(f.sat_fat||0)*i.qty/100:0);
+  },0)*10)/10;
 }
 function _calcFiberTotal(){
-  return Math.round(calcItems.reduce((s,i)=>{const f=FOODS.find(x=>x.id===i.fid);return s+(f?(f.fiber||0)*i.qty/100:0);},0)*10)/10;
+  return Math.round(calcItems.reduce(function(s,i){
+    if(typeof i.fid==='string'){ const em=getExternalMacros&&getExternalMacros(i.fid.replace('ext:',''),i._sel||{},i.qty); return s+(em?em.fiber||0:0); }
+    const f=FOODS.find(x=>x.id===i.fid); return s+(f?(f.fiber||0)*i.qty/100:0);
+  },0)*10)/10;
 }
 function _calcSodiumTotal(){
-  return Math.round(calcItems.reduce((s,i)=>{const f=FOODS.find(x=>x.id===i.fid);return s+(f?(f.sodium||0)*i.qty/100:0);},0));
+  return Math.round(calcItems.reduce(function(s,i){
+    if(typeof i.fid==='string') return s;
+    const f=FOODS.find(x=>x.id===i.fid); return s+(f?(f.sodium||0)*i.qty/100:0);
+  },0));
 }
 
 /* ─── أحداث الحاسبة ─── */
@@ -579,10 +611,20 @@ function _buildAutoMeal(){
   calcItems = [];
 
   // أضف البروتين — من هدف البروتين المتبقي
-  proteins.forEach(f=>{
+  proteins.forEach(function(f){
+    const unitType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(f.id) : null;
+    const defSel   = unitType ? _getDefaultSel(unitType, f.id) : {};
+    // إذا عنده wizard → استخدم كميته الطبيعية كنقطة بداية
+    const naturalQty = (unitType && typeof calcGramsFromSel!=='undefined')
+      ? calcGramsFromSel(unitType, defSel, f.id) : 0;
+    // احسب الكمية من الهدف
     const targetProt = (rem.protein||30) / Math.max(proteins.length,1);
-    const qty = f.protein>0 ? Math.round(Math.min(targetProt/f.protein*100,250)/5)*5 : 100;
-    calcItems.push({fid:f.id, qty:Math.max(qty,50)});
+    const calcQty = f.protein>0 ? Math.round(targetProt/f.protein*100/5)*5 : 100;
+    // اختر الأصغر بين الحاجة والكمية المعقولة
+    const qty = naturalQty > 0
+      ? Math.min(Math.max(calcQty, naturalQty), naturalQty * 3)
+      : Math.max(Math.min(calcQty, 200), 50);
+    calcItems.push({fid:f.id, qty:Math.round(qty/5)*5, _sel:defSel});
   });
 
   // احسب ما تبقى من دهن بعد البروتين
