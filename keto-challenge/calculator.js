@@ -296,17 +296,36 @@ function _openUnitWizard(fid){
   const wiz = document.createElement('div');
   wiz.className = 'inline-wizard';
   wiz.style.cssText = 'background:var(--surface2);border:1px solid var(--accent);border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:12px 14px;margin-top:-1px;margin-bottom:7px';
-  wiz.innerHTML =
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
-      '<div style="font-size:12px;font-weight:600;color:var(--accent)">⚖️ تعديل الكمية — ' + def.label + '</div>' +
-      '<button class="btn sm" onclick="this.closest('.inline-wizard').remove()">✕</button>' +
-    '</div>' +
-    (def.warning ? '<div class="unit-warning-badge">' + def.warning + '</div>' : '') +
-    _buildWizardHTML(def, unitType, parseInt(fid)||fid) +
-    '<div style="display:flex;gap:8px;margin-top:10px">' +
-      '<button class="btn primary sm" style="flex:1;justify-content:center" onclick="_applyWizard()">✓ تطبيق</button>' +
-      '<button class="btn sm" onclick="this.closest('.inline-wizard').remove()">إلغاء</button>' +
-    '</div>';
+  // بناء المحتوى بدون innerHTML لتجنب quotes issues
+  const wizHeader = document.createElement('div');
+  wizHeader.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px';
+  wizHeader.innerHTML = '<div style="font-size:12px;font-weight:600;color:var(--accent)">⚖️ تعديل الكمية — ' + def.label + '</div>';
+  const closeBtn1 = document.createElement('button');
+  closeBtn1.className = 'btn sm'; closeBtn1.textContent = '✕';
+  closeBtn1.onclick = function(){ wiz.remove(); };
+  wizHeader.appendChild(closeBtn1);
+  wiz.appendChild(wizHeader);
+
+  if(def.warning){
+    const wb = document.createElement('div');
+    wb.className = 'unit-warning-badge'; wb.textContent = def.warning;
+    wiz.appendChild(wb);
+  }
+
+  const stepsDiv = document.createElement('div');
+  stepsDiv.innerHTML = _buildWizardHTML(def, unitType, parseInt(fid)||fid);
+  wiz.appendChild(stepsDiv);
+
+  const actionDiv = document.createElement('div');
+  actionDiv.style.cssText = 'display:flex;gap:8px;margin-top:10px';
+  const applyBtn = document.createElement('button');
+  applyBtn.className = 'btn primary sm'; applyBtn.style.cssText = 'flex:1;justify-content:center';
+  applyBtn.textContent = '✓ تطبيق'; applyBtn.onclick = function(){ _applyWizard(); };
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn sm'; cancelBtn.textContent = 'إلغاء';
+  cancelBtn.onclick = function(){ wiz.remove(); };
+  actionDiv.appendChild(applyBtn); actionDiv.appendChild(cancelBtn);
+  wiz.appendChild(actionDiv);
 
   row.insertAdjacentElement('afterend', wiz);
 }
