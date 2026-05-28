@@ -287,6 +287,23 @@ textarea{resize:vertical;min-height:76px;}
 .suggestion-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;margin-bottom:6px;}
 .suggestion-item:hover,.suggestion-item.selected{border-color:var(--accent);background:var(--accent-light);}
 
+/* ─── Smart Units ─── */
+.unit-wizard{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:7px;}
+.unit-wizard-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.unit-wizard-name{font-size:13px;font-weight:600;}
+.unit-step{margin-bottom:8px;}
+.unit-step-label{font-size:11px;color:var(--text3);font-weight:600;margin-bottom:5px;}
+.unit-options{display:flex;flex-wrap:wrap;gap:5px;}
+.unit-opt{padding:5px 10px;border-radius:100px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:all .15s;}
+.unit-opt.selected{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600;}
+.unit-opt.keto{border-color:rgba(58,140,63,.4);}
+.unit-opt.warning{border-color:rgba(239,83,80,.3);color:var(--danger);}
+.unit-summary{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--surface);border-radius:var(--radius-sm);margin-top:8px;font-size:12px;}
+.unit-summary-text{color:var(--text2);}
+.unit-summary-grams{font-family:var(--mono);font-weight:700;color:var(--accent);}
+.unit-warning-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--danger);background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.2);border-radius:100px;padding:2px 8px;margin-bottom:6px;}
+
+/* ═══ CALCULATOR v2 ═══ */
 /* ═══ CALCULATOR v2 ═══ */
 .calc-remaining-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
 .calc-rem-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 8px;text-align:center;}
@@ -555,6 +572,7 @@ function quickLogin(e,p){
 <script src="db-meals-logic.js"></script>
 <script src="db-meal-templates.js"></script>
 <script src="db-lunch-dinner-templates.js"></script>
+<script src="db-unit-intelligence.js"></script>
 <script src="db-recipes.js"></script>
 <script src="db-supplements.js"></script>
 <script src="db-products.js"></script>
@@ -5571,28 +5589,55 @@ function rCalc(){
   const favIds  = mem?.favorites_foods || [];
   const phase   = mem?.phase || 1;
   const cats = [
-    { label:'🥩 بروتين', cats:['بروتين','دواجن','لحوم','أسماك','بيض'] },
-    { label:'🧈 دهون',   cats:['دهون','ألبان'] },
-    { label:'🥦 خضار',   cats:['خضار','فواكه'] },
+    { label:'🥩 بروتين',       cats:['بروتين','دواجن','لحوم','أسماك','بيض'] },
+    { label:'🧈 دهون',         cats:['دهون','ألبان'] },
+    { label:'🥦 خضار',         cats:['خضار'], exclude:['فواكه'] },
+    { label:'🍓 فواكه',        cats:['فواكه','فاكهة'] },
     { label:'🌰 مكسرات وبذور', cats:['مكسرات وبذور','مكسرات','بذور'] },
-    { label:'🛒 إضافات', cats:['محليات','بدائل','توابل','مشروبات'] },
+    { label:'🛒 إضافات',       cats:['محليات','بدائل','توابل','مشروبات','مخبوزات كيتو','حلا كيتو','وصفات جاهزة'] },
+    { label:'⚠️ خارج الكيتو', cats:['خارج_كيتو'], external:true },
   ];
 
   let ingredientsHTML = '<div style="margin-bottom:14px">';
+  // أضف بحث سريع
+  ingredientsHTML += `<div style="position:relative;margin-bottom:10px">
+    <input type="text" id="calc-search" placeholder="🔍 ابحث عن أي مكوّن..."
+      oninput="_calcSearchFood(this.value)"
+      style="width:100%;padding:9px 12px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm)">
+    <div id="calc-search-results" style="display:none;position:absolute;top:100%;right:0;left:0;z-index:50;
+      background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+      box-shadow:var(--shadow);max-height:200px;overflow-y:auto"></div>
+  </div>`;
+
   cats.forEach(cat => {
-    const foods = FOODS.filter(f =>
-      cat.cats.some(c => f.cat?.includes(c)) &&
-      f.keto_class <= 2
-    );
+    if(cat.external){
+      // أصناف خارج الكيتو من UNIT_INTELLIGENCE
+      ingredientsHTML += '<div class="calc-cat-header">' + cat.label + '</div><div style="margin-bottom:4px">';
+      ['bread','rice'].forEach(type => {
+        const def = typeof UNIT_INTELLIGENCE !== 'undefined' ? UNIT_INTELLIGENCE[type] : null;
+        if(!def) return;
+        const isSel = _calcSelected.includes('ext:'+type);
+        ingredientsHTML += '<span class="calc-food-chip' + (isSel?' selected':'') + '" style="border-color:rgba(239,83,80,.3);color:var(--danger)"' +
+          ' onclick="_toggleCalcFood('ext:'+type+'')">' + def.label + ' ⚠️</span>';
+      });
+      ingredientsHTML += '</div>';
+      return;
+    }
+    const foods = FOODS.filter(f => {
+      if(!cat.cats.some(c => f.cat?.includes(c))) return false;
+      if(cat.exclude && cat.exclude.some(e => f.cat?.includes(e))) return false;
+      return f.keto_class <= 3;
+    });
     if(!foods.length) return;
-    ingredientsHTML += `<div class="calc-cat-header">${cat.label}</div><div style="margin-bottom:4px">`;
+    ingredientsHTML += '<div class="calc-cat-header">' + cat.label + '</div><div style="margin-bottom:4px">';
     foods.forEach(f => {
       const isSel = _calcSelected.includes(f.id);
       const isFav = favIds.includes(f.id);
-      ingredientsHTML += `<span class="calc-food-chip${isSel?' selected':''}${isFav?' fav':''}"
-        onclick="_toggleCalcFood(${f.id})">
-        ${isFav?'⭐ ':''}${f.name}
-      </span>`;
+      ingredientsHTML += '<span class="calc-food-chip' + (isSel?' selected':'') + (isFav?' fav':'') + '"' +
+        ' onclick="_toggleCalcFood(' + f.id + ')">' +
+        (isFav?'⭐ ':'') + f.name +
+        (f.keto_class===3?' ⚠️':'') +
+        '</span>';
     });
     ingredientsHTML += '</div>';
   });
@@ -5677,35 +5722,218 @@ function rCalc(){
 }
 
 function _renderCalcItems(){
+  if(!calcItems.length) return '';
   return calcItems.map(item => {
-    const f = FOODS.find(x=>x.id===item.fid);
-    if(!f) return '';
-    const m = _calcMealRatio([{fid:item.fid,qty:item.qty}]);
-    const uq = _unitQty(f, item.qty, _calcUnit);
-    const displayVal = _calcUnit==='natural' ? '' : uq.display;
-    const suffix     = _calcUnit==='natural' ? uq.suffix : uq.suffix;
+    const isExt = typeof item.fid === 'string' && item.fid.startsWith('ext:');
+    const f = isExt ? null : FOODS.find(x=>x.id===item.fid);
+    const unitType = typeof UNIT_INTELLIGENCE!=='undefined'
+      ? (isExt ? item.fid.replace('ext:','') : getUnitTypeForFid(item.fid))
+      : null;
+    const sel = item._sel || {};
+    const displayText = unitType && typeof getDisplayText!=='undefined'
+      ? getDisplayText(unitType, sel, item.qty, item.fid)
+      : item.qty + 'غ';
 
-    return `<div class="calc-item-row">
-      <div class="calc-item-name">${f.name}</div>
-      <div class="calc-item-qty-wrap">
-        ${_calcMode==='manual' ? `
-          <button class="btn sm" onclick="_calcStepQty(${f.id},-5)">−</button>
-          <input class="calc-item-qty-input" type="number" value="${displayVal||''}"
-            placeholder="${_calcUnit==='natural'?item.qty+' غ':''}"
-            onchange="_calcSetQty(${f.id},this.value)"
-            min="1" step="${_calcUnit==='tbsp'||_calcUnit==='cup'||_calcUnit==='hand'?'0.5':'5'}">
-          <button class="btn sm" onclick="_calcStepQty(${f.id},5)">+</button>
-        ` : `<span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text)">${item.qty}غ</span>`}
-        <span class="calc-item-unit">${_calcUnit==='natural'?'':suffix}</span>
-      </div>
-      <div class="calc-item-macros">
-        <span class="calc-macro-pill fat">${m.fat}غ</span>
-        <span class="calc-macro-pill prot">${m.prot}غ</span>
-        <span class="calc-macro-pill carb">${m.nc}غ</span>
-      </div>
-      <button class="btn sm dng" onclick="_calcRemItem(${f.id})">✕</button>
-    </div>`;
+    // الماكرو
+    let m;
+    if(isExt && unitType && typeof getExternalMacros!=='undefined'){
+      m = getExternalMacros(unitType, sel, item.qty) || {fat:0,prot:0,nc:0,cal:0};
+    } else if(f) {
+      m = _calcMealRatio([{fid:item.fid,qty:item.qty}]);
+    } else {
+      m = {fat:0,prot:0,nc:0,cal:0};
+    }
+
+    const name = isExt
+      ? (UNIT_INTELLIGENCE[unitType]?.label || item.fid)
+      : (f?.name || '—');
+
+    // تحقق إذا عنده wizard
+    const hasWizard = !!unitType;
+
+    return '<div class="calc-item-row">' +
+      '<div class="calc-item-name">' + name + '</div>' +
+      '<div style="flex:1;text-align:center">' +
+        '<div style="font-size:11px;color:var(--text3)">' + displayText + '</div>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:4px">' +
+        '<button class="btn sm" onclick="_calcStepItem(\'' + item.fid + '\',-1)">−</button>' +
+        '<button class="btn sm" onclick="_calcStepItem(\'' + item.fid + '\',1)">+</button>' +
+        (hasWizard ? '<button class="btn sm" style="font-size:10px" onclick="_openUnitWizard(\'' + item.fid + '\')" title="تعديل الوحدة">⚖️</button>' : '') +
+      '</div>' +
+      '<div class="calc-item-macros">' +
+        '<span class="calc-macro-pill fat">' + m.fat + 'غ</span>' +
+        '<span class="calc-macro-pill prot">' + m.prot + 'غ</span>' +
+        '<span class="calc-macro-pill carb">' + m.nc + 'غ</span>' +
+      '</div>' +
+      '<button class="btn sm dng" onclick="_calcRemItem(\'' + item.fid + '\')">✕</button>' +
+    '</div>';
   }).join('');
+}
+
+/* ─── فتح wizard الوحدة ─── */
+let _activeWizardFid = null;
+let _wizardSel = {};
+
+function _openUnitWizard(fid){
+  const item = calcItems.find(i=>String(i.fid)===String(fid));
+  if(!item) return;
+  _activeWizardFid = fid;
+  _wizardSel = {...(item._sel||{})};
+
+  const isExt = String(fid).startsWith('ext:');
+  const unitType = isExt ? fid.replace('ext:','') : getUnitTypeForFid(parseInt(fid)||fid);
+  if(!unitType) return;
+
+  const def = UNIT_INTELLIGENCE[unitType];
+  if(!def) return;
+
+  const container = document.createElement('div');
+  container.id = 'unit-wizard-overlay';
+  container.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:600;display:flex;align-items:flex-end;justify-content:center;padding:0 0 20px';
+  container.onclick = function(e){ if(e.target===container) _closeWizard(); };
+
+  container.innerHTML = '<div style="background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:500px;max-height:80vh;overflow-y:auto;padding:20px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+      '<div style="font-size:14px;font-weight:600">⚖️ ' + def.label + '</div>' +
+      '<button class="btn sm" onclick="_closeWizard()">✕</button>' +
+    '</div>' +
+    (def.warning ? '<div class="unit-warning-badge">⚠️ ' + def.warning + '</div>' : '') +
+    _buildWizardHTML(def, unitType, parseInt(fid)||fid) +
+    '<div style="display:flex;gap:8px;margin-top:14px">' +
+      '<button class="btn primary" style="flex:1;justify-content:center" onclick="_applyWizard()">✓ تطبيق</button>' +
+      '<button class="btn" onclick="_closeWizard()">إلغاء</button>' +
+    '</div>' +
+  '</div>';
+
+  document.body.appendChild(container);
+}
+
+function _buildWizardHTML(def, unitType, fid){
+  let html = '';
+  def.steps.forEach(function(step){
+    // تحقق show_if
+    if(step.show_if){
+      if(_wizardSel[step.show_if.key] !== step.show_if.val) return;
+    }
+    html += '<div class="unit-step">' +
+      '<div class="unit-step-label">' + step.label + '</div>';
+
+    if(step.type === 'number'){
+      const val = _wizardSel[step.key] || step.default || 1;
+      html += '<div style="display:flex;align-items:center;gap:8px">' +
+        '<button class="btn sm" onclick="_wizardStep(\'' + step.key + '\',' + (-(step.step||1)) + ',' + (step.min||0) + ',' + (step.max||99) + ')">−</button>' +
+        '<input type="number" id="wz-' + step.key + '" value="' + val + '" min="' + (step.min||0) + '" max="' + (step.max||99) + '" step="' + (step.step||1) + '"' +
+        ' style="width:80px;text-align:center;font-family:var(--mono)"' +
+        ' onchange="_wizardSel[\'' + step.key + '\']=parseFloat(this.value);_refreshWizardSummary(\''+unitType+'\','+fid+')">' +
+        '<button class="btn sm" onclick="_wizardStep(\'' + step.key + '\',' + (step.step||1) + ',' + (step.min||0) + ',' + (step.max||99) + ')">+</button>' +
+        (step.unit ? '<span style="font-size:12px;color:var(--text3)">' + step.unit + '</span>' : '') +
+      '</div>';
+    } else {
+      html += '<div class="unit-options">';
+      step.options.forEach(function(opt){
+        const isSel = (_wizardSel[step.key] || step.options[0]?.val) === opt.val;
+        html += '<div class="unit-opt' + (isSel?' selected':'') + (opt.keto?' keto':'') + (opt.warning?' warning':'') + '"' +
+          ' onclick="_wizardSelect(\'' + step.key + '\',\'' + opt.val + '\',\'' + unitType + '\',' + fid + ')">' +
+          opt.label +
+          (opt.note ? '<br><span style="font-size:10px;opacity:.7">' + opt.note + '</span>' : '') +
+        '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+
+  // ملخص الغرام
+  const grams = calcGramsFromSel(unitType, _wizardSel, fid);
+  html += '<div class="unit-summary" id="wz-summary">' +
+    '<span class="unit-summary-text">' + getDisplayText(unitType, _wizardSel, grams, fid) + '</span>' +
+    '<span class="unit-summary-grams">' + grams + 'غ</span>' +
+  '</div>';
+
+  return html;
+}
+
+function _wizardSelect(key, val, unitType, fid){
+  _wizardSel[key] = val;
+  // أعد بناء الـ wizard
+  const overlay = document.getElementById('unit-wizard-overlay');
+  if(!overlay) return;
+  const def = UNIT_INTELLIGENCE[unitType];
+  if(!def) return;
+  const inner = overlay.querySelector('[style*="background:var(--surface)"]');
+  if(!inner) return;
+  // أعد رسم الخطوات فقط
+  const stepsEl = inner.querySelector('.wz-steps-wrap');
+  if(stepsEl) stepsEl.innerHTML = _buildWizardHTML(def, unitType, fid);
+  else _openUnitWizard(String(fid)); // fallback
+}
+
+function _wizardStep(key, delta, min, max){
+  const cur = parseFloat(_wizardSel[key]) || 1;
+  const el  = document.getElementById('wz-' + key);
+  _wizardSel[key] = Math.max(min, Math.min(max, parseFloat((cur+delta).toFixed(2))));
+  if(el) el.value = _wizardSel[key];
+  _refreshWizardSummary();
+}
+
+function _refreshWizardSummary(unitType, fid){
+  const sum = document.getElementById('wz-summary');
+  if(!sum || !unitType) return;
+  const grams = calcGramsFromSel(unitType, _wizardSel, fid);
+  sum.innerHTML = '<span class="unit-summary-text">' + getDisplayText(unitType, _wizardSel, grams, fid) + '</span>' +
+    '<span class="unit-summary-grams">' + grams + 'غ</span>';
+}
+
+function _applyWizard(){
+  const fid  = _activeWizardFid;
+  const isExt = String(fid).startsWith('ext:');
+  const unitType = isExt ? String(fid).replace('ext:','') : getUnitTypeForFid(parseInt(fid)||fid);
+  const newFid  = unitType ? getFidFromSel(unitType, _wizardSel, parseInt(fid)||fid) : parseInt(fid);
+  const grams   = unitType ? calcGramsFromSel(unitType, _wizardSel, newFid) : 100;
+
+  const item = calcItems.find(i=>String(i.fid)===String(fid));
+  if(item){
+    item.fid  = isExt ? fid : newFid;
+    item.qty  = grams;
+    item._sel = {..._wizardSel};
+  }
+  _closeWizard();
+  rCalc();
+}
+
+function _closeWizard(){
+  const el = document.getElementById('unit-wizard-overlay');
+  if(el) el.remove();
+}
+
+/* ─── تعديل السهم +/- في قائمة المكونات ─── */
+function _calcStepItem(fidStr, dir){
+  const item = calcItems.find(i=>String(i.fid)===String(fidStr));
+  if(!item) return;
+  const step = item.qty >= 100 ? 10 : item.qty >= 20 ? 5 : 1;
+  item.qty = Math.max(1, item.qty + dir * step);
+  rCalc();
+}
+
+/* ─── بحث المكونات ─── */
+function _calcSearchFood(query){
+  const res = document.getElementById('calc-search-results');
+  if(!res) return;
+  if(!query || query.length < 2){ res.style.display='none'; return; }
+  const q = query.toLowerCase();
+  const matches = FOODS.filter(f =>
+    f.name.includes(query) || (f.name_en||'').toLowerCase().includes(q)
+  ).slice(0,8);
+  if(!matches.length){ res.style.display='none'; return; }
+  res.style.display='block';
+  res.innerHTML = matches.map(f=>`<div
+    style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;display:flex;justify-content:space-between;align-items:center"
+    onclick="_toggleCalcFood(${f.id});document.getElementById('calc-search').value='';document.getElementById('calc-search-results').style.display='none'"
+    onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+    <span>${f.name}${favIds.includes(f.id)?' ⭐':''}</span>
+    <span style="font-size:11px;color:var(--text3)">${f.cat}</span>
+  </div>`).join('');
 }
 
 function _renderCalcNutrition(){
