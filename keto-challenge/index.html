@@ -5549,41 +5549,29 @@ function rCalc(){
   if(!el) return;
 
   // ─── شريط المتبقي ───
-  const rem     = typeof getDayRemaining!=='undefined' ? getDayRemaining(mem) : null;
-  const remHTML = rem ? `
-    <div class="calc-remaining-bar" style="margin-bottom:16px">
-      <div class="calc-rem-item">
-        <div class="calc-rem-val" style="color:var(--accent)">${Math.round(rem.fat)}غ</div>
-        <div class="calc-rem-lbl">دهون متبقية</div>
-      </div>
-      <div class="calc-rem-item">
-        <div class="calc-rem-val" style="color:var(--info)">${Math.round(rem.protein)}غ</div>
-        <div class="calc-rem-lbl">بروتين متبقٍ</div>
-      </div>
-      <div class="calc-rem-item">
-        <div class="calc-rem-val" style="color:var(--danger)">${Math.round(rem.carb)}غ</div>
-        <div class="calc-rem-lbl">كارب متبقٍ</div>
-      </div>
-      <div class="calc-rem-item">
-        <div class="calc-rem-val">${rem.consumed?.cal||0}</div>
-        <div class="calc-rem-lbl">سعرة مستهلكة</div>
-      </div>
-    </div>` : '';
+  const remHTML = rem
+    ? '<div class="calc-remaining-bar" style="margin-bottom:16px">' +
+      '<div class="calc-rem-item"><div class="calc-rem-val" style="color:var(--accent)">' + Math.round(rem.fat) + 'غ</div><div class="calc-rem-lbl">دهون متبقية</div></div>' +
+      '<div class="calc-rem-item"><div class="calc-rem-val" style="color:var(--info)">' + Math.round(rem.protein) + 'غ</div><div class="calc-rem-lbl">بروتين متبقٍ</div></div>' +
+      '<div class="calc-rem-item"><div class="calc-rem-val" style="color:var(--danger)">' + Math.round(rem.carb) + 'غ</div><div class="calc-rem-lbl">كارب متبقٍ</div></div>' +
+      '<div class="calc-rem-item"><div class="calc-rem-val">' + (rem.consumed?.cal||0) + '</div><div class="calc-rem-lbl">سعرة مستهلكة</div></div>' +
+      '</div>'
+    : '';
 
   // ─── اختيار الوضع ───
-  const modeHTML = `
-    <div class="calc-mode-btns">
-      <div class="calc-mode-btn${_calcMode==='auto'?' active':''}" onclick="_setCalcMode('auto')">
-        <div class="icon">🤖</div>
-        <div class="title">وجبة تلقائية</div>
-        <div class="sub">اختر المكونات — التطبيق يبني الكميات</div>
-      </div>
-      <div class="calc-mode-btn${_calcMode==='manual'?' active':''}" onclick="_setCalcMode('manual')">
-        <div class="icon">🧑‍🍳</div>
-        <div class="title">بناء بنفسي</div>
-        <div class="sub">أختار الكميات بنفسي</div>
-      </div>
-    </div>`;
+  const modeHTML =
+    '<div class="calc-mode-btns">' +
+    '<div class="calc-mode-btn' + (_calcMode==='auto'?' active':'') + '" onclick="_setCalcMode(\'auto\')">' +
+      '<div class="icon">🤖</div>' +
+      '<div class="title">وجبة تلقائية</div>' +
+      '<div class="sub">اختر المكونات — التطبيق يبني الكميات</div>' +
+    '</div>' +
+    '<div class="calc-mode-btn' + (_calcMode==='manual'?' active':'') + '" onclick="_setCalcMode(\'manual\')">' +
+      '<div class="icon">🧑‍🍳</div>' +
+      '<div class="title">بناء بنفسي</div>' +
+      '<div class="sub">أختار الكميات بنفسي</div>' +
+    '</div>' +
+    '</div>';
 
   // ─── اختيار المكونات ───
   const favIds  = mem?.favorites_foods || [];
@@ -5599,81 +5587,75 @@ function rCalc(){
   ];
 
   let ingredientsHTML = '<div style="margin-bottom:14px">';
-  // أضف بحث سريع
-  ingredientsHTML += `<div style="position:relative;margin-bottom:10px">
-    <input type="text" id="calc-search" placeholder="🔍 ابحث عن أي مكوّن..."
-      oninput="_calcSearchFood(this.value)"
-      style="width:100%;padding:9px 12px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm)">
-    <div id="calc-search-results" style="display:none;position:absolute;top:100%;right:0;left:0;z-index:50;
-      background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
-      box-shadow:var(--shadow);max-height:200px;overflow-y:auto"></div>
-  </div>`;
+  ingredientsHTML +=
+    '<div style="position:relative;margin-bottom:10px">' +
+    '<input type="text" id="calc-search" placeholder="🔍 ابحث عن أي مكوّن..."' +
+    ' oninput="_calcSearchFood(this.value)"' +
+    ' style="width:100%;padding:9px 12px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm)">' +
+    '<div id="calc-search-results" style="display:none;position:absolute;top:100%;right:0;left:0;z-index:50;' +
+    'background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);' +
+    'box-shadow:var(--shadow);max-height:200px;overflow-y:auto"></div>' +
+    '</div>';
 
-  cats.forEach(cat => {
+  cats.forEach(function(cat) {
     if(cat.external){
-      // أصناف خارج الكيتو من UNIT_INTELLIGENCE
       ingredientsHTML += '<div class="calc-cat-header">' + cat.label + '</div><div style="margin-bottom:4px">';
-      ['bread','rice'].forEach(type => {
+      ['bread','rice'].forEach(function(type) {
         const def = typeof UNIT_INTELLIGENCE !== 'undefined' ? UNIT_INTELLIGENCE[type] : null;
         if(!def) return;
         const isSel = _calcSelected.includes('ext:'+type);
         ingredientsHTML += '<span class="calc-food-chip' + (isSel?' selected':'') + '" style="border-color:rgba(239,83,80,.3);color:var(--danger)"' +
-          ' onclick="_toggleCalcExtFood('' + type + '')">' + def.label + ' ⚠️</span>';
+          ' onclick="_calcExtClick(this)" data-type="' + type + '">' + def.label + ' ⚠️</span>';
       });
       ingredientsHTML += '</div>';
       return;
     }
-    const foods = FOODS.filter(f => {
-      if(!cat.cats.some(c => f.cat?.includes(c))) return false;
-      if(cat.exclude && cat.exclude.some(e => f.cat?.includes(e))) return false;
+    const foods = FOODS.filter(function(f) {
+      if(!cat.cats.some(function(c){ return f.cat && f.cat.includes(c); })) return false;
+      if(cat.exclude && cat.exclude.some(function(e){ return f.cat && f.cat.includes(e); })) return false;
       return f.keto_class <= 3;
     });
     if(!foods.length) return;
     ingredientsHTML += '<div class="calc-cat-header">' + cat.label + '</div><div style="margin-bottom:4px">';
-    foods.forEach(f => {
+    foods.forEach(function(f) {
       const isSel = _calcSelected.includes(f.id);
       const isFav = favIds.includes(f.id);
       ingredientsHTML += '<span class="calc-food-chip' + (isSel?' selected':'') + (isFav?' fav':'') + '"' +
         ' onclick="_toggleCalcFood(' + f.id + ')">' +
-        (isFav?'⭐ ':'') + f.name +
-        (f.keto_class===3?' ⚠️':'') +
+        (isFav ? '⭐ ' : '') + f.name +
+        (f.keto_class===3 ? ' ⚠️' : '') +
         '</span>';
     });
     ingredientsHTML += '</div>';
   });
   ingredientsHTML += '</div>';
 
-  // ─── إعدادات الكارب (للوضع التلقائي) ───
-  const carbHTML = _calcMode === 'auto' ? `
-    <div class="card" style="margin-bottom:14px">
-      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">🎯 حد الكارب في هذه الوجبة</div>
-      <div class="calc-carb-opts">
-        ${[5,10,15,20].map(v=>`
-          <div class="calc-carb-btn${_calcCarbLimit===v?' active':''}" onclick="_setCalcCarb(${v})">${v}غ</div>
-        `).join('')}
-        <div class="calc-carb-btn${_calcCarbLimit===999?' active':''}" onclick="_setCalcCarb(999)">حر 🔓</div>
-      </div>
-      <div style="font-size:11px;color:var(--text3)">سيستخدمه التطبيق لضبط الكميات وتحقيق النسبة الكيتونية</div>
-    </div>` : '';
+  // ─── إعدادات الكارب ───
+  const _carbBtns = [5,10,15,20].map(function(v){
+    return '<div class="calc-carb-btn' + (_calcCarbLimit===v?' active':'') + '" onclick="_setCalcCarb(' + v + ')">' + v + 'غ</div>';
+  }).join('') +
+  '<div class="calc-carb-btn' + (_calcCarbLimit===999?' active':'') + '" onclick="_setCalcCarb(999)">حر 🔓</div>';
+  const carbHTML = _calcMode === 'auto'
+    ? '<div class="card" style="margin-bottom:14px">' +
+      '<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">🎯 حد الكارب في هذه الوجبة</div>' +
+      '<div class="calc-carb-opts">' + _carbBtns + '</div>' +
+      '<div style="font-size:11px;color:var(--text3)">سيستخدمه التطبيق لضبط الكميات وتحقيق النسبة الكيتونية</div>' +
+      '</div>'
+    : '';
 
-  // ─── زر البناء (تلقائي) / وحدات القياس (يدوي) ───
+  // ─── زر البناء / وحدات القياس ───
+  const _unitTabsHTML = [
+    {key:'gram',label:'غرام'},{key:'tbsp',label:'ملعقة'},
+    {key:'cup',label:'كوب'},{key:'hand',label:'حجم يد'},{key:'natural',label:'حصة طبيعية'}
+  ].map(function(u){
+    return '<div class="calc-unit-tab' + (_calcUnit===u.key?' active':'') + '" onclick="_setCalcUnit(\'' + u.key + '\')">' + u.label + '</div>';
+  }).join('');
   const actionHTML = _calcMode === 'auto'
-    ? `<button class="btn primary" style="width:100%;justify-content:center;padding:14px;font-size:14px"
-        onclick="_buildAutoMeal()">
-        🚀 ابنِ لي وجبة متوازنة من هذه المكونات
-      </button>`
-    : `<div style="margin-bottom:12px">
-        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:7px">⚖️ وحدة القياس</div>
-        <div class="calc-unit-tabs">
-          ${[
-            {key:'gram',    label:'غرام'},
-            {key:'tbsp',    label:'ملعقة'},
-            {key:'cup',     label:'كوب'},
-            {key:'hand',    label:'حجم يد'},
-            {key:'natural', label:'حصة طبيعية'},
-          ].map(u=>`<div class="calc-unit-tab${_calcUnit===u.key?' active':''}" onclick="_setCalcUnit('${u.key}')">${u.label}</div>`).join('')}
-        </div>
-      </div>`;
+    ? '<button class="btn primary" style="width:100%;justify-content:center;padding:14px;font-size:14px" onclick="_buildAutoMeal()">🚀 ابنِ لي وجبة متوازنة من هذه المكونات</button>'
+    : '<div style="margin-bottom:12px">' +
+      '<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:7px">⚖️ وحدة القياس</div>' +
+      '<div class="calc-unit-tabs">' + _unitTabsHTML + '</div>' +
+      '</div>';
 
   // ─── قائمة المكونات المبنية ───
   const builtHTML = calcItems.length ? _renderCalcItems() : '';
@@ -5682,40 +5664,35 @@ function rCalc(){
   const nutritionHTML = calcItems.length ? _renderCalcNutrition() : '';
 
   // ─── أزرار الحفظ ───
-  const saveHTML = calcItems.length ? `
-    <div class="card" style="margin-top:14px">
-      <div style="margin-bottom:12px">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-          <input type="checkbox" id="calc-share-check" style="width:16px;height:16px">
-          <div>
-            <div style="font-weight:500">📤 أرسل وصفتي للجميع</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:1px">ساهم في إضافة وصفتك لقاعدة البيانات</div>
-          </div>
-        </label>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn" style="flex:1;justify-content:center" onclick="_calcRegisterOnly()">✅ تسجيل الوجبة فقط</button>
-        <button class="btn primary" style="flex:1;justify-content:center" onclick="_calcRegisterAndSave()">💾 تسجيل + حفظ الوصفة</button>
-      </div>
-    </div>` : '';
-
-  el.innerHTML = remHTML + modeHTML +
-    `<div class="card" style="margin-bottom:14px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:12px">
-        ${_calcMode==='auto'?'🔍 اختر المكونات التي تريدها':'🔍 اختر المكونات ثم حدد الكميات'}
-      </div>
-      ${ingredientsHTML}
-      ${carbHTML}
-      ${actionHTML}
-    </div>` +
-    (builtHTML ? `<div class="card" style="margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div style="font-size:13px;font-weight:600">📋 مكونات الوجبة</div>
-        <button class="btn sm dng" onclick="_calcClearAll()">مسح الكل</button>
-      </div>
-      ${builtHTML}
-    </div>` : '') +
-    nutritionHTML + saveHTML;
+  const saveHTML = calcItems.length
+    ? '<div class="card" style="margin-top:14px">' +
+      '<div style="margin-bottom:12px">' +
+        '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">' +
+          '<input type="checkbox" id="calc-share-check" style="width:16px;height:16px">' +
+          '<div>' +
+            '<div style="font-weight:500">📤 أرسل وصفتي للجميع</div>' +
+            '<div style="font-size:11px;color:var(--text3);margin-top:1px">ساهم في إضافة وصفتك لقاعدة البيانات</div>' +
+          '</div>' +
+        '</label>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px">' +
+        '<button class="btn" style="flex:1;justify-content:center" onclick="_calcRegisterOnly()">✅ تسجيل الوجبة فقط</button>' +
+        '<button class="btn primary" style="flex:1;justify-content:center" onclick="_calcRegisterAndSave()">💾 تسجيل + حفظ الوصفة</button>' +
+      '</div>' +
+      '</div>'
+    : '';
+  const _ingLabel = _calcMode==='auto' ? '🔍 اختر المكونات التي تريدها' : '🔍 اختر المكونات ثم حدد الكميات';
+  const _ingCard  = '<div class="card" style="margin-bottom:14px">' +
+    '<div style="font-size:13px;font-weight:600;margin-bottom:12px">' + _ingLabel + '</div>' +
+    ingredientsHTML + carbHTML + actionHTML + '</div>';
+  const _builtCard = builtHTML
+    ? '<div class="card" style="margin-bottom:14px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
+        '<div style="font-size:13px;font-weight:600">📋 مكونات الوجبة</div>' +
+        '<button class="btn sm dng" onclick="_calcClearAll()">مسح الكل</button>' +
+      '</div>' + builtHTML + '</div>'
+    : '';
+  el.innerHTML = remHTML + modeHTML + _ingCard + _builtCard + nutritionHTML + saveHTML;
 
   // تهيئة الـ select القديم للتوافق
   _populateCsel();
@@ -5922,60 +5899,53 @@ function _calcSearchFood(query){
   if(!res) return;
   if(!query || query.length < 2){ res.style.display='none'; return; }
   const q = query.toLowerCase();
+  const mem2 = MEMBERS.find(m=>m.uid===CU?.id);
+  const favIds2 = mem2?.favorites_foods || [];
   const matches = FOODS.filter(f =>
     f.name.includes(query) || (f.name_en||'').toLowerCase().includes(q)
   ).slice(0,8);
   if(!matches.length){ res.style.display='none'; return; }
   res.style.display='block';
-  res.innerHTML = matches.map(f=>`<div
-    style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;display:flex;justify-content:space-between;align-items:center"
-    onclick="_toggleCalcFood(${f.id});document.getElementById('calc-search').value='';document.getElementById('calc-search-results').style.display='none'"
-    onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-    <span>${f.name}${favIds.includes(f.id)?' ⭐':''}</span>
-    <span style="font-size:11px;color:var(--text3)">${f.cat}</span>
-  </div>`).join('');
+  res.innerHTML = matches.map(function(f){
+    return '<div' +
+      ' style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;display:flex;justify-content:space-between;align-items:center"' +
+      ' onclick="_toggleCalcFood(' + f.id + ');document.getElementById('calc-search').value='';document.getElementById('calc-search-results').style.display='none'"' +
+      ' onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">' +
+      '<span>' + f.name + (favIds2.includes(f.id)?' ⭐':'') + '</span>' +
+      '<span style="font-size:11px;color:var(--text3)">' + f.cat + '</span>' +
+      '</div>';
+  }).join('');
 }
 
 function _renderCalcNutrition(){
-  const m = _calcMealRatio(calcItems);
+  const m = _calcMealRatio(calcItems.filter(i=>typeof i.fid==='number'));
   const ratioColor = m.ratio >= 2.0 ? 'var(--accent)' : m.ratio >= 1.5 ? '#f59e0b' : 'var(--danger)';
   const ratioLabel = m.ratio >= 2.0 ? 'ممتاز 🔥' : m.ratio >= 1.5 ? 'محفز ✓' : 'يحتاج تحسين';
   const ketoP = Math.min(Math.round(m.ratio / 3 * 100), 100);
 
-  return `<div class="calc-nutrition-card">
-    <div style="text-align:center;margin-bottom:12px">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">النسبة الكيتونية للوجبة</div>
-      <div class="calc-keto-ratio" style="color:${ratioColor}">${m.ratio}</div>
-      <div style="font-size:12px;color:${ratioColor};font-weight:600">${ratioLabel}</div>
-      <div style="height:6px;background:var(--surface2);border-radius:6px;margin:8px 0;overflow:hidden">
-        <div style="height:100%;width:${ketoP}%;background:${ratioColor};border-radius:6px;transition:width .6s"></div>
-      </div>
-    </div>
-    <div class="calc-macro-grid">
-      <div class="calc-macro-box">
-        <div class="calc-macro-box-val" style="color:var(--accent)">${m.fat}غ</div>
-        <div class="calc-macro-box-lbl">دهون</div>
-      </div>
-      <div class="calc-macro-box">
-        <div class="calc-macro-box-val" style="color:var(--info)">${m.prot}غ</div>
-        <div class="calc-macro-box-lbl">بروتين</div>
-      </div>
-      <div class="calc-macro-box">
-        <div class="calc-macro-box-val" style="color:var(--danger)">${m.nc}غ</div>
-        <div class="calc-macro-box-lbl">كارب صافٍ</div>
-      </div>
-      <div class="calc-macro-box">
-        <div class="calc-macro-box-val">${m.cal}</div>
-        <div class="calc-macro-box-lbl">سعرة</div>
-      </div>
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding-top:8px;border-top:1px solid var(--border)">
-      <span>دهون مشبعة: <strong>${_calcSatFatTotal()}غ</strong></span>
-      <span>ألياف: <strong>${_calcFiberTotal()}غ</strong></span>
-      <span>صوديوم: <strong>${_calcSodiumTotal()}ملغ</strong></span>
-    </div>
-  </div>`;
+  return '<div class="calc-nutrition-card">' +
+    '<div style="text-align:center;margin-bottom:12px">' +
+      '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">النسبة الكيتونية للوجبة</div>' +
+      '<div class="calc-keto-ratio" style="color:' + ratioColor + '">' + m.ratio + '</div>' +
+      '<div style="font-size:12px;color:' + ratioColor + ';font-weight:600">' + ratioLabel + '</div>' +
+      '<div style="height:6px;background:var(--surface2);border-radius:6px;margin:8px 0;overflow:hidden">' +
+        '<div style="height:100%;width:' + ketoP + '%;background:' + ratioColor + ';border-radius:6px;transition:width .6s"></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="calc-macro-grid">' +
+      '<div class="calc-macro-box"><div class="calc-macro-box-val" style="color:var(--accent)">' + m.fat + 'غ</div><div class="calc-macro-box-lbl">دهون</div></div>' +
+      '<div class="calc-macro-box"><div class="calc-macro-box-val" style="color:var(--info)">' + m.prot + 'غ</div><div class="calc-macro-box-lbl">بروتين</div></div>' +
+      '<div class="calc-macro-box"><div class="calc-macro-box-val" style="color:var(--danger)">' + m.nc + 'غ</div><div class="calc-macro-box-lbl">كارب صافٍ</div></div>' +
+      '<div class="calc-macro-box"><div class="calc-macro-box-val">' + m.cal + '</div><div class="calc-macro-box-lbl">سعرة</div></div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding-top:8px;border-top:1px solid var(--border)">' +
+      '<span>دهون مشبعة: <strong>' + _calcSatFatTotal() + 'غ</strong></span>' +
+      '<span>ألياف: <strong>' + _calcFiberTotal() + 'غ</strong></span>' +
+      '<span>صوديوم: <strong>' + _calcSodiumTotal() + 'ملغ</strong></span>' +
+    '</div>' +
+  '</div>';
 }
+
 
 function _calcSatFatTotal(){
   return Math.round(calcItems.reduce((s,i)=>{const f=FOODS.find(x=>x.id===i.fid);return s+(f?(f.sat_fat||0)*i.qty/100:0);},0)*10)/10;
@@ -6012,6 +5982,7 @@ function _toggleCalcFood(fid){
   rCalc();
 }
 
+function _calcExtClick(el){ _toggleCalcExtFood(el.getAttribute('data-type')); }
 function _toggleCalcExtFood(type){
   const extId = 'ext:' + type;
   const idx = _calcSelected.indexOf(extId);
