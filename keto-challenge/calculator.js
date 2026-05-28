@@ -220,6 +220,17 @@ function rCalc(){
 
 function _renderCalcItems(){
   if(!calcItems.length) return '';
+  // أولاً: أعد حساب qty من _sel لكل صنف لضمان التزامن
+  calcItems.forEach(function(item){
+    const isExt2   = typeof item.fid==='string' && item.fid.startsWith('ext:');
+    const numFid2  = isExt2 ? null : parseInt(item.fid);
+    const uType2   = isExt2 ? item.fid.replace('ext:','')
+      : (typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(numFid2) : null);
+    if(uType2 && item._sel && typeof calcGramsFromSel!=='undefined'){
+      const recalc = calcGramsFromSel(uType2, item._sel, numFid2||item.fid);
+      if(recalc && recalc > 0) item.qty = recalc;
+    }
+  });
   return calcItems.map(function(item){
     const isExt    = typeof item.fid === 'string' && item.fid.startsWith('ext:');
     const numFid   = isExt ? null : parseInt(item.fid);
@@ -300,8 +311,10 @@ function _renderCalcItems(){
       });
 
       // ملخص الغرام
-      const grams = typeof calcGramsFromSel!=='undefined' ? calcGramsFromSel(unitType, sel, numFid||item.fid) : item.qty;
-      const displayTxt = typeof getDisplayText!=='undefined' ? getDisplayText(unitType, sel, grams, numFid||item.fid) : grams + 'غ';
+      // item.qty محدَّث بالفعل من forEach أعلاه
+      const grams = item.qty;
+      const displayTxt = typeof getDisplayText!=='undefined'
+        ? getDisplayText(unitType, sel, grams, numFid||item.fid) : grams + 'غ';
       html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border);margin-top:4px">' +
         '<span style="font-size:11px;color:var(--text3)">' + displayTxt + '</span>' +
         '<div style="display:flex;gap:5px">' +
@@ -659,11 +672,11 @@ function _toggleCalcFood(fid){
     const ex = calcItems.find(i=>i.fid===numFid);
     if(ex) calcItems = calcItems.filter(i=>i.fid!==numFid);
     else {
-      // ابدأ بـ wizard إذا متاح
       const unitType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(numFid) : null;
-      const defSel = unitType ? _getDefaultSel(unitType, numFid) : {};
-      const qty = unitType ? (calcGramsFromSel(unitType, defSel, numFid)||100) : 100;
-      calcItems.push({fid:numFid, qty, _sel:defSel});
+      const defSel   = unitType ? _getDefaultSel(unitType, numFid) : {};
+      const qty      = (unitType && typeof calcGramsFromSel!=='undefined')
+        ? (calcGramsFromSel(unitType, defSel, numFid) || 100) : 100;
+      calcItems.push({fid:numFid, qty:qty, _sel:defSel});
     }
   }
   rCalc();
@@ -887,8 +900,20 @@ function _buildAutoMeal(){
     });
   }
 
+  // أعد حساب qty من _sel لكل صنف — لضمان التطابق
+  calcItems.forEach(function(item){
+    const isExt   = typeof item.fid === 'string' && item.fid.startsWith('ext:');
+    const numFid  = isExt ? null : parseInt(item.fid);
+    const unitType= isExt ? item.fid.replace('ext:','')
+      : (typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(numFid) : null);
+    if(unitType && item._sel && typeof calcGramsFromSel!=='undefined'){
+      const recalc = calcGramsFromSel(unitType, item._sel, numFid||item.fid);
+      if(recalc && recalc > 0) item.qty = recalc;
+    }
+  });
+
   _calcBuilt = true;
-  _calcMode  = 'manual'; // بعد البناء انتقل لوضع التعديل
+  _calcMode  = 'manual';
   rCalc();
 }
 
