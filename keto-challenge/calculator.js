@@ -218,6 +218,48 @@ function rCalc(){
   _populateCsel();
 }
 
+
+/* ─── fallback: استخدم cat من FOODS للأصناف بدون unitType ─── */
+function _calcGetUnitType(fid){
+  if(typeof getUnitTypeForFid !== 'undefined'){
+    const t = getUnitTypeForFid(fid);
+    if(t) return t;
+  }
+  // fallback من الـ category
+  const food = FOODS.find(function(f){ return f.id === fid; });
+  if(!food) return null;
+  if(food.cat === 'فواكه' || food.cat === 'فاكهة') return '_fruit';
+  if(food.cat && food.cat.includes('خضار'))  return '_veg_generic';
+  if(food.cat && food.cat.includes('مكسرات')) return '_nuts_generic';
+  return null;
+}
+
+/* ─── بناء خيارات الوحدة للأصناف generic ─── */
+function _getGenericSteps(unitType, food){
+  if(unitType === '_fruit'){
+    const modQty = food.qty_moderate || 20;
+    return [
+      {
+        key:'fruit_amount', label:'الكمية', type:'number',
+        min:5, max:100, step:5, default:modQty, unit:'غ'
+      }
+    ];
+  }
+  if(unitType === '_veg_generic' || unitType === '_nuts_generic'){
+    return [
+      { key:'generic_qty', label:'الكمية', type:'number', min:5, max:200, step:5, default:80, unit:'غ' }
+    ];
+  }
+  return null;
+}
+
+function _calcGramsGeneric(unitType, sel, food){
+  if(unitType === '_fruit')    return sel.fruit_amount  || food.qty_moderate || 20;
+  if(unitType === '_veg_generic')   return sel.generic_qty || 80;
+  if(unitType === '_nuts_generic')  return sel.generic_qty || 30;
+  return food.qty_moderate || 50;
+}
+
 function _renderCalcItems(){
   if(!calcItems.length) return '';
   // أولاً: أعد حساب qty من _sel لكل صنف لضمان التزامن
@@ -226,8 +268,15 @@ function _renderCalcItems(){
     const numFid2  = isExt2 ? null : parseInt(item.fid);
     const uType2   = isExt2 ? item.fid.replace('ext:','')
       : (typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(numFid2) : null);
-    if(uType2 && item._sel && typeof calcGramsFromSel!=='undefined'){
-      const recalc = calcGramsFromSel(uType2, item._sel, numFid2||item.fid);
+    if(uType2 && item._sel){
+      let recalc = 0;
+      if(uType2.startsWith('_')){
+        // generic type
+        const food2 = FOODS.find(function(x){ return x.id === numFid2; });
+        recalc = _calcGramsGeneric(uType2, item._sel, food2||{qty_moderate:50});
+      } else if(typeof calcGramsFromSel!=='undefined'){
+        recalc = calcGramsFromSel(uType2, item._sel, numFid2||item.fid);
+      }
       if(recalc && recalc > 0) item.qty = recalc;
     }
   });
@@ -235,9 +284,7 @@ function _renderCalcItems(){
     const isExt    = typeof item.fid === 'string' && item.fid.startsWith('ext:');
     const numFid   = isExt ? null : parseInt(item.fid);
     const f        = isExt ? null : FOODS.find(function(x){ return x.id === numFid; });
-    const unitType = typeof UNIT_INTELLIGENCE!=='undefined'
-      ? (isExt ? item.fid.replace('ext:','') : getUnitTypeForFid(numFid))
-      : null;
+    const unitType = (isExt ? item.fid.replace('ext:','') : _calcGetUnitType(numFid));
     const def      = unitType ? UNIT_INTELLIGENCE[unitType] : null;
     const sel      = item._sel || {};
 
@@ -269,10 +316,14 @@ function _renderCalcItems(){
     '</div>';
 
     // ── خيارات الوحدة inline ──
-    if(def && def.steps){
+    // steps: من UNIT_INTELLIGENCE أو من generic
+    const genericSteps = (!def || !def.steps) ? _getGenericSteps(unitType, f||{qty_moderate:50}) : null;
+    const activeSteps  = (def && def.steps) ? def.steps : genericSteps;
+
+    if(activeSteps){
       html += '<div style="padding:8px 12px;display:flex;flex-direction:column;gap:8px">';
 
-      def.steps.forEach(function(step){
+      activeSteps.forEach(function(step){
         // تحقق show_if
         if(step.show_if){
           if(sel[step.show_if.key] !== step.show_if.val) return;
@@ -313,8 +364,15 @@ function _renderCalcItems(){
       // ملخص الغرام
       // item.qty محدَّث بالفعل من forEach أعلاه
       const grams = item.qty;
-      const displayTxt = typeof getDisplayText!=='undefined'
-        ? getDisplayText(unitType, sel, grams, numFid||item.fid) : grams + 'غ';
+      let displayTxt;
+      if(def && typeof getDisplayText!=='undefined'){
+        displayTxt = getDisplayText(unitType, sel, grams, numFid||item.fid);
+      } else if(unitType && unitType.startsWith('_')){
+        // generic: عرض بسيط
+        displayTxt = grams + 'غ';
+      } else {
+        displayTxt = grams + 'غ';
+      }
       html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border);margin-top:4px">' +
         '<span style="font-size:11px;color:var(--text3)">' + displayTxt + '</span>' +
         '<div style="display:flex;gap:5px">' +
@@ -1055,28 +1113,62 @@ function _getPhaseKetoTarget(phase){
   return targets[phase] || 1.5;
 }
 
-/* ─── تعديل الدهون لتحقيق النسبة الكيتونية ─── */
+/* ─── تعديل الوجبة لتحقيق النسبة الكيتونية ─── */
 function _adjustForKetoRatio(targetRatio){
   if(!calcItems.length) return;
+
   // احسب النسبة الحالية
-  const totals = {fat:0, prot:0, nc:0};
-  calcItems.forEach(function(item){
-    if(typeof item.fid !== 'number') return;
-    const f = FOODS.find(function(x){ return x.id===item.fid; });
-    if(!f) return;
-    totals.fat  += f.fat      * item.qty / 100;
-    totals.prot += f.protein  * item.qty / 100;
-    totals.nc   += f.net_carb * item.qty / 100;
+  function getTotals(){
+    const t = {fat:0, prot:0, nc:0};
+    calcItems.forEach(function(item){
+      if(typeof item.fid !== 'number') return;
+      const f = FOODS.find(function(x){ return x.id===item.fid; });
+      if(!f) return;
+      t.fat  += f.fat      * item.qty / 100;
+      t.prot += f.protein  * item.qty / 100;
+      t.nc   += f.net_carb * item.qty / 100;
+    });
+    return t;
+  }
+
+  let totals = getTotals();
+  let denom  = totals.prot * 0.6 + totals.nc;
+  let curRatio = denom > 0 ? totals.fat / denom : 0;
+  if(curRatio >= targetRatio) return;
+
+  // ── خطوة 1: قلّل مصادر الكارب العالية ──
+  const highCarbItems = calcItems.filter(function(i){
+    if(typeof i.fid !== 'number') return false;
+    const f = FOODS.find(function(x){ return x.id===i.fid; });
+    return f && f.net_carb > 5 && i.qty > 10;
+  }).sort(function(a,b){
+    const fa = FOODS.find(function(x){ return x.id===a.fid; });
+    const fb = FOODS.find(function(x){ return x.id===b.fid; });
+    return (fb.net_carb*b.qty) - (fa.net_carb*a.qty); // الأعلى كارب أولاً
   });
-  const denom   = totals.prot * 0.6 + totals.nc;
-  const curRatio= denom > 0 ? totals.fat / denom : 0;
-  if(curRatio >= targetRatio) return; // النسبة كافية
 
-  // نحتاج نزيد الدهن
-  const fatNeeded = targetRatio * denom - totals.fat;
-  if(fatNeeded <= 0) return;
+  for(let attempt = 0; attempt < 3 && curRatio < targetRatio; attempt++){
+    highCarbItems.forEach(function(item){
+      if(curRatio >= targetRatio) return;
+      const f = FOODS.find(function(x){ return x.id===item.fid; });
+      if(!f) return;
+      const minQty = Math.max(f.qty_moderate ? f.qty_moderate * 0.25 : 10, 5);
+      if(item.qty <= minQty) return;
+      // قلّل بـ 25% في كل مرة
+      item.qty = Math.max(Math.round(item.qty * 0.75 / 5) * 5, minQty);
+      // حدّث _sel
+      const uType = _calcGetUnitType(item.fid);
+      if(uType && !uType.startsWith('_')) item._sel = _buildSelForItem(uType, item.fid, item.qty);
+      else if(uType === '_fruit') item._sel = {fruit_amount: item.qty};
+      totals = getTotals();
+      denom  = totals.prot * 0.6 + totals.nc;
+      curRatio = denom > 0 ? totals.fat / denom : 0;
+    });
+  }
 
-  // ابحث عن أول دهن في القائمة وزد كميته
+  if(curRatio >= targetRatio) return;
+
+  // ── خطوة 2: إذا لم يكفِ → زد الدهن ──
   const fatItem = calcItems.find(function(i){
     if(typeof i.fid !== 'number') return false;
     const f = FOODS.find(function(x){ return x.id===i.fid; });
@@ -1084,13 +1176,19 @@ function _adjustForKetoRatio(targetRatio){
   });
   if(!fatItem) return;
 
+  totals = getTotals();
+  denom  = totals.prot * 0.6 + totals.nc;
+  if(denom <= 0) return;
+  const fatNeeded = Math.max(targetRatio * denom - totals.fat, 0);
+  if(fatNeeded <= 0) return;
+
   const f2 = FOODS.find(function(x){ return x.id===fatItem.fid; });
   if(!f2 || !f2.fat) return;
   const addGrams = Math.round(fatNeeded / f2.fat * 100 / 5) * 5;
-  fatItem.qty += addGrams;
-  // حدّث _sel لتعكس الكمية الجديدة
-  const uType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(fatItem.fid) : null;
-  if(uType) fatItem._sel = _buildSelForItem(uType, fatItem.fid, fatItem.qty);
+  fatItem.qty = Math.min(fatItem.qty + addGrams, 60); // سقف 60غ للدهون
+  const uType2 = _calcGetUnitType(fatItem.fid);
+  if(uType2 && !uType2.startsWith('_'))
+    fatItem._sel = _buildSelForItem(uType2, fatItem.fid, fatItem.qty);
 }
 
 
