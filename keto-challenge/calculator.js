@@ -688,9 +688,49 @@ function _getDefaultSel(unitType, fid){
   if(!def) return {};
   const sel = {};
   def.steps.forEach(function(step){
-    if(step.options && step.options.length) sel[step.key] = step.options[0].val;
-    else if(step.type==='number') sel[step.key] = step.default || 1;
+    if(step.options && step.options.length){
+      // اختر خيار بـ default:true إن وجد، وإلا الأول
+      const defOpt = step.options.find(function(o){ return o.default; });
+      sel[step.key] = defOpt ? defOpt.val : step.options[0].val;
+    } else if(step.type==='number'){
+      sel[step.key] = step.default || 1;
+    }
   });
+  // قيم افتراضية ذكية حسب النوع
+  if(unitType === 'egg'){
+    sel.egg_size  = sel.egg_size  || 'medium';
+    sel.egg_count = sel.egg_count || 2;
+    sel.egg_type  = sel.egg_type  || 'regular';
+  }
+  if(unitType === 'oil'){
+    sel.oil_unit   = 'tbsp';
+    sel.oil_amount = 1;
+  }
+  if(unitType === 'butter'){
+    sel.butter_unit   = 'tbsp';
+    sel.butter_amount = 1;
+  }
+  if(unitType === 'leafy_veg'){
+    sel.leaf_unit   = 'cup';
+    sel.leaf_amount = 1;
+  }
+  if(unitType === 'whole_veg'){
+    sel.veg_unit   = 'piece';
+    sel.veg_size   = 'medium';
+    sel.veg_amount = 1;
+  }
+  if(unitType === 'avocado'){
+    sel.avo_size    = 'medium';
+    sel.avo_portion = 'half';
+  }
+  if(unitType === 'nuts'){
+    sel.nut_unit   = 'handful';
+    sel.nut_amount = 1;
+  }
+  if(unitType === 'cheese'){
+    sel.cheese_unit   = 'slice';
+    sel.cheese_amount = 2;
+  }
   return sel;
 }
 
@@ -776,18 +816,67 @@ function _buildAutoMeal(){
   },0);
   const fatTarget = Math.max((rem.fat||40) - protFat, 10);
 
-  // أضف الدهون
-  fats.forEach(f=>{
-    const share = fatTarget / Math.max(fats.length,1);
-    const qty   = f.fat>0 ? Math.round(Math.min(share/f.fat*100, f.fat>=80?35:60)/5)*5 : 15;
-    calcItems.push({fid:f.id, qty:Math.max(qty,5)});
+  // أضف الدهون — مع _sel ذكي
+  fats.forEach(function(f){
+    const unitType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(f.id) : null;
+    const share    = fatTarget / Math.max(fats.length,1);
+    let defSel = unitType ? _getDefaultSel(unitType, f.id) : {};
+
+    let qty;
+    if(unitType === 'oil'){
+      // زيت → ملاعق كبيرة: كم ملعقة تحقق الهدف؟
+      const tbspNeeded = Math.round(share / 12.4); // 14غ × 0.886 = 12.4غ دهن/ملعقة
+      const tbspFinal  = Math.max(Math.min(tbspNeeded, 3), 1);
+      defSel = {oil_unit:'tbsp', oil_amount:tbspFinal};
+      qty = tbspFinal * 14;
+    } else if(unitType === 'butter'){
+      const tbspNeeded = Math.round(share / 11.3); // 14غ × 0.81 = 11.3غ دهن/ملعقة
+      const tbspFinal  = Math.max(Math.min(tbspNeeded, 2), 1);
+      defSel = {butter_unit:'tbsp', butter_amount:tbspFinal};
+      qty = tbspFinal * 14;
+    } else if(unitType === 'avocado'){
+      // نصف أفوكادو متوسطة افتراضياً
+      defSel = {avo_size:'medium', avo_portion:'half'};
+      qty = typeof calcGramsFromSel!=='undefined' ? calcGramsFromSel(unitType, defSel, f.id) : 49;
+    } else if(unitType === 'nuts'){
+      defSel = {nut_unit:'handful', nut_amount:1};
+      qty = 25;
+    } else if(unitType === 'cheese'){
+      defSel = {cheese_unit:'slice', cheese_amount:2};
+      qty = 40;
+    } else {
+      // دهن غير معروف → حساب رقمي
+      qty = f.fat>0 ? Math.round(Math.min(share/f.fat*100, f.fat>=80?35:60)/5)*5 : 15;
+    }
+    calcItems.push({fid:f.id, qty:Math.max(qty||10, 5), _sel:defSel});
   });
 
-  // أضف الخضار
-  vegs.forEach(f=>{ calcItems.push({fid:f.id, qty:80}); });
+  // أضف الخضار — مع _sel ذكي
+  vegs.forEach(function(f){
+    const unitType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(f.id) : null;
+    let defSel = {};
+    let qty = 80;
+    if(unitType === 'leafy_veg'){
+      defSel = {leaf_unit:'cup', leaf_amount:1};
+      qty = 60;
+    } else if(unitType === 'whole_veg'){
+      defSel = {veg_unit:'piece', veg_size:'medium', veg_amount:1};
+      qty = typeof calcGramsFromSel!=='undefined' ? calcGramsFromSel(unitType, defSel, f.id) : 100;
+    } else if(unitType === 'avocado'){
+      defSel = {avo_size:'medium', avo_portion:'half'};
+      qty = 49;
+    }
+    calcItems.push({fid:f.id, qty:qty, _sel:defSel});
+  });
 
   // أضف البقية
-  rest.forEach(f=>{ calcItems.push({fid:f.id, qty:30}); });
+  rest.forEach(function(f){
+    const unitType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(f.id) : null;
+    const defSel   = unitType ? _getDefaultSel(unitType, f.id) : {};
+    const qty      = (unitType && typeof calcGramsFromSel!=='undefined')
+      ? calcGramsFromSel(unitType, defSel, f.id) || 30 : 30;
+    calcItems.push({fid:f.id, qty:qty, _sel:defSel});
+  });
 
   // تحقق من حد الكارب وقلل الخضار إذا لزم
   const totalNc = calcItems.reduce((s,i)=>{const f=FOODS.find(x=>x.id===i.fid);return s+(f?f.net_carb*i.qty/100:0);},0);
