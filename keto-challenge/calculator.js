@@ -68,6 +68,7 @@ function rCalc(){
   if(!el) return;
 
   // ─── شريط المتبقي ───
+  const rem     = (mem && typeof getDayRemaining!=='undefined') ? getDayRemaining(mem) : null;
   const remHTML = rem
     ? '<div class="calc-remaining-bar" style="margin-bottom:16px">' +
       '<div class="calc-rem-item"><div class="calc-rem-val" style="color:var(--accent)">' + Math.round(rem.fat) + 'غ</div><div class="calc-rem-lbl">دهون متبقية</div></div>' +
