@@ -220,54 +220,165 @@ function rCalc(){
 
 function _renderCalcItems(){
   if(!calcItems.length) return '';
-  return calcItems.map(item => {
-    const isExt = typeof item.fid === 'string' && item.fid.startsWith('ext:');
-    const f = isExt ? null : FOODS.find(x=>x.id===item.fid);
+  return calcItems.map(function(item){
+    const isExt    = typeof item.fid === 'string' && item.fid.startsWith('ext:');
+    const numFid   = isExt ? null : parseInt(item.fid);
+    const f        = isExt ? null : FOODS.find(function(x){ return x.id === numFid; });
     const unitType = typeof UNIT_INTELLIGENCE!=='undefined'
-      ? (isExt ? item.fid.replace('ext:','') : getUnitTypeForFid(item.fid))
+      ? (isExt ? item.fid.replace('ext:','') : getUnitTypeForFid(numFid))
       : null;
-    const sel = item._sel || {};
-    const displayText = unitType && typeof getDisplayText!=='undefined'
-      ? getDisplayText(unitType, sel, item.qty, item.fid)
-      : item.qty + 'غ';
+    const def      = unitType ? UNIT_INTELLIGENCE[unitType] : null;
+    const sel      = item._sel || {};
 
-    // الماكرو
+    // ماكرو
     let m;
     if(isExt && unitType && typeof getExternalMacros!=='undefined'){
       m = getExternalMacros(unitType, sel, item.qty) || {fat:0,prot:0,nc:0,cal:0};
-    } else if(f) {
-      m = _calcMealRatio([{fid:item.fid,qty:item.qty}]);
+    } else if(f){
+      m = _calcMealRatio([{fid:numFid, qty:item.qty}]);
+    } else { m = {fat:0,prot:0,nc:0,cal:0}; }
+
+    const name = isExt ? (def&&def.label||item.fid) : (f&&f.name||'—');
+    const fidKey = String(item.fid).replace(':','_');
+
+    // ── بناء الصف ──
+    let html = '<div class="calc-item-block" id="calc-row-' + fidKey + '" style="' +
+      'background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);' +
+      'margin-bottom:8px;overflow:hidden">';
+
+    // شريط العنوان
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--border)">' +
+      '<div style="font-size:13px;font-weight:600">' + name + '</div>' +
+      '<div style="display:flex;align-items:center;gap:6px">' +
+        '<span class="calc-macro-pill fat">' + m.fat + 'غ د</span>' +
+        '<span class="calc-macro-pill prot">' + m.prot + 'غ ب</span>' +
+        '<span class="calc-macro-pill carb">' + m.nc + 'غ ك</span>' +
+        '<button class="btn sm dng" onclick="_calcRemItem(\'' + fidKey + '\')">✕</button>' +
+      '</div>' +
+    '</div>';
+
+    // ── خيارات الوحدة inline ──
+    if(def && def.steps){
+      html += '<div style="padding:8px 12px;display:flex;flex-direction:column;gap:8px">';
+
+      def.steps.forEach(function(step){
+        // تحقق show_if
+        if(step.show_if){
+          if(sel[step.show_if.key] !== step.show_if.val) return;
+        }
+        html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+          '<div style="font-size:11px;color:var(--text3);font-weight:600;min-width:55px;text-align:right">' + step.label + ':</div>';
+
+        if(step.type === 'number'){
+          const val = sel[step.key] !== undefined ? sel[step.key] : (step.default||1);
+          const stepN = step.step || 1;
+          html += '<div style="display:flex;align-items:center;gap:5px">' +
+            '<button class="btn sm" onclick="_inlineStep(\'' + fidKey + '\',\'' + step.key + '\',' + (-stepN) + ',' + (step.min||0) + ',' + (step.max||99) + ',' + stepN + ')"  >−</button>' +
+            '<input type="number" value="' + val + '" min="' + (step.min||0) + '" max="' + (step.max||99) + '" step="' + stepN + '"' +
+            ' style="width:60px;text-align:center;font-family:var(--mono);padding:4px 6px;font-size:13px"' +
+            ' onchange="_inlineSet(\'' + fidKey + '\',\'' + step.key + '\',parseFloat(this.value))">' +
+            '<button class="btn sm" onclick="_inlineStep(\'' + fidKey + '\',\'' + step.key + '\',' + stepN + ',' + (step.min||0) + ',' + (step.max||99) + ',' + stepN + ')">+</button>' +
+            (step.unit ? '<span style="font-size:11px;color:var(--text3)">' + step.unit + '</span>' : '') +
+          '</div>';
+        } else {
+          step.options.forEach(function(opt){
+            const isSel = (sel[step.key] === opt.val) ||
+              (!sel[step.key] && opt === step.options[0]);
+            const bg  = isSel ? 'var(--accent-light)' : 'var(--surface)';
+            const bc  = isSel ? 'var(--accent)' : 'var(--border)';
+            const fc  = isSel ? 'var(--accent)' : 'var(--text2)';
+            const fw  = isSel ? '600' : '400';
+            html += '<div onclick="_inlineOpt(\'' + fidKey + '\',\'' + step.key + '\',\'' + opt.val + '\')"' +
+              ' style="padding:5px 10px;border-radius:100px;font-size:11px;cursor:pointer;' +
+              'border:1px solid ' + bc + ';background:' + bg + ';color:' + fc + ';font-weight:' + fw + ';transition:all .15s">' +
+              opt.label +
+              (opt.note ? '<br><span style="font-size:10px;opacity:.6">' + opt.note + '</span>' : '') +
+            '</div>';
+          });
+        }
+        html += '</div>'; // end step row
+      });
+
+      // ملخص الغرام
+      const grams = typeof calcGramsFromSel!=='undefined' ? calcGramsFromSel(unitType, sel, numFid||item.fid) : item.qty;
+      const displayTxt = typeof getDisplayText!=='undefined' ? getDisplayText(unitType, sel, grams, numFid||item.fid) : grams + 'غ';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border);margin-top:4px">' +
+        '<span style="font-size:11px;color:var(--text3)">' + displayTxt + '</span>' +
+        '<div style="display:flex;gap:5px">' +
+          '<button class="btn sm" onclick="_inlineQuickStep(\'' + fidKey + '\',-1)">−</button>' +
+          '<span style="font-family:var(--mono);font-size:12px;font-weight:600;padding:4px 8px;background:var(--surface);border-radius:var(--radius-sm)">' + grams + 'غ</span>' +
+          '<button class="btn sm" onclick="_inlineQuickStep(\'' + fidKey + '\',1)">+</button>' +
+        '</div>' +
+      '</div>';
+
+      html += '</div>'; // end steps container
     } else {
-      m = {fat:0,prot:0,nc:0,cal:0};
+      // صنف بدون wizard — عرض بسيط
+      html += '<div style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between">' +
+        '<span style="font-size:11px;color:var(--text3)">' + item.qty + 'غ</span>' +
+        '<div style="display:flex;gap:5px">' +
+          '<button class="btn sm" onclick="_inlineQuickStep(\'' + fidKey + '\',-1)">−</button>' +
+          '<button class="btn sm" onclick="_inlineQuickStep(\'' + fidKey + '\',1)">+</button>' +
+        '</div>' +
+      '</div>';
     }
 
-    const name = isExt
-      ? (UNIT_INTELLIGENCE[unitType]?.label || item.fid)
-      : (f?.name || '—');
-
-    // تحقق إذا عنده wizard
-    const hasWizard = !!unitType;
-
-    const rowId = 'calc-row-' + String(item.fid).replace(':','_');
-    return '<div class="calc-item-row" id="' + rowId + '">' +
-      '<div class="calc-item-name">' + name + '</div>' +
-      '<div style="flex:1;text-align:center">' +
-        '<div style="font-size:11px;color:var(--text3)">' + displayText + '</div>' +
-      '</div>' +
-      '<div style="display:flex;align-items:center;gap:4px">' +
-        '<button class="btn sm" onclick="_calcStepItem(\'' + item.fid + '\',-1)">−</button>' +
-        '<button class="btn sm" onclick="_calcStepItem(\'' + item.fid + '\',1)">+</button>' +
-        (hasWizard ? '<button class="btn sm" style="font-size:10px" onclick="_openUnitWizard(\'' + item.fid + '\')" title="تعديل الوحدة">⚖️</button>' : '') +
-      '</div>' +
-      '<div class="calc-item-macros">' +
-        '<span class="calc-macro-pill fat">' + m.fat + 'غ</span>' +
-        '<span class="calc-macro-pill prot">' + m.prot + 'غ</span>' +
-        '<span class="calc-macro-pill carb">' + m.nc + 'غ</span>' +
-      '</div>' +
-      '<button class="btn sm dng" onclick="_calcRemItem(\'' + item.fid + '\')">✕</button>' +
-    '</div>';
+    html += '</div>'; // end block
+    return html;
   }).join('');
 }
+
+/* ─── دوال التعديل الـ inline ─── */
+function _inlineOpt(fidKey, stepKey, val){
+  const item = calcItems.find(function(i){ return String(i.fid).replace(':','_') === fidKey; });
+  if(!item) return;
+  if(!item._sel) item._sel = {};
+  item._sel[stepKey] = val;
+  // أعد حساب qty من الـ wizard
+  const isExt   = String(item.fid).startsWith('ext:');
+  const numFid  = isExt ? null : parseInt(item.fid);
+  const unitType= isExt ? item.fid.replace('ext:','') : (typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(numFid) : null);
+  if(unitType && typeof calcGramsFromSel!=='undefined'){
+    item.qty = calcGramsFromSel(unitType, item._sel, numFid||item.fid) || item.qty;
+  }
+  // تحديث الـ fid إذا تغيّر (مثل الدجاج — صدر/فخذ)
+  if(unitType && typeof getFidFromSel!=='undefined' && !isExt){
+    const newFid = getFidFromSel(unitType, item._sel, numFid);
+    if(newFid && newFid !== numFid) item.fid = newFid;
+  }
+  rCalc();
+}
+
+function _inlineStep(fidKey, stepKey, delta, min, max, stepSize){
+  const item = calcItems.find(function(i){ return String(i.fid).replace(':','_') === fidKey; });
+  if(!item) return;
+  if(!item._sel) item._sel = {};
+  const cur = parseFloat(item._sel[stepKey]) || 1;
+  item._sel[stepKey] = Math.max(min, Math.min(max, Math.round((cur + delta) * 10) / 10));
+  const isExt  = String(item.fid).startsWith('ext:');
+  const numFid = isExt ? null : parseInt(item.fid);
+  const uType  = isExt ? item.fid.replace('ext:','') : (typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(numFid) : null);
+  if(uType && typeof calcGramsFromSel!=='undefined'){
+    item.qty = calcGramsFromSel(uType, item._sel, numFid||item.fid) || item.qty;
+  }
+  rCalc();
+}
+
+function _inlineSet(fidKey, stepKey, val){
+  _inlineStep(fidKey, stepKey, 0, -Infinity, Infinity, 1);
+  const item = calcItems.find(function(i){ return String(i.fid).replace(':','_') === fidKey; });
+  if(item){ item._sel[stepKey] = val; _inlineOpt(fidKey, stepKey, val); }
+}
+
+function _inlineQuickStep(fidKey, dir){
+  const item = calcItems.find(function(i){ return String(i.fid).replace(':','_') === fidKey; });
+  if(!item) return;
+  const step = item.qty >= 100 ? 10 : item.qty >= 20 ? 5 : 1;
+  item.qty = Math.max(1, item.qty + dir * step);
+  // حاول تحديث الـ _sel ليتوافق مع الكمية الجديدة
+  rCalc();
+}
+
 
 /* ─── فتح wizard الوحدة ─── */
 let _activeWizardFid = null;
@@ -602,9 +713,14 @@ function _calcSetQty(fid, val){
   rCalc();
 }
 
-function _calcRemItem(fid){
-  calcItems = calcItems.filter(i=>i.fid!==fid);
-  _calcSelected = _calcSelected.filter(id=>id!==fid);
+function _calcRemItem(fidKey){
+  // fidKey = String(item.fid).replace(':','_')
+  calcItems = calcItems.filter(function(i){
+    return String(i.fid).replace(':','_') !== fidKey;
+  });
+  _calcSelected = _calcSelected.filter(function(id){
+    return String(id).replace(':','_') !== fidKey;
+  });
   rCalc();
 }
 
@@ -630,20 +746,28 @@ function _buildAutoMeal(){
   calcItems = [];
 
   // أضف البروتين — من هدف البروتين المتبقي
+  const mem2 = MEMBERS.find(function(m){ return m.uid === (CU && CU.id); });
+  const prefs2 = (mem2 && typeof getMemPrefs!=='undefined') ? getMemPrefs(mem2) : {};
   proteins.forEach(function(f){
     const unitType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(f.id) : null;
-    const defSel   = unitType ? _getDefaultSel(unitType, f.id) : {};
-    // إذا عنده wizard → استخدم كميته الطبيعية كنقطة بداية
-    const naturalQty = (unitType && typeof calcGramsFromSel!=='undefined')
-      ? calcGramsFromSel(unitType, defSel, f.id) : 0;
-    // احسب الكمية من الهدف
-    const targetProt = (rem.protein||30) / Math.max(proteins.length,1);
-    const calcQty = f.protein>0 ? Math.round(targetProt/f.protein*100/5)*5 : 100;
-    // اختر الأصغر بين الحاجة والكمية المعقولة
-    const qty = naturalQty > 0
-      ? Math.min(Math.max(calcQty, naturalQty), naturalQty * 3)
-      : Math.max(Math.min(calcQty, 200), 50);
-    calcItems.push({fid:f.id, qty:Math.round(qty/5)*5, _sel:defSel});
+    // بناء defSel ذكي
+    const defSel = unitType ? _getDefaultSel(unitType, f.id) : {};
+    // البيض: استخدم التفضيلات (عدد البيضات المفضل)
+    if(unitType === 'egg'){
+      defSel.egg_size  = 'medium'; // 55غ
+      defSel.egg_count = prefs2.preferred_egg_count || 2;
+      defSel.egg_type  = 'regular';
+    }
+    // الدجاج: صدر متوسط افتراضي
+    if(unitType === 'chicken'){
+      defSel.chicken_cut   = 'breast_no';
+      defSel.chicken_count = 1;
+      defSel.chicken_state = 'raw';
+    }
+    const qty = (unitType && typeof calcGramsFromSel!=='undefined')
+      ? calcGramsFromSel(unitType, defSel, f.id)
+      : Math.min(Math.max(Math.round(((rem.protein||30)/Math.max(proteins.length,1))/f.protein*100/5)*5, 50), 200);
+    calcItems.push({fid:f.id, qty:Math.max(qty||50, 10), _sel:defSel});
   });
 
   // احسب ما تبقى من دهن بعد البروتين
