@@ -5618,7 +5618,7 @@ function rCalc(){
         if(!def) return;
         const isSel = _calcSelected.includes('ext:'+type);
         ingredientsHTML += '<span class="calc-food-chip' + (isSel?' selected':'') + '" style="border-color:rgba(239,83,80,.3);color:var(--danger)"' +
-          ' onclick="_toggleCalcFood('ext:'+type+'')">' + def.label + ' ⚠️</span>';
+          ' onclick="_toggleCalcExtFood('' + type + '')">' + def.label + ' ⚠️</span>';
       });
       ingredientsHTML += '</div>';
       return;
@@ -5993,16 +5993,47 @@ function _setCalcCarb(v){ _calcCarbLimit = v; rCalc(); }
 function _setCalcUnit(u){ _calcUnit = u; rCalc(); }
 
 function _toggleCalcFood(fid){
-  const idx = _calcSelected.indexOf(fid);
+  // fid رقمي دائماً هنا
+  const numFid = parseInt(fid);
+  const idx = _calcSelected.indexOf(numFid);
   if(idx > -1) _calcSelected.splice(idx,1);
-  else         _calcSelected.push(fid);
-  // في الوضع اليدوي — أضف مباشرة لـ calcItems
+  else         _calcSelected.push(numFid);
   if(_calcMode === 'manual'){
-    const ex = calcItems.find(i=>i.fid===fid);
-    if(ex) calcItems = calcItems.filter(i=>i.fid!==fid);
-    else   calcItems.push({fid, qty:100});
+    const ex = calcItems.find(i=>i.fid===numFid);
+    if(ex) calcItems = calcItems.filter(i=>i.fid!==numFid);
+    else {
+      // ابدأ بـ wizard إذا متاح
+      const unitType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(numFid) : null;
+      const defSel = unitType ? _getDefaultSel(unitType, numFid) : {};
+      const qty = unitType ? (calcGramsFromSel(unitType, defSel, numFid)||100) : 100;
+      calcItems.push({fid:numFid, qty, _sel:defSel});
+    }
   }
   rCalc();
+}
+
+function _toggleCalcExtFood(type){
+  const extId = 'ext:' + type;
+  const idx = _calcSelected.indexOf(extId);
+  if(idx > -1) _calcSelected.splice(idx,1);
+  else         _calcSelected.push(extId);
+  if(_calcMode === 'manual'){
+    const ex = calcItems.find(i=>i.fid===extId);
+    if(ex) calcItems = calcItems.filter(i=>i.fid!==extId);
+    else   calcItems.push({fid:extId, qty:50, _sel:{}});
+  }
+  rCalc();
+}
+
+function _getDefaultSel(unitType, fid){
+  const def = typeof UNIT_INTELLIGENCE!=='undefined' ? UNIT_INTELLIGENCE[unitType] : null;
+  if(!def) return {};
+  const sel = {};
+  def.steps.forEach(function(step){
+    if(step.options && step.options.length) sel[step.key] = step.options[0].val;
+    else if(step.type==='number') sel[step.key] = step.default || 1;
+  });
+  return sel;
 }
 
 function _calcStepQty(fid, delta){
