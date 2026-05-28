@@ -1147,8 +1147,6 @@ function _inlineQuickStep(fidKey, dir){
 
 
 /* ─── فتح wizard الوحدة ─── */
-let _activeWizardFid = null;
-let _wizardSel = {};
 
 function _openUnitWizard(fid){
   const item = calcItems.find(i=>String(i.fid)===String(fid));
