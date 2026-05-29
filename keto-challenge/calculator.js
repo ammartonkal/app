@@ -1087,15 +1087,21 @@ function _buildAutoMeal(){
   const selFids  = _calcSelected.filter(function(id){ return typeof id==='number'; });
   const selFoods = selFids.map(function(id){ return FOODS.find(function(f){ return f.id===id; }); }).filter(Boolean);
 
-  // مصادر الكارب: خضار + فواكه + مكسرات + ألبان (net_carb > 0.5)
-  const carbSrcs  = selFoods.filter(function(f){ return f.net_carb>0.5 && f.protein<15 && f.fat<25; });
-  // مصادر البروتين: protein > 8 أو بيض
-  const protSrcs  = selFoods.filter(function(f){ return f.protein>8 || f.id===10; });
-  // مصادر الدهون: fat > 25 وليست بروتين عالٍ
-  const fatSrcs   = selFoods.filter(function(f){
-    return f.fat>25 && f.protein<10 &&
-           !carbSrcs.find(function(c){ return c.id===f.id; }) &&
-           !protSrcs.find(function(p){ return p.id===f.id; });
+  // ترتيب التصنيف: بروتين أولاً ← ثم دهون ← ثم كارب
+  // مصادر البروتين: protein > 8 أو بيض أو لحوم أو أسماك
+  const protSrcs = selFoods.filter(function(f){
+    return f.protein > 8 || f.id === 10 ||
+           ['بروتين','دواجن','لحوم','أسماك'].some(function(c){ return f.cat&&f.cat.includes(c); });
+  });
+  // مصادر الدهون: fat > 30 وليست بروتين رئيسي
+  const fatSrcs = selFoods.filter(function(f){
+    return f.fat > 30 && !protSrcs.find(function(p){ return p.id===f.id; });
+  });
+  // مصادر الكارب: ما تبقى (خضار، فواكه، مكسرات) — يُستثنى منها البروتين والدهون
+  const carbSrcs = selFoods.filter(function(f){
+    return !protSrcs.find(function(p){ return p.id===f.id; }) &&
+           !fatSrcs.find(function(ft){ return ft.id===f.id; }) &&
+           f.net_carb > 0.5;
   });
 
   calcItems = [];
@@ -1155,21 +1161,49 @@ function _buildAutoMeal(){
   const fatFromCal  = calRemain / 9;
   const fatToAdd    = Math.min(Math.max(fatForKeto, fatForGoal), fatFromCal);
 
-  const perFatSrc   = fatSrcs.length>0 ? fatToAdd / fatSrcs.length : 0;
+  // ── حساب الدهن المضمون لتحقيق النسبة الكيتونية ──
+  // نحسب ماكرو ما تم إضافته حتى الآن
+  const soFarMac = (function(){
+    const t={fat:0,prot:0,nc:0};
+    calcItems.forEach(function(i){
+      const f2=FOODS.find(function(x){return x.id===i.fid;});
+      if(!f2)return;
+      t.fat+=f2.fat*i.qty/100; t.prot+=f2.protein*i.qty/100; t.nc+=f2.net_carb*i.qty/100;
+    });
+    return t;
+  })();
+  const denomNow    = soFarMac.prot*0.6 + soFarMac.nc;
+  const fatForKeto  = denomNow>0 ? Math.max(ketoTarget*denomNow - soFarMac.fat, 0) : 20;
+  // الدهن لإكمال هدف الوجبة من المتبقي
+  const fatForGoal  = Math.max(mealTargets.fat - soFarMac.fat, 0);
+  // نأخذ الأكبر — الأولوية للنسبة الكيتونية
+  const fatNeededTotal = Math.max(fatForKeto, fatForGoal * 0.7);
+  // حد السعرات
+  const calSoFar   = calcItems.reduce(function(s,i){const f2=FOODS.find(function(x){return x.id===i.fid;});return s+(f2?f2.cal*i.qty/100:0);},0);
+  const calBudget  = mealTargets.cal*1.20 - calSoFar;
+  const fatFromCal = Math.max(calBudget/9, 5);
+  const fatToAddFinal = Math.min(fatNeededTotal, fatFromCal);
 
-  fatSrcs.forEach(function(f){
-    if(f.fat<=0) return;
-    let rawG = perFatSrc / f.fat * 100;
-    // sat_fat check
-    if(mealSatLim){
-      const estSat = (f.sat_fat||0)*rawG/100;
-      if(estSat > mealSatLim*0.5) rawG = mealSatLim*0.5/((f.sat_fat||1)/100);
-    }
-    const qty    = _snapToFriendlyFat(rawG, f);
-    const uType  = _calcGetUnitType(f.id);
-    const defSel = _buildSelForQty(uType, f.id, qty, f);
-    calcItems.push({fid:f.id, qty:qty, _sel:defSel});
-  });
+  if(fatSrcs.length > 0){
+    const perFatSrc = fatToAddFinal / fatSrcs.length;
+    fatSrcs.forEach(function(f){
+      if(f.fat<=0) return;
+      let rawG = perFatSrc / f.fat * 100;
+      if(mealSatLim){
+        const estSat = (f.sat_fat||0)*rawG/100;
+        if(estSat > mealSatLim*0.5) rawG = mealSatLim*0.5/((f.sat_fat||1)/100);
+      }
+      rawG = Math.max(rawG, 5); // حد أدنى 5غ
+      const qty    = _snapToFriendlyFat(rawG, f);
+      const uType  = _calcGetUnitType(f.id);
+      const defSel = _buildSelForQty(uType, f.id, qty, f);
+      calcItems.push({fid:f.id, qty:qty, _sel:defSel});
+    });
+  } else if(fatToAddFinal > 5){
+    // لا يوجد مصدر دهن مختار → أضف زيت زيتون تلقائياً
+    const oilQty = _snapToFriendlyFat(fatToAddFinal/100*100, FOODS.find(function(f){return f.id===1;})||{fat:100});
+    calcItems.push({fid:1, qty:oilQty, _sel:{oil_unit:'tbsp', oil_amount:Math.round(oilQty/14)}});
+  }
 
   // الأصناف الخارجية (خبز، أرز)
   _calcSelected.filter(function(id){ return typeof id==='string'&&id.startsWith('ext:'); })
