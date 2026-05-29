@@ -62,6 +62,62 @@ function _unitToGram(food, displayVal, unit){
 }
 
 /* ─── الدالة الرئيسية ─── */
+
+/* ─── البذور والمكسرات الأعلى ألياف — للاقتراح التلقائي ─── */
+const FIBER_BOOSTERS = [
+  // fid, name, fiber/100g, fat/100g, prot/100g, nc/100g, cal/100g, serving_g
+  {fid:55, name:'بذور الكتان',    fiber:27.3, fat:42.2, prot:18.3, nc:1.9,  cal:534, serving:15},
+  {fid:56, name:'بذور الشيا',     fiber:34.4, fat:30.7, prot:16.5, nc:1.7,  cal:486, serving:15},
+  {fid:59, name:'بذور دوار الشمس',fiber:8.6,  fat:51.5, prot:20.8, nc:3.2,  cal:584, serving:20},
+  {fid:46, name:'لوز',            fiber:12.5, fat:49.9, prot:21.2, nc:3.5,  cal:579, serving:25},
+  {fid:47, name:'جوز',            fiber:6.7,  fat:65.2, prot:15.2, nc:2.6,  cal:654, serving:20},
+  {fid:50, name:'بندق',           fiber:9.7,  fat:60.8, prot:15.0, nc:4.3,  cal:628, serving:20},
+  {fid:45, name:'مكاديميا',       fiber:8.6,  fat:75.8, prot:7.9,  nc:4.6,  cal:718, serving:20},
+];
+
+/* ─── اقتراح بذور/مكسرات لرفع الألياف ─── */
+function _calcFiberBooster(currentFiberG, mealCalBudget, mealFatBudget, favIds){
+  const fiberGoal = 3.5; // هدف الألياف للوجبة الواحدة
+  const fiberGap  = Math.max(fiberGoal - currentFiberG, 0);
+  if(fiberGap < 0.5) return null; // ألياف كافية
+
+  // ابحث في المفضلة أولاً، ثم الأعلى ألياف
+  const sorted = FIBER_BOOSTERS.slice().sort(function(a,b){
+    const aFav = favIds&&favIds.includes(a.fid) ? -10 : 0;
+    const bFav = favIds&&favIds.includes(b.fid) ? -10 : 0;
+    return (aFav - bFav) || (b.fiber - a.fiber); // الأعلى ألياف أولاً
+  });
+
+  for(var i=0; i<sorted.length; i++){
+    const booster = sorted[i];
+    // الكمية المطلوبة لسد الفجوة (لكن بحد أقصى = serving الطبيعي)
+    const qtyForFiber = Math.round(fiberGap / booster.fiber * 100 / 5) * 5;
+    const qty = Math.min(Math.max(qtyForFiber, 10), booster.serving);
+    const q   = qty/100;
+
+    // تحقق أن السعرات والدهن لا تتجاوز الميزانية
+    const addedCal = booster.cal * q;
+    const addedFat = booster.fat * q;
+    if(addedCal > mealCalBudget * 0.25) continue; // لا تأخذ أكثر من 25% من الميزانية
+    if(addedFat > mealFatBudget * 0.30) continue;
+
+    return {
+      fid:     booster.fid,
+      name:    booster.name,
+      qty:     qty,
+      fiber:   Math.round(booster.fiber*q*10)/10,
+      fat:     Math.round(booster.fat*q*10)/10,
+      prot:    Math.round(booster.prot*q*10)/10,
+      nc:      Math.round(booster.nc*q*10)/10,
+      cal:     Math.round(booster.cal*q),
+      sat:     0,
+      gap:     Math.round(fiberGap*10)/10,
+      fav:     favIds&&favIds.includes(booster.fid),
+    };
+  }
+  return null;
+}
+
 function rCalc(){
   const mem     = MEMBERS.find(m=>m.uid===CU?.id);
   const el      = document.getElementById('calc-content');
@@ -759,10 +815,11 @@ function _renderCalcNutrition(){
     if(extM){ extFat+=extM.fat||0; extProt+=extM.prot||0; extNc+=extM.nc||0; extCal+=extM.cal||0; }
   });
   const m = {
-    fat:  Math.round((m0.fat +extFat)*10)/10,
-    prot: Math.round((m0.prot+extProt)*10)/10,
-    nc:   Math.round((m0.nc  +extNc)*10)/10,
-    cal:  Math.round(m0.cal  +extCal),
+    fat:   Math.round((m0.fat  +extFat)*10)/10,
+    prot:  Math.round((m0.prot +extProt)*10)/10,
+    nc:    Math.round((m0.nc   +extNc)*10)/10,
+    cal:   Math.round(m0.cal   +extCal),
+    fiber: Math.round((m0.fiber||0)*10)/10,
   };
   // كارب صافٍ ذكي (يُحذف كارب المحليات الصفرية)
   const smartNc = typeof calcSmartNetCarb!=='undefined'
@@ -797,6 +854,38 @@ function _renderCalcNutrition(){
 
   // ── بناء توصيات ذكية ──
   const tips = [];
+
+  // 0. الألياف — توصية ذكية مع اقتراح محدد
+  const mealFiber = m.fiber || 0;
+  const fiberSugg = window._calcFiberSuggestion || null;
+  if(mealFiber < 3 && calcItems.length > 0){
+    let fiberDetail;
+    if(fiberSugg){
+      fiberDetail =
+        'الوجبة تحتوي <strong>' + mealFiber + 'غ</strong> ألياف — يُفضل ≥3غ/وجبة.<br>' +
+        '<strong>اقتراح:</strong> أضف <strong>' + fiberSugg.name + ' ' + fiberSugg.qty + 'غ</strong>' +
+        ' ← ستُضيف ' + fiberSugg.fiber + 'غ ألياف' +
+        ' + ' + fiberSugg.fat + 'غ دهون' +
+        ' + ' + fiberSugg.cal + ' سعرة' +
+        (fiberSugg.fav ? ' ⭐ من مفضلتك' : '');
+    } else {
+      fiberDetail =
+        'الوجبة تحتوي <strong>' + mealFiber + 'غ</strong> ألياف — أضف أفوكادو أو بروكلي أو سبانخ';
+    }
+    tips.push({
+      type:'info',
+      icon:'🌿',
+      text:'ألياف منخفضة',
+      detail:fiberDetail,
+      action: fiberSugg ? {
+        label:'➕ أضف ' + fiberSugg.name,
+        onclick:'_addFiberBooster(' + fiberSugg.fid + ',' + fiberSugg.qty + ')',
+      } : null
+    });
+  } else if(mealFiber >= 3){
+    // ألياف كافية — امسح الاقتراح
+    window._calcFiberSuggestion = null;
+  }
 
   // 1. نسبة كيتونية
   if(!ratioOk){
@@ -876,13 +965,19 @@ function _renderCalcNutrition(){
 
   // ── بناء HTML التوصيات ──
   const tipsHTML = tips.length ? tips.map(function(tip){
-    const bg  = tip.type==='success' ? 'rgba(58,140,63,.08)' : tip.type==='warning' ? 'rgba(239,83,80,.08)' : 'rgba(41,182,246,.08)';
-    const bc  = tip.type==='success' ? 'rgba(58,140,63,.3)' : tip.type==='warning' ? 'rgba(239,83,80,.3)' : 'rgba(41,182,246,.3)';
-    return '<div style="display:flex;gap:8px;padding:9px 11px;background:'+bg+';border:1px solid '+bc+';border-radius:var(--radius-sm);margin-bottom:6px">' +
-      '<span style="font-size:16px;flex-shrink:0">'+tip.icon+'</span>' +
-      '<div>' +
-        '<div style="font-size:12px;font-weight:600;margin-bottom:2px">'+tip.text+'</div>' +
-        '<div style="font-size:11px;color:var(--text2);line-height:1.5">'+tip.detail+'</div>' +
+    const bg  = tip.type==='success'?'rgba(58,140,63,.08)':tip.type==='warning'?'rgba(239,83,80,.08)':'rgba(41,182,246,.08)';
+    const bc  = tip.type==='success'?'rgba(58,140,63,.3)':tip.type==='warning'?'rgba(239,83,80,.3)':'rgba(41,182,246,.3)';
+    const btnHTML = tip.action
+      ? '<button class="btn sm" style="margin-top:6px;font-size:11px" onclick="'+tip.action.onclick+'">'+tip.action.label+'</button>'
+      : '';
+    return '<div style="padding:9px 11px;background:'+bg+';border:1px solid '+bc+';border-radius:var(--radius-sm);margin-bottom:6px">' +
+      '<div style="display:flex;gap:8px">' +
+        '<span style="font-size:16px;flex-shrink:0">'+tip.icon+'</span>' +
+        '<div style="flex:1">' +
+          '<div style="font-size:12px;font-weight:600;margin-bottom:2px">'+tip.text+'</div>' +
+          '<div style="font-size:11px;color:var(--text2);line-height:1.6">'+tip.detail+'</div>' +
+          btnHTML +
+        '</div>' +
       '</div>' +
     '</div>';
   }).join('') : '';
@@ -1068,298 +1163,61 @@ function _calcClearAll(){
 }
 
 /* ─── بناء الوجبة التلقائي ─── */
-function _buildAutoMeal(){
-  if(!_calcSelected.length){ alert('اختر مكوناً واحداً على الأقل'); return; }
-
-  const mem    = MEMBERS.find(function(m){ return m.uid===(CU&&CU.id); });
-  const prefs  = mem && typeof getMemPrefs!=='undefined' ? getMemPrefs(mem) : {};
-  const phase  = mem ? (mem.phase||1) : 1;
-  const mealsN = prefs.meals_per_day || 3;
-  const hasSnack = prefs.has_snack || false;
-
-  // أهداف اليوم
-  const dayTargets = mem && typeof getTargetForDate!=='undefined'
-    ? getTargetForDate(mem) : {fat:130,protein:110,carb:25,cal:1800};
-
-  // المتبقي (إذا وجبة ثانية أو ثالثة)
-  const todayMls = mem && typeof getTodayMeals!=='undefined' ? getTodayMeals(mem.uid) : [];
-  const remaining = mem && typeof calcRemainingAfterMeals!=='undefined'
-    ? calcRemainingAfterMeals(mem, todayMls)
-    : {fat:dayTargets.fat, protein:dayTargets.protein, carb:dayTargets.carb||25, cal:dayTargets.cal};
-
-  // نوع الوجبة وحصتها — مع مراعاة السناك
-  const mealTypeInfo = mem && typeof getMealType!=='undefined' ? getMealType(mem) : null;
-  const mealType = mealTypeInfo ? mealTypeInfo.type : 'other';
-  const mealIdx  = {breakfast:0, lunch:1, dinner:2, snack:3}[mealType] || 0;
-
-  // الحصص حسب عدد الوجبات والسناك
-  // السناك = 8-10% من اليوم — يُطرح من الوجبات الأخرى
-  const snackShare = hasSnack ? 0.09 : 0;  // 9% للسناك
-  const mainShare  = 1 - snackShare;        // الباقي للوجبات الرئيسية
-
-  const SHARES = {
-    3: [
-      Math.round(mainShare * 0.29 * 100) / 100,  // فطور 29%
-      Math.round(mainShare * 0.36 * 100) / 100,  // غداء 36%
-      Math.round(mainShare * 0.35 * 100) / 100,  // عشاء 35%
-    ],
-    2: [
-      Math.round(mainShare * 0.44 * 100) / 100,  // وجبة 1 — 44%
-      Math.round(mainShare * 0.56 * 100) / 100,  // وجبة 2 — 56%
-    ],
-  };
-  const shares  = SHARES[mealsN] || [0.33, 0.33, 0.34];
-  const share   = mealType === 'snack' ? snackShare : (shares[mealIdx] || 0.33);
-
-  // أهداف هذه الوجبة = حصة من الأهداف اليومية الكاملة
-  // (لا من المتبقي — المتبقي يُستخدم للوجبات التالية فقط)
-  const isFirstMeal = todayMls.filter(function(m){
-    return (m.totals&&m.totals.cal||0) >= 100;
-  }).length === 0;
-
-  const mealTargets = {
-    fat:     Math.round(dayTargets.fat     * share),
-    protein: Math.round(dayTargets.protein * share),
-    carb:    _calcCarbLimit===999 ? Math.round((dayTargets.carb||25)*share) : _calcCarbLimit,
-    cal:     Math.round(dayTargets.cal     * share),
-  };
-
-  // إذا وجبة ثانية أو أكثر → استخدم المتبقي الفعلي إذا كان أقل
-  if(!isFirstMeal){
-    mealTargets.fat     = Math.min(mealTargets.fat,     Math.round(remaining.fat));
-    mealTargets.protein = Math.min(mealTargets.protein, Math.round(remaining.protein));
-    mealTargets.cal     = Math.min(mealTargets.cal,     Math.round(remaining.cal));
-  }
-
-  // النسبة الكيتونية المستهدفة حسب المرحلة
-  const KETO_BY_PHASE = {0:1.2, 1:1.6, 2:1.8, 3:2.0, 4:2.0, 5:1.8, 6:1.6, 7:1.6};
-  const ketoTarget = KETO_BY_PHASE[phase] || 1.6;
-
-  // حد sat_fat
-  const dailySatLim = mem && typeof getSatFatDailyLimit!=='undefined' ? getSatFatDailyLimit(mem) : null;
-  const mealSatLim  = dailySatLim ? Math.round(dailySatLim * share) : null;
-
-  // ── تصنيف الأصناف المختارة ──
-  const selFids  = _calcSelected.filter(function(id){ return typeof id==='number'; });
-  const selFoods = selFids.map(function(id){ return FOODS.find(function(f){ return f.id===id; }); }).filter(Boolean);
-
-  // ترتيب التصنيف: بروتين أولاً ← ثم دهون ← ثم كارب
-  // مصادر البروتين: protein > 8 أو بيض أو لحوم أو أسماك
-  const protSrcs = selFoods.filter(function(f){
-    return f.protein > 8 || f.id === 10 ||
-           ['بروتين','دواجن','لحوم','أسماك'].some(function(c){ return f.cat&&f.cat.includes(c); });
-  });
-  // مصادر الدهون: fat > 30 أو أفوكادو (fid=61) أو زيتون (fid=113)
-  const FAT_ALWAYS = [61, 113]; // دائماً دهن بغض النظر عن نسبة الدهن
-  const fatSrcs = selFoods.filter(function(f){
-    if(protSrcs.find(function(p){ return p.id===f.id; })) return false;
-    return f.fat > 30 || FAT_ALWAYS.includes(f.id);
-  });
-  // مصادر الكارب: ما تبقى (خضار، فواكه، مكسرات) — يُستثنى منها البروتين والدهون
-  const carbSrcs = selFoods.filter(function(f){
-    return !protSrcs.find(function(p){ return p.id===f.id; }) &&
-           !fatSrcs.find(function(ft){ return ft.id===f.id; }) &&
-           f.net_carb > 0.5;
-  });
-
-  calcItems = [];
-
-  // ════ الخطوة 1: مصادر الكارب — 60% من حد الكارب ════
-  const carbBudget60 = mealTargets.carb * 0.60;
-  const perCarbSrc   = carbSrcs.length ? carbBudget60 / carbSrcs.length : 0;
-
-  const carbContrib = {fat:0, prot:0, nc:0, cal:0};
-  carbSrcs.forEach(function(f){
-    if(f.net_carb <= 0) return;
-    const rawG = perCarbSrc / f.net_carb * 100;
-    const qty  = _snapToFriendlyCarb(rawG, f);
-    const q    = qty/100;
-    carbContrib.fat  += f.fat      *q;
-    carbContrib.prot += f.protein  *q;
-    carbContrib.nc   += f.net_carb *q;
-    carbContrib.cal  += f.cal      *q;
-    const uType  = _calcGetUnitType(f.id);
-    const defSel = _buildSelForQty(uType, f.id, qty, f);
-    calcItems.push({fid:f.id, qty:qty, _sel:defSel});
-  });
-
-  // ════ الخطوة 2: البروتين — 80% من متبقي البروتين ════
-  const protAfterCarb  = Math.max(mealTargets.protein - carbContrib.prot, 0);
-  const protBudget80   = protAfterCarb * 0.80;
-  // البيض يأخذ حصته المفضلة أولاً — الباقي للمصادر الأخرى
-  const hasEgg         = protSrcs.find(function(f){ return f.id===10; });
-  const eggQty         = hasEgg ? (prefs.preferred_egg_count||2) * 55 : 0;
-  const eggProtContrib = eggQty / 100 * 13; // 13غ بروتين/100غ
-  const protForOthers  = Math.max(protBudget80 - eggProtContrib, 0);
-  const otherProtSrcs  = protSrcs.filter(function(f){ return f.id !== 10; });
-  // إذا البيض وحده يكفي 80% من هدف البروتين → لا نضيف بروتين آخر
-  const eggCoversAll   = eggProtContrib >= protBudget80 * 0.85;
-  const perProtSrc     = (otherProtSrcs.length && !eggCoversAll)
-    ? protForOthers / otherProtSrcs.length : 0;
-
-  const eggPrefCount = prefs.preferred_egg_count || 2;
-  const protContrib = {fat:0, prot:0, nc:0, cal:0};
-  protSrcs.forEach(function(f){
-    if(f.protein <= 0) return;
-    // البيض: استخدم العدد المفضل من التفضيلات مباشرة
-    let qty;
-    if(f.id === 10){
-      qty = eggPrefCount * 55; // بيضة متوسطة = 55غ
-    } else {
-      // إذا البيض يكفي → لا نضيف مصدر بروتين آخر
-      if(eggCoversAll || perProtSrc <= 0){
-        return; // تخطّ هذا المصدر
-      }
-      const rawG = perProtSrc / f.protein * 100;
-      qty = _snapToFriendlyProt(rawG, f);
-    }
-    const q    = qty/100;
-    protContrib.fat  += f.fat      *q;
-    protContrib.prot += f.protein  *q;
-    protContrib.nc   += f.net_carb *q;
-    protContrib.cal  += f.cal      *q;
-    const uType  = _calcGetUnitType(f.id);
-    const defSel = _buildSelForQty(uType, f.id, qty, f);
-    calcItems.push({fid:f.id, qty:qty, _sel:defSel});
-  });
-
-  // ════ الخطوة 3: الدهون المضافة ════
-  const fatUsed     = carbContrib.fat + protContrib.fat;
-  const ncUsed      = carbContrib.nc  + protContrib.nc;
-  const protUsed    = carbContrib.prot + protContrib.prot;
-  const calUsed     = carbContrib.cal + protContrib.cal;
-
-  // ── حساب الدهن المضمون لتحقيق النسبة الكيتونية ──
-  // نحسب ماكرو ما تم إضافته حتى الآن
-  const soFarMac = (function(){
-    const t={fat:0,prot:0,nc:0};
-    calcItems.forEach(function(i){
-      const f2=FOODS.find(function(x){return x.id===i.fid;});
-      if(!f2)return;
-      t.fat+=f2.fat*i.qty/100; t.prot+=f2.protein*i.qty/100; t.nc+=f2.net_carb*i.qty/100;
-    });
-    return t;
-  })();
-  const denomNow    = soFarMac.prot*0.6 + soFarMac.nc;
-  const fatForKeto  = denomNow>0 ? Math.max(ketoTarget*denomNow - soFarMac.fat, 0) : 20;
-  // الدهن لإكمال هدف الوجبة من المتبقي
-  const fatForGoal  = Math.max(mealTargets.fat - soFarMac.fat, 0);
-  // نأخذ الأكبر — الأولوية للنسبة الكيتونية
-  const fatNeededTotal = Math.max(fatForKeto, fatForGoal * 0.7);
-  // حد السعرات
-  const calSoFar   = calcItems.reduce(function(s,i){const f2=FOODS.find(function(x){return x.id===i.fid;});return s+(f2?f2.cal*i.qty/100:0);},0);
-  const calBudget  = mealTargets.cal*1.20 - calSoFar;
-  const fatFromCal = Math.max(calBudget/9, 5);
-  const fatToAddFinal = Math.min(fatNeededTotal, fatFromCal);
-
-  if(fatSrcs.length > 0){
-    const perFatSrc = fatToAddFinal / fatSrcs.length;
-    fatSrcs.forEach(function(f){
-      if(f.fat<=0) return;
-      let rawG = perFatSrc / f.fat * 100;
-      if(mealSatLim){
-        const estSat = (f.sat_fat||0)*rawG/100;
-        if(estSat > mealSatLim*0.5) rawG = mealSatLim*0.5/((f.sat_fat||1)/100);
-      }
-      rawG = Math.max(rawG, 5); // حد أدنى 5غ
-      const qty    = _snapToFriendlyFat(rawG, f);
-      const uType  = _calcGetUnitType(f.id);
-      const defSel = _buildSelForQty(uType, f.id, qty, f);
-      calcItems.push({fid:f.id, qty:qty, _sel:defSel});
-    });
-  } else if(fatToAddFinal > 5){
-    // لا يوجد مصدر دهن مختار → أضف زيت زيتون تلقائياً
-    const oilQty = _snapToFriendlyFat(fatToAddFinal/100*100, FOODS.find(function(f){return f.id===1;})||{fat:100});
-    calcItems.push({fid:1, qty:oilQty, _sel:{oil_unit:'tbsp', oil_amount:Math.round(oilQty/14)}});
-  }
-
-  // الأصناف الخارجية (خبز، أرز)
-  _calcSelected.filter(function(id){ return typeof id==='string'&&id.startsWith('ext:'); })
-    .forEach(function(extId){
-      const uType = extId.replace('ext:','');
-      const sel   = _getDefaultSel(uType, null);
-      calcItems.push({fid:extId, qty:50, _sel:sel});
-    });
-
-  // ════ تحقق نهائي + تقرير ════
-  const finalTot = _calcTotalsAll();
-  console.log('[Calc] نتيجة البناء:', finalTot);
-
-  _calcBuilt = true;
-  _calcMode  = 'manual';
-  rCalc();
-}
-
-/* ─── تقريب الكميات ─── */
-function _snapToFriendlyCarb(rawG, food){
-  const type = _calcGetUnitType(food.id);
-  if(type === '_fruit' || food.cat === 'فواكه'){
-    // توت وفواكه صغيرة → مضاعفات 5غ (تُعرض كحبات لاحقاً)
-    const snaps = food.qty_moderate<=30
-      ? [5,10,15,20,25,30]          // توت: كميات صغيرة
-      : [20,30,40,50,60,80,100];    // فاكهة كبيرة
-    return Math.max(5, _nearestInList(rawG, snaps));
-  }
-  if(type === 'leafy_veg' || type === '_veg_generic'){
-    const snaps = [30,60,80,100,120,150];
-    return _nearestInList(rawG, snaps);
-  }
-  if(type === 'whole_veg'){
-    const base  = (UNIT_INTELLIGENCE&&UNIT_INTELLIGENCE.whole_veg&&UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS)
-      ? (UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS[food.id]||100) : 100;
-    // أكسر مرنة: من ربع حبة إلى حبتين
-    const fracs = [0.25, 0.33, 0.5, 0.67, 0.75, 1.0, 1.25, 1.5, 2.0];
-    const best  = fracs.reduce(function(p,f){ return Math.abs(f*base-rawG)<Math.abs(p*base-rawG)?f:p; },0.5);
-    return Math.max(Math.round(base*0.25), Math.round(best*base/5)*5);
-  }
-  if(type === 'nuts'){
-    const snaps = [10,15,20,25,30,40];
-    return _nearestInList(rawG, snaps);
-  }
-  if(type === 'cheese'){
-    const snaps = [15,20,30,40,50,60];
-    return _nearestInList(rawG, snaps);
-  }
-  return Math.max(5, Math.round(rawG/5)*5);
-}
-
+/* ─── دوال التقريب ─── */
 function _snapToFriendlyProt(rawG, food){
-  const type = _calcGetUnitType(food.id);
-  if(type === 'egg'){
-    const eggW = 55; // متوسط
-    const count = Math.max(1, Math.round(rawG/eggW));
-    return count * eggW;
+  const uType = _calcGetUnitType(food.id);
+  if(uType === 'egg'){
+    return Math.max(1, Math.round(rawG/55)) * 55;
   }
-  if(type === 'chicken' || type === 'beef' || type === 'fish'){
-    // مضاعفات 50
-    const snap = Math.max(50, Math.round(rawG/50)*50);
-    return Math.min(snap, 300);
+  if(uType === 'chicken' || uType === 'beef'){
+    const lower = Math.max(50, Math.floor(rawG/50)*50);
+    const upper = lower + 50;
+    // اختر الأقرب للهدف مع تفضيل الأعلى إذا قريب
+    return Math.min((upper-rawG) < (rawG-lower)*0.8 ? upper : lower, 300);
   }
-  if(type === 'cheese'){
-    const snap = Math.max(30, Math.round(rawG/30)*30);
-    return Math.min(snap, 150);
+  if(uType === 'fish'){
+    const lower = Math.max(50, Math.floor(rawG/50)*50);
+    const upper = lower + 50;
+    return Math.min((upper-rawG)<30 ? upper : lower, 300);
+  }
+  if(uType === 'cheese'){
+    return Math.min(Math.max(30, Math.round(rawG/30)*30), 150);
   }
   return Math.max(30, Math.round(rawG/10)*10);
 }
 
-function _snapToFriendlyFat(rawG, food){
-  const type = _calcGetUnitType(food.id);
-  if(type === 'oil' || type === 'butter'){
-    // ملاعق: م.ص=5، نصف م.ك=7، م.ك=14، 1.5م.ك=21، 2م.ك=28
-    const spoons = [5,7,10,14,21,28];
-    return _nearestInList(rawG, spoons);
+function _snapToFriendlyCarb(rawG, food){
+  const uType = _calcGetUnitType(food.id);
+  if(uType === '_fruit' || (food.cat && food.cat.includes('فواكه'))){
+    const snaps = (food.qty_moderate||50)<=30
+      ? [5,10,15,20,25,30]
+      : [20,30,40,50,60,80,100];
+    return Math.max(5, snaps.reduce(function(p,c){ return Math.abs(c-rawG)<Math.abs(p-rawG)?c:p; }));
   }
-  if(type === 'avocado'){
-    // ربع، نصف، ثلاثة أرباع، كاملة
-    const base = 150*0.65; // متوسطة لب
-    const fracs = [0.25,0.5,0.75,1];
-    const best  = fracs.reduce(function(p,f){ return Math.abs(f*base-rawG)<Math.abs(p*base-rawG)?f:p; },0.5);
+  if(uType === 'leafy_veg') return [40,60,80,100,120].reduce(function(p,c){ return Math.abs(c-rawG)<Math.abs(p-rawG)?c:p; });
+  if(uType === 'whole_veg'){
+    const base=(typeof UNIT_INTELLIGENCE!=='undefined'&&UNIT_INTELLIGENCE.whole_veg&&UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS)
+      ?(UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS[food.id]||100):100;
+    const fracs=[0.25,0.5,0.75,1.0];
+    const best=fracs.reduce(function(p,f){ return Math.abs(f*base-rawG)<Math.abs(p*base-rawG)?f:p; },0.5);
+    return Math.max(Math.round(base*0.25), Math.round(best*base/5)*5);
+  }
+  if(uType === 'nuts') return [10,15,20,25,30,40].reduce(function(p,c){ return Math.abs(c-rawG)<Math.abs(p-rawG)?c:p; });
+  return Math.max(5, Math.round(rawG/5)*5);
+}
+
+function _snapToFriendlyFat(rawG, food){
+  const uType = _calcGetUnitType(food.id);
+  if(uType === 'oil' || uType === 'butter'){
+    return [5,7,10,14,21,28].reduce(function(p,c){ return Math.abs(c-rawG)<Math.abs(p-rawG)?c:p; });
+  }
+  if(uType === 'avocado'){
+    const base=97.5;
+    const fracs=[0.25,0.5,0.75,1.0];
+    const best=fracs.reduce(function(p,f){ return Math.abs(f*base-rawG)<Math.abs(p*base-rawG)?f:p; },0.5);
     return Math.round(best*base/5)*5;
   }
-  if(type === 'nuts'){
-    const snaps = [15,20,25,30,40];
-    return _nearestInList(rawG, snaps);
-  }
+  if(uType === 'nuts') return [15,20,25,30,40].reduce(function(p,c){ return Math.abs(c-rawG)<Math.abs(p-rawG)?c:p; });
   return Math.max(5, Math.round(rawG/5)*5);
 }
 
@@ -1367,89 +1225,296 @@ function _nearestInList(val, list){
   return list.reduce(function(p,c){ return Math.abs(c-val)<Math.abs(p-val)?c:p; });
 }
 
-/* ─── بناء _sel من qty المحسوبة ─── */
-function _buildSelForQty(uType, fid, qty, food){
-  if(!uType) return {};
-  if(uType === '_fruit')     return {fruit_amount: qty};
-  if(uType === '_veg_generic') return {generic_qty: qty};
-  if(uType === 'egg'){
-    const count = Math.max(1, Math.round(qty/55));
-    return {egg_type:'regular', egg_size:'medium', egg_count:count};
-  }
-  if(uType === 'oil'){
-    const tbsp = Math.max(0.5, Math.round(qty/14*2)/2);
-    return {oil_unit: tbsp<1 ? 'tsp' : 'tbsp', oil_amount: tbsp<1 ? Math.round(qty/5) : tbsp};
-  }
-  if(uType === 'butter'){
-    const tbsp = Math.max(0.5, Math.round(qty/14*2)/2);
-    return {butter_unit: tbsp<1 ? 'tsp' : 'tbsp', butter_amount: tbsp<1 ? Math.round(qty/5) : tbsp};
-  }
-  if(uType === 'avocado'){
-    const lbGrams = 97.5; // متوسطة لب
-    const frac = qty/lbGrams;
-    const portions = [{val:'quarter',f:0.25},{val:'half',f:0.5},{val:'whole',f:1}];
-    const best = portions.reduce(function(p,c){ return Math.abs(c.f-frac)<Math.abs(p.f-frac)?c:p; });
-    return {avo_size:'medium', avo_portion:best.val};
-  }
-  if(uType === 'leafy_veg'){
-    const cups = Math.max(0.5, Math.round(qty/60*2)/2);
-    return {leaf_unit:'cup', leaf_amount:cups};
-  }
-  if(uType === 'whole_veg'){
-    const base = (UNIT_INTELLIGENCE&&UNIT_INTELLIGENCE.whole_veg&&UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS)
-      ? (UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS[fid]||100) : 100;
-    const frac = qty/base;
-    const sz   = frac<0.85?'small':frac>1.25?'large':'medium';
-    return {veg_unit:'piece', veg_size:sz, veg_amount:1};
-  }
-  if(uType === 'chicken'){
-    const cuts = {breast_no:120,breast_sk:130,thigh_no:100,thigh_sk:120,wing:60,drumstick:80};
-    const bestCut = Object.keys(cuts).reduce(function(p,c){ return Math.abs(cuts[c]-qty)<Math.abs(cuts[p]-qty)?c:p; },'breast_no');
-    const count = Math.max(1,Math.round(qty/cuts[bestCut]));
-    return {chicken_cut:bestCut, chicken_count:count, chicken_state:'raw'};
-  }
-  if(uType === 'fish'){
-    const srvs = {salmon:130,tuna:85,sardine:100,white:150,shrimp:150};
-    const bestType = Object.keys(srvs).reduce(function(p,c){
-      if(!FOODS.find(function(f2){ return f2.id===fid&&c==='tuna'; })) return p;
-      return Math.abs(srvs[c]-qty)<Math.abs(srvs[p]-qty)?c:p;
-    },'white');
-    return {fish_type:bestType, fish_amount:Math.max(0.5,Math.round(qty/srvs[bestType]*2)/2)};
-  }
-  if(uType === 'nuts'){
-    const handful = Math.max(0.5, Math.round(qty/25*2)/2);
-    return {nut_unit:'handful', nut_amount:handful};
-  }
-  if(uType === 'cheese'){
-    const slices = Math.max(1, Math.round(qty/20));
-    return {cheese_unit:'slice', cheese_amount:slices};
-  }
-  return _getDefaultSel(uType, fid);
-}
 
-/* ─── إجمالي كل المكونات (داخلية + خارجية) ─── */
-function _calcTotalsAll(){
-  const t = {fat:0,prot:0,nc:0,cal:0,sat:0};
-  calcItems.forEach(function(item){
-    if(typeof item.fid==='number'){
-      const f=FOODS.find(function(x){ return x.id===item.fid; });
-      if(!f) return;
-      const q=item.qty/100;
-      t.fat+=f.fat*q; t.prot+=f.protein*q;
-      t.nc+=f.net_carb*q; t.cal+=f.cal*q; t.sat+=(f.sat_fat||0)*q;
-    } else if(typeof item.fid==='string'){
-      const uType=item.fid.replace('ext:','');
-      const em=typeof getExternalMacros!=='undefined'?getExternalMacros(uType,item._sel||{},item.qty):null;
-      if(em){ t.fat+=em.fat||0; t.prot+=em.prot||0; t.nc+=em.nc||0; t.cal+=em.cal||0; }
-    }
-  });
-  return {
-    fat:Math.round(t.fat*10)/10, prot:Math.round(t.prot*10)/10,
-    nc:Math.round(t.nc*10)/10,   cal:Math.round(t.cal),
-    sat:Math.round(t.sat*10)/10
+function _buildAutoMeal(){
+  if(!_calcSelected.length){ alert('اختر مكوناً واحداً على الأقل'); return; }
+
+  // ══ قراءة كل البيانات من التطبيق ══
+  const mem       = MEMBERS.find(function(m){ return m.uid===(CU&&CU.id); });
+  const prefs     = mem && typeof getMemPrefs!=='undefined' ? getMemPrefs(mem) : {};
+  const phase     = mem ? (mem.phase||1) : 1;
+  const mealsN    = prefs.meals_per_day || 3;
+  const hasSnack  = prefs.has_snack || false;
+  const eggPref   = prefs.preferred_egg_count || 2;
+
+  const dayTargets = mem && typeof getTargetForDate!=='undefined'
+    ? getTargetForDate(mem)
+    : {fat:140, protein:112, carb:20, cal:1800};
+
+  const todayMls = mem && typeof getTodayMeals!=='undefined'
+    ? getTodayMeals(mem.uid) : [];
+  const remaining = mem && typeof calcRemainingAfterMeals!=='undefined'
+    ? calcRemainingAfterMeals(mem, todayMls)
+    : {fat:dayTargets.fat, protein:dayTargets.protein,
+       carb:dayTargets.carb||20, cal:dayTargets.cal};
+
+  const mealTypeInfo = mem && typeof getMealType!=='undefined' ? getMealType(mem) : null;
+  const mealType  = mealTypeInfo ? mealTypeInfo.type : 'other';
+  const mealIdx   = {breakfast:0,lunch:1,dinner:2,snack:3}[mealType]||0;
+
+  // ══ الحصص مع مراعاة السناك ══
+  const snackSh   = hasSnack ? 0.09 : 0;
+  const mainSh    = 1 - snackSh;
+  const SHARES    = {
+    3: [+(mainSh*0.29).toFixed(3), +(mainSh*0.36).toFixed(3), +(mainSh*0.35).toFixed(3)],
+    2: [+(mainSh*0.44).toFixed(3), +(mainSh*0.56).toFixed(3)],
   };
-}
+  const shares    = SHARES[mealsN] || [0.33,0.33,0.34];
+  const share     = mealType==='snack' ? snackSh : (shares[mealIdx]||0.33);
 
+  // ══ أهداف هذه الوجبة ══
+  const isFirstMeal = todayMls.filter(function(m){
+    return (m.totals&&m.totals.cal||0)>=100;
+  }).length === 0;
+
+  const fatMax    = Math.round(dayTargets.fat     * share);
+  const protMax   = Math.round(dayTargets.protein * share);
+  const carbLimit = _calcCarbLimit===999
+    ? Math.round((dayTargets.carb||20) * share)
+    : _calcCarbLimit;
+  const calMax    = Math.round(dayTargets.cal     * share);
+
+  // sat_fat: فطور+غداء فقط (العشاء خفيف)
+  const dailySatLim = mem && typeof getSatFatDailyLimit!=='undefined'
+    ? getSatFatDailyLimit(mem) : null;
+  const SAT_SHARES  = {breakfast:0.45, lunch:0.45, dinner:0, snack:0.10};
+  const mealSatLim  = dailySatLim
+    ? Math.round(dailySatLim * (SAT_SHARES[mealType]||0.33))
+    : null;
+
+  // إذا وجبة لاحقة → استخدم المتبقي الفعلي إذا أقل
+  const mealFat   = isFirstMeal ? fatMax  : Math.min(fatMax,  Math.round(remaining.fat));
+  const mealProt  = isFirstMeal ? protMax : Math.min(protMax, Math.round(remaining.protein));
+  const mealCarb  = isFirstMeal ? carbLimit
+    : Math.min(carbLimit, Math.round(remaining.carb||carbLimit));
+  const mealCal   = isFirstMeal ? calMax  : Math.min(calMax,  Math.round(remaining.cal));
+
+  // نسبة كيتو حسب المرحلة
+  const KETO_BY_PHASE = {0:1.2,1:1.6,2:1.8,3:2.0,4:2.0,5:1.8,6:1.6,7:1.6};
+  const ketoTarget    = KETO_BY_PHASE[phase] || 1.6;
+
+  console.log('[Calc] أهداف الوجبة:', {
+    meal:mealType, share:+(share*100).toFixed(0)+'%',
+    fat:mealFat, prot:mealProt, carb:mealCarb, cal:mealCal,
+    sat:mealSatLim, keto:'≥'+ketoTarget
+  });
+
+  // ══ تصنيف الأصناف ══
+  const FAT_ALWAYS  = [61, 113]; // أفوكادو وزيتون → دهون دائماً
+  const selFids     = _calcSelected.filter(function(id){ return typeof id==='number'; });
+  const selFoods    = selFids.map(function(id){
+    return FOODS.find(function(f){ return f.id===id; });
+  }).filter(Boolean);
+
+  // بروتين: protein>8 أو بيض أو cat=بروتين/دواجن/لحوم/أسماك
+  const protSrcs = selFoods.filter(function(f){
+    return f.protein>8 || f.id===10 ||
+      ['بروتين','دواجن','لحوم','أسماك'].some(function(c){
+        return f.cat&&f.cat.includes(c);
+      });
+  });
+  // دهون: fat>30 أو FAT_ALWAYS، وليست بروتين
+  const fatSrcs = selFoods.filter(function(f){
+    return !protSrcs.find(function(p){ return p.id===f.id; }) &&
+           (f.fat>30 || FAT_ALWAYS.includes(f.id));
+  });
+  // خضار: ورقية أو حبات (nc منخفض) — ليست بروتين أو دهن
+  const vegSrcs = selFoods.filter(function(f){
+    return !protSrcs.find(function(p){ return p.id===f.id; }) &&
+           !fatSrcs.find(function(ft){ return ft.id===f.id; }) &&
+           f.net_carb<=6 && f.net_carb>0;
+  });
+  // فواكه: nc عالٍ — ما تبقى
+  const fruitSrcs = selFoods.filter(function(f){
+    return !protSrcs.find(function(p){ return p.id===f.id; }) &&
+           !fatSrcs.find(function(ft){ return ft.id===f.id; }) &&
+           !vegSrcs.find(function(v){ return v.id===f.id; }) &&
+           f.net_carb>0.5;
+  });
+
+  calcItems = [];
+
+  // ════ الخطوة 1: الخضار — كمية طبيعية أولاً ════
+  const vegContrib = {fat:0,prot:0,nc:0,cal:0,fiber:0,sat:0};
+  vegSrcs.forEach(function(f){
+    const uType  = _calcGetUnitType(f.id);
+    const defSel = _getDefaultSel(uType||'', f.id);
+    // كمية: نصف حبة صغيرة للخضار الكاملة، كوب للورقية
+    let qty;
+    if(uType==='leafy_veg') qty = 80;       // كوب+ = 80غ (ألياف أفضل)
+    else if(uType==='whole_veg') qty = Math.round((
+      UNIT_INTELLIGENCE&&UNIT_INTELLIGENCE.whole_veg&&
+      UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS
+        ? (UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS[f.id]||100)
+        : 100) * 0.75);                    // ثلاثة أرباع حبة متوسطة
+    else qty = 80;
+    qty = Math.max(qty, 40);
+    // سقف الكارب: لا نتجاوز 35% من الحد لكل خضرة
+    const ncFromVeg = f.net_carb * qty/100;
+    if(ncFromVeg > mealCarb * 0.35 && qty > 40){
+      qty = Math.max(40, Math.round(mealCarb*0.35/f.net_carb*100/10)*10);
+    }
+    const q = qty/100;
+    vegContrib.fat  +=f.fat*q; vegContrib.prot+=f.protein*q;
+    vegContrib.nc   +=f.net_carb*q; vegContrib.cal+=f.cal*q;
+    vegContrib.fiber+=(f.fiber||0)*q; vegContrib.sat+=(f.sat_fat||0)*q;
+    const sel = _buildSelForQty(uType, f.id, qty, f);
+    calcItems.push({fid:f.id, qty:qty, _sel:sel});
+  });
+
+  // ════ الخطوة 2: الفاكهة — ما تبقى من حد الكارب بعد الخضار ════
+  const carbAfterVeg = Math.max(mealCarb - vegContrib.nc, 0);
+  const carbBudgetFruit = carbAfterVeg * 0.50; // 50% من المتبقي للفاكهة
+  const perFruit = fruitSrcs.length ? carbBudgetFruit/fruitSrcs.length : 0;
+
+  const fruitContrib = {fat:0,prot:0,nc:0,cal:0,fiber:0,sat:0};
+  fruitSrcs.forEach(function(f){
+    if(f.net_carb<=0||perFruit<=0) return;
+    const rawG = perFruit/f.net_carb*100;
+    const qty  = _snapToFriendlyCarb(rawG, f);
+    const q = qty/100;
+    fruitContrib.fat  +=f.fat*q; fruitContrib.prot+=f.protein*q;
+    fruitContrib.nc   +=f.net_carb*q; fruitContrib.cal+=f.cal*q;
+    fruitContrib.fiber+=(f.fiber||0)*q; fruitContrib.sat+=(f.sat_fat||0)*q;
+    const uType = _calcGetUnitType(f.id);
+    const sel   = _buildSelForQty(uType, f.id, qty, f);
+    calcItems.push({fid:f.id, qty:qty, _sel:sel});
+  });
+
+  // ════ الخطوة 3: البروتين ════
+  const carbSoFar  = vegContrib.nc + fruitContrib.nc;
+  const protAfterCarb = Math.max(mealProt - vegContrib.prot - fruitContrib.prot, 0);
+  const protBudget80  = protAfterCarb * 0.80;
+
+  // البيض أولاً بالعدد المفضل
+  const hasEgg      = protSrcs.find(function(f){ return f.id===10; });
+  const eggQty      = hasEgg ? eggPref * 55 : 0;
+  const eggProt     = eggQty/100 * 13;
+  const eggCoversAll= eggProt >= protBudget80 * 0.85;
+  const otherProtSrcs = protSrcs.filter(function(f){ return f.id!==10; });
+  const protForOthers = Math.max(protBudget80 - eggProt, 0);
+  const perOtherProt  = (otherProtSrcs.length&&!eggCoversAll)
+    ? protForOthers/otherProtSrcs.length : 0;
+
+  const protContrib = {fat:0,prot:0,nc:0,cal:0,fiber:0,sat:0};
+
+  protSrcs.forEach(function(f){
+    if(f.protein<=0) return;
+    let qty;
+    if(f.id===10){
+      qty = eggQty;
+    } else {
+      if(eggCoversAll||perOtherProt<=0) return; // البيض يكفي
+      const rawG = perOtherProt/f.protein*100;
+      qty = _snapToFriendlyProt(rawG, f);
+      // تحقق: لا يتجاوز الهدف بأكثر من 15%
+      const resultProt = f.protein*qty/100;
+      if(resultProt > perOtherProt*1.15 && qty >= 100){
+        qty = Math.max(50, Math.round(qty*0.7/50)*50);
+      }
+    }
+    if(!qty||qty<=0) return;
+    const q = qty/100;
+    protContrib.fat  +=f.fat*q; protContrib.prot+=f.protein*q;
+    protContrib.nc   +=f.net_carb*q; protContrib.cal+=f.cal*q;
+    protContrib.fiber+=(f.fiber||0)*q; protContrib.sat+=(f.sat_fat||0)*q;
+    const uType = _calcGetUnitType(f.id);
+    const sel   = _buildSelForQty(uType, f.id, qty, f);
+    calcItems.push({fid:f.id, qty:qty, _sel:sel});
+  });
+
+  // ════ الخطوة 4: الدهون — بعد معرفة الماكرو الفعلي ════
+  const fatSoFar  = vegContrib.fat+fruitContrib.fat+protContrib.fat;
+  const ncSoFar   = vegContrib.nc +fruitContrib.nc +protContrib.nc;
+  const protSoFar = vegContrib.prot+fruitContrib.prot+protContrib.prot;
+  const calSoFar  = vegContrib.cal+fruitContrib.cal+protContrib.cal;
+  const satSoFar  = vegContrib.sat+fruitContrib.sat+protContrib.sat;
+
+  // الدهن لتحقيق النسبة الكيتونية (من الماكرو الفعلي)
+  const denomActual = protSoFar*0.6 + ncSoFar;
+  const fatForKeto  = denomActual>0
+    ? Math.max(ketoTarget*denomActual - fatSoFar, 0) : 10;
+  // الدهن لإكمال هدف الوجبة
+  const fatForGoal  = Math.max(mealFat - fatSoFar, 0);
+  // نأخذ الأكبر — الأولوية للنسبة الكيتونية
+  const fatNeeded   = Math.max(fatForKeto, fatForGoal*0.80);
+  // سقف sat_fat المتبقي
+  const satRemaining= mealSatLim ? Math.max(mealSatLim - satSoFar, 0) : Infinity;
+
+  const perFatSrc   = fatSrcs.length ? fatNeeded/fatSrcs.length : 0;
+
+  // قسّم sat_remaining بالتساوي بين مصادر الدهن
+  const perFatSat = (satRemaining < 999 && fatSrcs.length)
+    ? satRemaining / fatSrcs.length : Infinity;
+
+  fatSrcs.forEach(function(f){
+    if(f.fat<=0||perFatSrc<=0) return;
+    let rawG = perFatSrc/f.fat*100;
+    // قيد sat_fat: كل مصدر لا يتجاوز حصته من sat_remaining
+    if((f.sat_fat||0)>0 && perFatSat<Infinity){
+      const maxFromSat = perFatSat/(f.sat_fat/100);
+      rawG = Math.min(rawG, maxFromSat);
+    }
+    rawG = Math.max(rawG, 5);
+    const qty    = _snapToFriendlyFat(rawG, f);
+    const uType  = _calcGetUnitType(f.id);
+    const sel    = _buildSelForQty(uType, f.id, qty, f);
+    calcItems.push({fid:f.id, qty:Math.max(qty,5), _sel:sel});
+  });
+
+  // إذا لا توجد مصادر دهن مختارة وتحتاج دهن → أضف زيت زيتون
+  if(fatSrcs.length===0 && fatNeeded>10){
+    const oilQty = _snapToFriendlyFat(fatNeeded, {fat:100,id:1}||{});
+    const oilF   = FOODS.find(function(f){ return f.id===1; });
+    if(oilF) calcItems.push({
+      fid:1, qty:oilQty,
+      _sel:{oil_unit:'tbsp', oil_amount:Math.max(1,Math.round(oilQty/14))}
+    });
+  }
+
+  // الأصناف الخارجية (خبز، أرز)
+  _calcSelected.filter(function(id){
+    return typeof id==='string'&&id.startsWith('ext:');
+  }).forEach(function(extId){
+    const uType = extId.replace('ext:','');
+    const sel   = _getDefaultSel(uType, null);
+    calcItems.push({fid:extId, qty:50, _sel:sel});
+  });
+
+  // ── اقتراح البذور/المكسرات إذا الألياف منخفضة ──
+  const finalT    = _calcTotalsAll();
+  const fiberSoFar= finalT.fiber || 0;
+  // ميزانية اقتراح البذور: 20% من هدف الوجبة (لا من المتبقي)
+  // البذور اختيارية — المشترك يقبل طفيف زيادة
+  const calBudget2= mealCal * 0.20;
+  const fatBudget2= mealFat * 0.20;
+  const favIds2   = mem ? (mem.favorites_foods||[]) : [];
+
+  // تحقق إذا المشترك اختار بذور/مكسرات بالفعل
+  const hasNutsAlready = calcItems.some(function(i){
+    return typeof FIBER_BOOSTERS!=='undefined' &&
+      FIBER_BOOSTERS.find(function(b){ return b.fid===i.fid; });
+  });
+
+  let fiberSuggestion = null;
+  if(!hasNutsAlready && typeof _calcFiberBooster!=='undefined'){
+    fiberSuggestion = _calcFiberBooster(fiberSoFar, calBudget2, fatBudget2, favIds2);
+  }
+  // احفظ الاقتراح ليظهر في البطاقة (لا يُضاف تلقائياً)
+  window._calcFiberSuggestion = fiberSuggestion;
+
+  const denom2 = finalT.prot*0.6+finalT.nc;
+  const ratio2 = denom2>0?Math.round(finalT.fat/denom2*100)/100:0;
+  console.log('[Calc] النتيجة:', {
+    fat:finalT.fat, prot:finalT.prot, nc:finalT.nc,
+    cal:finalT.cal, ratio:ratio2, fiber:fiberSoFar,
+    fiberSuggestion: fiberSuggestion ? fiberSuggestion.name+'('+fiberSuggestion.qty+'غ)' : 'كافية'
+  });
+
+  _calcBuilt = true;
+  _calcMode  = 'manual';
+  rCalc();
+}
 
 function _buildFatSel(uType, fid, shareGrams){
   if(uType === 'oil'){
