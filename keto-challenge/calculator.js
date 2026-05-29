@@ -215,7 +215,7 @@ function rCalc(){
   el.innerHTML = remHTML + modeHTML + _ingCard + _builtCard + nutritionHTML + saveHTML;
 
   // تهيئة الـ select القديم للتوافق
-  _populateCsel();
+  if(typeof _populateCsel === 'function') _populateCsel();
 }
 
 
@@ -346,10 +346,10 @@ function _renderCalcItems(){
     const genericSteps = (!def || !def.steps) ? _getGenericSteps(unitType, f||{qty_moderate:50}) : null;
     const activeSteps  = (def && def.steps) ? def.steps : genericSteps;
 
-    if(activeSteps){
+    if(activeSteps && activeSteps.length){
       html += '<div style="padding:8px 12px;display:flex;flex-direction:column;gap:8px">';
 
-      activeSteps.forEach(function(step){
+      activeSteps.filter(function(step){ return step.type !== 'hidden'; }).forEach(function(step){
         // تحقق show_if
         if(step.show_if){
           if(sel[step.show_if.key] !== step.show_if.val) return;
@@ -1102,7 +1102,7 @@ function _buildAutoMeal(){
 
   // ════ الخطوة 1: مصادر الكارب — 60% من حد الكارب ════
   const carbBudget60 = mealTargets.carb * 0.60;
-  const perCarbSrc   = carbBudget60 / Math.max(carbSrcs.length, 1);
+  const perCarbSrc   = carbSrcs.length ? carbBudget60 / carbSrcs.length : 0;
 
   const carbContrib = {fat:0, prot:0, nc:0, cal:0};
   carbSrcs.forEach(function(f){
@@ -1122,7 +1122,7 @@ function _buildAutoMeal(){
   // ════ الخطوة 2: البروتين — 80% من متبقي البروتين ════
   const protAfterCarb  = Math.max(mealTargets.protein - carbContrib.prot, 0);
   const protBudget80   = protAfterCarb * 0.80;
-  const perProtSrc     = protBudget80 / Math.max(protSrcs.length, 1);
+  const perProtSrc     = protSrcs.length ? protBudget80 / protSrcs.length : 0;
 
   const protContrib = {fat:0, prot:0, nc:0, cal:0};
   protSrcs.forEach(function(f){
@@ -1542,3 +1542,20 @@ function _adjustForKetoRatio(targetRatio){
 }
 
 
+
+function _populateCsel(){
+  const sel = document.getElementById('csel');
+  if(!sel || !FOODS || sel.options.length > 1) return;
+  sel.innerHTML = '<option value="">اختر...</option>';
+  const cats = [...new Set(FOODS.map(function(f){ return f.cat; }))];
+  cats.forEach(function(cat){
+    const og = document.createElement('optgroup');
+    og.label = cat;
+    FOODS.filter(function(f){ return f.cat===cat; }).forEach(function(f){
+      const o = document.createElement('option');
+      o.value = f.id; o.textContent = f.name;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+}
