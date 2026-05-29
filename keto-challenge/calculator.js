@@ -649,49 +649,164 @@ function _calcSearchFood(query){
 }
 
 function _renderCalcNutrition(){
-  // احسب ماكرو كل المكونات (داخلية + خارجية)
-  const regularItems = calcItems.filter(i=>typeof i.fid==='number');
+  // ── ماكرو كامل ──
+  const regularItems = calcItems.filter(function(i){ return typeof i.fid==='number'; });
   const m0 = _calcMealRatio(regularItems);
-  // أضف ماكرو الأصناف الخارجية (خبز، أرز)
   let extFat=0,extProt=0,extNc=0,extCal=0;
-  calcItems.filter(i=>typeof i.fid==='string').forEach(function(item){
+  calcItems.filter(function(i){ return typeof i.fid==='string'; }).forEach(function(item){
     const uType = item.fid.replace('ext:','');
-    const extM = (typeof getExternalMacros!=='undefined') ? getExternalMacros(uType, item._sel||{}, item.qty) : null;
+    const extM = typeof getExternalMacros!=='undefined' ? getExternalMacros(uType,item._sel||{},item.qty) : null;
     if(extM){ extFat+=extM.fat||0; extProt+=extM.prot||0; extNc+=extM.nc||0; extCal+=extM.cal||0; }
   });
   const m = {
-    fat:  Math.round((m0.fat  + extFat)*10)/10,
-    prot: Math.round((m0.prot + extProt)*10)/10,
-    nc:   Math.round((m0.nc   + extNc)*10)/10,
-    cal:  Math.round(m0.cal   + extCal),
-    ratio: 0
+    fat:  Math.round((m0.fat +extFat)*10)/10,
+    prot: Math.round((m0.prot+extProt)*10)/10,
+    nc:   Math.round((m0.nc  +extNc)*10)/10,
+    cal:  Math.round(m0.cal  +extCal),
   };
-  const _d = m.prot*0.6 + m.nc;
-  m.ratio = _d > 0 ? Math.round(m.fat/_d*100)/100 : 0;
-  const ratioColor = m.ratio >= 2.0 ? 'var(--accent)' : m.ratio >= 1.5 ? '#f59e0b' : 'var(--danger)';
-  const ratioLabel = m.ratio >= 2.0 ? 'ممتاز 🔥' : m.ratio >= 1.5 ? 'محفز ✓' : 'يحتاج تحسين';
-  const ketoP = Math.min(Math.round(m.ratio / 3 * 100), 100);
+  const _d = m.prot*0.6+m.nc;
+  m.ratio = _d>0 ? Math.round(m.fat/_d*100)/100 : 0;
+
+  // ── سياق: أهداف الوجبة ──
+  const mem       = MEMBERS.find(function(mb){ return mb.uid===(CU&&CU.id); });
+  const prefs     = mem && typeof getMemPrefs!=='undefined' ? getMemPrefs(mem) : {};
+  const phase     = mem ? (mem.phase||1) : 1;
+  const mealsN    = prefs.meals_per_day||3;
+  const KETO_BY_PHASE = {0:1.2,1:1.6,2:1.8,3:2.0,4:2.0,5:1.8,6:1.6,7:1.6};
+  const ketoMin   = KETO_BY_PHASE[phase]||1.6;
+  const dayTgt    = mem && typeof getTargetForDate!=='undefined' ? getTargetForDate(mem) : {fat:130,protein:110,carb:25,cal:1800};
+  const SHARES    = {3:[0.30,0.35,0.35],2:[0.45,0.55]};
+  const shares    = SHARES[mealsN]||[0.33,0.33,0.34];
+  const mti       = mem && typeof getMealType!=='undefined' ? getMealType(mem) : null;
+  const mIdx      = {breakfast:0,lunch:1,dinner:2}[(mti&&mti.type)||'']||0;
+  const share     = shares[mIdx]||0.33;
+  const carbLim   = _calcCarbLimit===999 ? Math.round((dayTgt.carb||25)*share) : _calcCarbLimit;
+  const calTarget = Math.round((dayTgt.cal||1800)*share);
+  const calMax    = Math.round(calTarget*1.20);
+
+  // ── ألوان وتصنيفات ──
+  const ratioOk   = m.ratio >= ketoMin;
+  const ratioColor= m.ratio>=2.0?'var(--accent)':m.ratio>=ketoMin?'#f59e0b':'var(--danger)';
+  const ratioLabel= m.ratio>=2.0?'ممتاز 🔥':m.ratio>=ketoMin?'محفز ✓':'يحتاج تحسين';
+  const ketoP     = Math.min(Math.round(m.ratio/3*100),100);
+
+  // ── بناء توصيات ذكية ──
+  const tips = [];
+
+  // 1. نسبة كيتونية
+  if(!ratioOk){
+    // ما هو المصدر الرئيسي للمشكلة؟
+    const highCarbItems = calcItems.filter(function(i){
+      if(typeof i.fid!=='number') return false;
+      const f=FOODS.find(function(x){ return x.id===i.fid; });
+      return f && f.net_carb>3 && f.net_carb*i.qty/100 > 2;
+    }).sort(function(a,b){
+      const fa=FOODS.find(function(x){ return x.id===a.fid; });
+      const fb=FOODS.find(function(x){ return x.id===b.fid; });
+      return (fb.net_carb*b.qty)-(fa.net_carb*a.qty);
+    });
+    const lowFatItems = calcItems.filter(function(i){
+      if(typeof i.fid!=='number') return false;
+      const f=FOODS.find(function(x){ return x.id===i.fid; });
+      return f && f.fat>30;
+    });
+
+    const fatNeeded = Math.max(ketoMin*_d - m.fat, 0).toFixed(1);
+    if(highCarbItems.length>0){
+      const topCarb = FOODS.find(function(x){ return x.id===highCarbItems[0].fid; });
+      tips.push({
+        type:'warning',
+        icon:'🥗',
+        text:'قلّل الكارب',
+        detail:'تقليل كمية <strong>' + (topCarb&&topCarb.name||'') + '</strong> بمقدار النصف سيرفع النسبة الكيتونية'
+      });
+    }
+    if(lowFatItems.length>0){
+      tips.push({
+        type:'warning',
+        icon:'🧈',
+        text:'أضف دهناً',
+        detail:'إضافة <strong>' + fatNeeded + 'غ</strong> دهن إضافي (≈ملعقة زيت زيتون) ترفع النسبة فوق ' + ketoMin
+      });
+    } else {
+      tips.push({
+        type:'warning',
+        icon:'🧈',
+        text:'أضف مصدر دهن',
+        detail:'لا يوجد دهن كافٍ — أضف زيت زيتون أو زبدة أو أفوكادو للوجبة'
+      });
+    }
+  }
+
+  // 2. السعرات
+  if(m.cal > calMax){
+    const excess = m.cal - calTarget;
+    tips.push({
+      type:'info',
+      icon:'📊',
+      text:'سعرات أعلى من المقترح',
+      detail:'هذه الوجبة تحتوي <strong>' + m.cal + '</strong> سعرة (المقترح ' + calTarget + '). انتبه لوجباتك التالية لتبقى ضمن ' + (dayTgt.cal||1800) + ' سعرة يومياً'
+    });
+  }
+
+  // 3. الكارب
+  if(m.nc > carbLim){
+    tips.push({
+      type:'warning',
+      icon:'🌾',
+      text:'الكارب فوق الهدف',
+      detail:'الكارب الحالي <strong>' + m.nc + 'غ</strong> — الهدف المختار ' + carbLim + 'غ. قلّل كميات الخضار أو الفاكهة'
+    });
+  }
+
+  // 4. إيجابية — نسبة ممتازة
+  if(ratioOk && m.cal<=calMax && m.nc<=carbLim){
+    tips.push({
+      type:'success',
+      icon:'✅',
+      text:'وجبة متوازنة',
+      detail:'النسبة الكيتونية والكارب والسعرات ضمن الهدف — أحسنت!'
+    });
+  }
+
+  // ── بناء HTML التوصيات ──
+  const tipsHTML = tips.length ? tips.map(function(tip){
+    const bg  = tip.type==='success' ? 'rgba(58,140,63,.08)' : tip.type==='warning' ? 'rgba(239,83,80,.08)' : 'rgba(41,182,246,.08)';
+    const bc  = tip.type==='success' ? 'rgba(58,140,63,.3)' : tip.type==='warning' ? 'rgba(239,83,80,.3)' : 'rgba(41,182,246,.3)';
+    return '<div style="display:flex;gap:8px;padding:9px 11px;background:'+bg+';border:1px solid '+bc+';border-radius:var(--radius-sm);margin-bottom:6px">' +
+      '<span style="font-size:16px;flex-shrink:0">'+tip.icon+'</span>' +
+      '<div>' +
+        '<div style="font-size:12px;font-weight:600;margin-bottom:2px">'+tip.text+'</div>' +
+        '<div style="font-size:11px;color:var(--text2);line-height:1.5">'+tip.detail+'</div>' +
+      '</div>' +
+    '</div>';
+  }).join('') : '';
 
   return '<div class="calc-nutrition-card">' +
+    // النسبة الكيتونية
     '<div style="text-align:center;margin-bottom:12px">' +
-      '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">النسبة الكيتونية للوجبة</div>' +
-      '<div class="calc-keto-ratio" style="color:' + ratioColor + '">' + m.ratio + '</div>' +
-      '<div style="font-size:12px;color:' + ratioColor + ';font-weight:600">' + ratioLabel + '</div>' +
+      '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">النسبة الكيتونية للوجبة (الهدف ≥'+ketoMin+')</div>' +
+      '<div class="calc-keto-ratio" style="color:'+ratioColor+'">'+m.ratio+'</div>' +
+      '<div style="font-size:12px;color:'+ratioColor+';font-weight:600">'+ratioLabel+'</div>' +
       '<div style="height:6px;background:var(--surface2);border-radius:6px;margin:8px 0;overflow:hidden">' +
-        '<div style="height:100%;width:' + ketoP + '%;background:' + ratioColor + ';border-radius:6px;transition:width .6s"></div>' +
+        '<div style="height:100%;width:'+ketoP+'%;background:'+ratioColor+';border-radius:6px;transition:width .6s"></div>' +
       '</div>' +
     '</div>' +
+    // الماكرو
     '<div class="calc-macro-grid">' +
-      '<div class="calc-macro-box"><div class="calc-macro-box-val" style="color:var(--accent)">' + m.fat + 'غ</div><div class="calc-macro-box-lbl">دهون</div></div>' +
-      '<div class="calc-macro-box"><div class="calc-macro-box-val" style="color:var(--info)">' + m.prot + 'غ</div><div class="calc-macro-box-lbl">بروتين</div></div>' +
-      '<div class="calc-macro-box"><div class="calc-macro-box-val" style="color:var(--danger)">' + m.nc + 'غ</div><div class="calc-macro-box-lbl">كارب صافٍ</div></div>' +
-      '<div class="calc-macro-box"><div class="calc-macro-box-val">' + m.cal + '</div><div class="calc-macro-box-lbl">سعرة</div></div>' +
+      '<div class="calc-macro-box"><div class="calc-macro-box-val" style="color:var(--accent)">'+m.fat+'غ</div><div class="calc-macro-box-lbl">دهون</div></div>' +
+      '<div class="calc-macro-box"><div class="calc-macro-box-val" style="color:var(--info)">'+m.prot+'غ</div><div class="calc-macro-box-lbl">بروتين</div></div>' +
+      '<div class="calc-macro-box"><div class="calc-macro-box-val" style="color:'+(m.nc>carbLim?'var(--danger)':'var(--text)')+'">'+m.nc+'غ</div><div class="calc-macro-box-lbl">كارب</div></div>' +
+      '<div class="calc-macro-box"><div class="calc-macro-box-val" style="color:'+(m.cal>calMax?'var(--danger)':'var(--text)')+'">'+m.cal+'</div><div class="calc-macro-box-lbl">سعرة</div></div>' +
     '</div>' +
-    '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding-top:8px;border-top:1px solid var(--border)">' +
-      '<span>دهون مشبعة: <strong>' + _calcSatFatTotal() + 'غ</strong></span>' +
-      '<span>ألياف: <strong>' + _calcFiberTotal() + 'غ</strong></span>' +
-      '<span>صوديوم: <strong>' + _calcSodiumTotal() + 'ملغ</strong></span>' +
+    // تفاصيل إضافية
+    '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding:8px 0;border-top:1px solid var(--border);margin:8px 0">' +
+      '<span>مشبعة: <strong>'+_calcSatFatTotal()+'غ</strong></span>' +
+      '<span>ألياف: <strong>'+_calcFiberTotal()+'غ</strong></span>' +
+      '<span>صوديوم: <strong>'+_calcSodiumTotal()+'ملغ</strong></span>' +
     '</div>' +
+    // التوصيات
+    (tipsHTML ? '<div style="margin-top:4px">'+tipsHTML+'</div>' : '') +
   '</div>';
 }
 
