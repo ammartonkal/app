@@ -237,20 +237,46 @@ function _calcGetUnitType(fid){
 /* ─── بناء خيارات الوحدة للأصناف generic ─── */
 function _getGenericSteps(unitType, food){
   if(unitType === '_fruit'){
+    // الفاكهة: بالحبات إذا كانت qty_moderate صغيرة (توت)، وإلا بالغرام
     const modQty = food.qty_moderate || 20;
+    if(modQty <= 30){
+      // توت وما شابهه → بالحبة
+      const gramsPerPiece = food.id===84?0.8:food.id===86?1.2:food.id===85?1.5:1; // توت أزرق≈0.8غ/حبة
+      return [
+        { key:'fruit_pieces', label:'العدد (حبة)', type:'number', min:1, max:100, step:1, default:Math.round(modQty/gramsPerPiece), unit:'حبة' },
+        { key:'_fruit_gpp',   label:'', type:'hidden', default:gramsPerPiece }
+      ];
+    }
+    // فاكهة كبيرة → بالغرام خطوة 5
     return [
-      {
-        key:'fruit_amount', label:'الكمية', type:'number',
-        min:5, max:100, step:5, default:modQty, unit:'غ'
-      }
+      { key:'fruit_amount', label:'الكمية', type:'number', min:5, max:200, step:5, default:modQty, unit:'غ' }
     ];
   }
-  if(unitType === '_veg_generic' || unitType === '_nuts_generic'){
+  if(unitType === '_veg_generic'){
     return [
-      { key:'generic_qty', label:'الكمية', type:'number', min:5, max:200, step:5, default:80, unit:'غ' }
+      { key:'generic_qty', label:'الكمية (غ)', type:'number', min:10, max:300, step:10, default:80, unit:'غ' }
+    ];
+  }
+  if(unitType === '_nuts_generic'){
+    return [
+      { key:'generic_qty', label:'الكمية (غ)', type:'number', min:5, max:100, step:5, default:25, unit:'غ' }
     ];
   }
   return null;
+}
+
+/* ─── الغرام من خطوات generic ─── */
+function _calcGramsGeneric(unitType, sel, food){
+  if(unitType === '_fruit'){
+    if(sel.fruit_pieces !== undefined){
+      const gpp = sel._fruit_gpp || (food.qty_moderate<=30 ? 0.8 : 1);
+      return Math.round(sel.fruit_pieces * gpp);
+    }
+    return sel.fruit_amount || food.qty_moderate || 20;
+  }
+  if(unitType === '_veg_generic')  return sel.generic_qty || 80;
+  if(unitType === '_nuts_generic') return sel.generic_qty || 25;
+  return food.qty_moderate || 50;
 }
 
 function _calcGramsGeneric(unitType, sel, food){
@@ -333,7 +359,15 @@ function _renderCalcItems(){
 
         if(step.type === 'number'){
           const val = sel[step.key] !== undefined ? sel[step.key] : (step.default||1);
-          const stepN = step.step || 1;
+          // خطوة ذكية حسب unitType والـ step.key
+          let stepN = step.step || 1;
+          if(unitType==='nuts' && step.key==='nut_amount')      stepN = 1;
+          if(unitType==='whole_veg' && step.key==='veg_amount') stepN = 0.25;
+          if(unitType==='leafy_veg' && step.key==='leaf_amount')stepN = 0.5;
+          if(unitType==='_fruit' && step.key==='fruit_pieces')  stepN = 1;
+          if(unitType==='_fruit' && step.key==='fruit_amount')  stepN = 5;
+          if((unitType==='chicken'||unitType==='beef') && step.key.includes('count')) stepN = 1;
+          if(unitType==='fish' && step.key==='fish_amount')     stepN = 0.5;
           html += '<div style="display:flex;align-items:center;gap:5px">' +
             '<button class="btn sm" onclick="_inlineStep(\'' + fidKey + '\',\'' + step.key + '\',' + (-stepN) + ',' + (step.min||0) + ',' + (step.max||99) + ',' + stepN + ')"  >−</button>' +
             '<input type="number" value="' + val + '" min="' + (step.min||0) + '" max="' + (step.max||99) + '" step="' + stepN + '"' +
@@ -424,13 +458,23 @@ function _inlineStep(fidKey, stepKey, delta, min, max, stepSize){
   const item = calcItems.find(function(i){ return String(i.fid).replace(':','_') === fidKey; });
   if(!item) return;
   if(!item._sel) item._sel = {};
-  const cur = parseFloat(item._sel[stepKey]) || 1;
-  item._sel[stepKey] = Math.max(min, Math.min(max, Math.round((cur + delta) * 10) / 10));
+  const cur = parseFloat(item._sel[stepKey]);
+  const curVal = isNaN(cur) ? (stepKey==='veg_amount'?1:stepKey==='egg_count'?2:1) : cur;
+  const rawNew = curVal + delta;
+  // تقريب لأقرب مضاعف للخطوة
+  const snapped = Math.round(rawNew / (stepSize||1)) * (stepSize||1);
+  item._sel[stepKey] = Math.max(min!==undefined?min:0.25, Math.min(max!==undefined?max:999, snapped));
+
   const isExt  = String(item.fid).startsWith('ext:');
   const numFid = isExt ? null : parseInt(item.fid);
-  const uType  = isExt ? item.fid.replace('ext:','') : (typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(numFid) : null);
-  if(uType && typeof calcGramsFromSel!=='undefined'){
-    item.qty = calcGramsFromSel(uType, item._sel, numFid||item.fid) || item.qty;
+  const uType  = isExt ? item.fid.replace('ext:','') : _calcGetUnitType(numFid);
+
+  if(uType && uType.startsWith('_')){
+    const food = numFid ? FOODS.find(function(f){ return f.id===numFid; }) : {};
+    item.qty = _calcGramsGeneric(uType, item._sel, food||{}) || item.qty;
+  } else if(uType && typeof calcGramsFromSel!=='undefined'){
+    const newQty = calcGramsFromSel(uType, item._sel, numFid||item.fid);
+    if(newQty>0) item.qty = newQty;
   }
   rCalc();
 }
@@ -444,9 +488,40 @@ function _inlineSet(fidKey, stepKey, val){
 function _inlineQuickStep(fidKey, dir){
   const item = calcItems.find(function(i){ return String(i.fid).replace(':','_') === fidKey; });
   if(!item) return;
-  const step = item.qty >= 100 ? 10 : item.qty >= 20 ? 5 : 1;
-  item.qty = Math.max(1, item.qty + dir * step);
-  // حاول تحديث الـ _sel ليتوافق مع الكمية الجديدة
+  const isExt  = String(item.fid).startsWith('ext:');
+  const numFid = isExt ? null : parseInt(item.fid);
+  const food   = numFid ? FOODS.find(function(f){ return f.id===numFid; }) : null;
+  const uType  = isExt ? item.fid.replace('ext:','') : _calcGetUnitType(numFid);
+
+  // خطوة حسب النوع
+  let step = 5;
+  if(uType === 'egg')         step = 55;   // بيضة واحدة
+  if(uType === 'oil')         step = 14;   // ملعقة كبيرة
+  if(uType === 'butter')      step = 14;
+  if(uType === 'avocado')     step = Math.round(150*0.65*0.25); // ربع حبة ≈24غ
+  if(uType === 'nuts')        step = 2;    // 2 حبة تقريباً ≈5غ
+  if(uType === 'leafy_veg')   step = 30;  // حفنة
+  if(uType === 'whole_veg')   step = item.qty>=100 ? 25 : 10;
+  if(uType === 'fish')        step = 50;
+  if(uType === 'chicken' || uType === 'beef') step = 50;
+  if(uType === 'cheese')      step = 20;
+  if(uType === '_fruit')      step = food && food.qty_moderate<=30 ? 5 : 10;
+  if(uType === '_veg_generic')step = 10;
+  if(uType === '_nuts_generic')step = 5;
+  if(!uType && food) step = item.qty>=100?10:5;
+
+  const newQty = Math.max(step, Math.round((item.qty + dir*step)/step)*step);
+  item.qty = newQty;
+
+  // حدّث _sel ليعكس الكمية الجديدة
+  if(uType && !uType.startsWith('_') && typeof _buildSelForQty!=='undefined'){
+    item._sel = _buildSelForQty(uType, numFid, newQty, food||{});
+  } else if(uType === '_fruit'){
+    const gpp = (item._sel&&item._sel._fruit_gpp) || 0.8;
+    item._sel = {fruit_pieces: Math.round(newQty/gpp), _fruit_gpp: gpp};
+  } else if(uType){
+    item._sel = {generic_qty: newQty};
+  }
   rCalc();
 }
 
@@ -842,7 +917,21 @@ function _toggleCalcFood(fid){
   if(idx > -1) _calcSelected.splice(idx,1);
   else         _calcSelected.push(numFid);
   if(_calcMode === 'manual'){
-    const ex = calcItems.find(i=>i.fid===numFid);
+    const ex = calcItems.find(function(i){ return i.fid===numFid; });
+    if(ex){
+      calcItems = calcItems.filter(function(i){ return i.fid!==numFid; });
+    } else {
+      const unitType = _calcGetUnitType(numFid);
+      const defSel   = unitType ? _getDefaultSel(unitType, numFid) : {};
+      let qty = 100;
+      if(unitType && !unitType.startsWith('_') && typeof calcGramsFromSel!=='undefined'){
+        qty = calcGramsFromSel(unitType, defSel, numFid) || 100;
+      } else if(unitType && unitType.startsWith('_')){
+        const food2 = FOODS.find(function(f){ return f.id===numFid; });
+        qty = _calcGramsGeneric(unitType, defSel, food2||{}) || 50;
+      }
+      calcItems.push({fid:numFid, qty:Math.max(qty,5), _sel:defSel});
+    }t ex = calcItems.find(i=>i.fid===numFid);
     if(ex) calcItems = calcItems.filter(i=>i.fid!==numFid);
     else {
       const unitType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(numFid) : null;
@@ -1111,7 +1200,10 @@ function _buildAutoMeal(){
 function _snapToFriendlyCarb(rawG, food){
   const type = _calcGetUnitType(food.id);
   if(type === '_fruit' || food.cat === 'فواكه'){
-    const snaps = [5,10,15,20,25,30,40,50];
+    // توت وفواكه صغيرة → مضاعفات 5غ (تُعرض كحبات لاحقاً)
+    const snaps = food.qty_moderate<=30
+      ? [5,10,15,20,25,30]          // توت: كميات صغيرة
+      : [20,30,40,50,60,80,100];    // فاكهة كبيرة
     return Math.max(5, _nearestInList(rawG, snaps));
   }
   if(type === 'leafy_veg' || type === '_veg_generic'){
@@ -1121,9 +1213,10 @@ function _snapToFriendlyCarb(rawG, food){
   if(type === 'whole_veg'){
     const base  = (UNIT_INTELLIGENCE&&UNIT_INTELLIGENCE.whole_veg&&UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS)
       ? (UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS[food.id]||100) : 100;
-    const fracs = [0.25,0.33,0.5,0.67,0.75,1,1.25,1.5,2];
-    const best  = fracs.reduce(function(p,f){ return Math.abs(f*base-rawG)<Math.abs(p*base-rawG)?f:p; },1);
-    return Math.round(best*base/5)*5;
+    // أكسر مرنة: من ربع حبة إلى حبتين
+    const fracs = [0.25, 0.33, 0.5, 0.67, 0.75, 1.0, 1.25, 1.5, 2.0];
+    const best  = fracs.reduce(function(p,f){ return Math.abs(f*base-rawG)<Math.abs(p*base-rawG)?f:p; },0.5);
+    return Math.max(Math.round(base*0.25), Math.round(best*base/5)*5);
   }
   if(type === 'nuts'){
     const snaps = [10,15,20,25,30,40];
