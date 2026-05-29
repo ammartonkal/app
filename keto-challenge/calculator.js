@@ -118,6 +118,166 @@ function _calcFiberBooster(currentFiberG, mealCalBudget, mealFatBudget, favIds){
   return null;
 }
 
+
+/* ══════════════════════════════════════════════════════════════
+   دوال أساسية مطلوبة من _buildAutoMeal وبطاقة المغذيات
+══════════════════════════════════════════════════════════════ */
+
+/* ─── إجمالي ماكرو كل المكونات (داخلية + خارجية) ─── */
+function _calcTotalsAll(){
+  const ZERO_SW = [108,109,110,111,112];
+  const t = {fat:0,prot:0,nc:0,cal:0,fiber:0,sat:0};
+  calcItems.forEach(function(item){
+    if(typeof item.fid === 'number'){
+      const f = FOODS.find(function(x){ return x.id===item.fid; });
+      if(!f) return;
+      const q = item.qty/100;
+      t.fat   += f.fat*q;
+      t.prot  += f.protein*q;
+      t.fiber += (f.fiber||0)*q;
+      t.sat   += (f.sat_fat||0)*q;
+      if(!ZERO_SW.includes(f.id)){
+        t.nc  += f.net_carb*q;
+        t.cal += f.cal*q;
+      }
+    } else if(typeof item.fid === 'string'){
+      const uType = item.fid.replace('ext:','');
+      const em = typeof getExternalMacros!=='undefined'
+        ? getExternalMacros(uType, item._sel||{}, item.qty) : null;
+      if(em){
+        t.fat  += em.fat||0;  t.prot += em.prot||0;
+        t.nc   += em.nc||0;   t.cal  += em.cal||0;
+      }
+    }
+  });
+  return {
+    fat:   Math.round(t.fat  *10)/10,
+    prot:  Math.round(t.prot *10)/10,
+    nc:    Math.round(t.nc   *10)/10,
+    cal:   Math.round(t.cal),
+    fiber: Math.round(t.fiber*10)/10,
+    sat:   Math.round(t.sat  *10)/10,
+  };
+}
+
+/* ─── ماكرو لقائمة صنف/كمية ─── */
+function _calcMealRatio(items){
+  const ZERO_SW = [108,109,110,111,112];
+  let fat=0,prot=0,nc=0,cal=0,fiber=0;
+  (items||[]).forEach(function(i){
+    const f = FOODS.find(function(x){ return x.id===i.fid; });
+    if(!f) return;
+    const q = i.qty/100;
+    fat   += f.fat*q;
+    prot  += f.protein*q;
+    fiber += (f.fiber||0)*q;
+    if(!ZERO_SW.includes(f.id)){ nc+=f.net_carb*q; cal+=f.cal*q; }
+  });
+  const d = nc + prot*0.6;
+  return {
+    fat:   Math.round(fat  *10)/10,
+    prot:  Math.round(prot *10)/10,
+    nc:    Math.round(nc   *10)/10,
+    cal:   Math.round(cal),
+    fiber: Math.round(fiber*10)/10,
+    ratio: d>0 ? Math.round(fat/d*100)/100 : 0,
+  };
+}
+
+/* ─── sat_fat الكلي ─── */
+function _calcSatFatTotal(){
+  return Math.round(calcItems.reduce(function(s,i){
+    if(typeof i.fid!=='number') return s;
+    const f=FOODS.find(function(x){ return x.id===i.fid; });
+    return s+(f?(f.sat_fat||0)*i.qty/100:0);
+  },0)*10)/10;
+}
+
+/* ─── ألياف الكلي ─── */
+function _calcFiberTotal(){
+  return Math.round(calcItems.reduce(function(s,i){
+    if(typeof i.fid!=='number') return s;
+    const f=FOODS.find(function(x){ return x.id===i.fid; });
+    return s+(f?(f.fiber||0)*i.qty/100:0);
+  },0)*10)/10;
+}
+
+/* ─── صوديوم الكلي ─── */
+function _calcSodiumTotal(){
+  return Math.round(calcItems.reduce(function(s,i){
+    if(typeof i.fid!=='number') return s;
+    const f=FOODS.find(function(x){ return x.id===i.fid; });
+    return s+(f?(f.sodium||0)*i.qty/100:0);
+  },0));
+}
+
+/* ─── تسجيل الوجبة فقط ─── */
+async function _calcRegisterOnly(){
+  if(!calcItems.length){ alert('لا توجد مكونات'); return; }
+  await _doRegisterMeal(false);
+}
+
+/* ─── تسجيل + حفظ الوصفة ─── */
+async function _calcRegisterAndSave(){
+  if(!calcItems.length){ alert('لا توجد مكونات'); return; }
+  await _doRegisterMeal(true);
+}
+
+/* ─── تنفيذ التسجيل ─── */
+async function _doRegisterMeal(save){
+  const m    = _calcTotalsAll();
+  const date = new Date().toISOString().split('T')[0];
+  const mem  = MEMBERS.find(function(x){ return x.uid===(CU&&CU.id); });
+  const mti  = mem && typeof getMealType!=='undefined' ? getMealType(mem) : null;
+  const meal = {
+    uid:  CU.id, date, ts: Date.now(),
+    type: mti ? mti.type : 'other',
+    name: save ? (prompt('اسم الوجبة:', 'وجبتي الكيتونية')||'وجبتي') : 'وجبة من الحاسبة',
+    items: calcItems.map(function(i){
+      const f=FOODS.find(function(x){ return x.id===i.fid; });
+      return {fid:i.fid, name:f?f.name:'', qty:i.qty};
+    }),
+    totals: { cal:m.cal, fat:m.fat, protein:m.prot,
+              net_carb:m.nc, fiber:m.fiber, sodium:_calcSodiumTotal() }
+  };
+  MEALS.push(meal);
+  if(window.DB && window.DB.saveMeal) await window.DB.saveMeal(meal);
+  if(typeof onMealRegistered!=='undefined') onMealRegistered(meal.type);
+  if(save){
+    const share = document.getElementById('calc-share-check');
+    const recipe = {
+      id: RECIPES.length+1, name: meal.name,
+      desc:'وصفة من حاسبة الوصفة الذكية', servings:1,
+      category:'وصفاتي', tags:['شخصية'],
+      ingredients: calcItems.map(function(i){ return {fid:i.fid, qty:i.qty}; }),
+      steps:['تحضير المكونات وطهيها'],
+      favorites:[CU.id],
+      _savedBy:CU.id,
+      _shareRequest: share ? share.checked : false,
+    };
+    RECIPES.push(recipe);
+  }
+  // مسح وانتقال للوحة التحكم
+  calcItems = []; _calcSelected = []; _calcBuilt = false;
+  window._calcFiberSuggestion = null;
+  if(typeof gp!=='undefined') gp('dashboard');
+}
+
+/* ─── إضافة مقترح الألياف للوجبة ─── */
+function _addFiberBooster(fid, qty){
+  const existing = calcItems.find(function(i){ return i.fid===fid; });
+  if(existing){
+    existing.qty = Math.min(existing.qty + qty, qty*2);
+  } else {
+    const uType = _calcGetUnitType(fid);
+    const sel   = uType ? _getDefaultSel(uType, fid) : {};
+    calcItems.push({fid:fid, qty:qty, _sel:sel});
+    if(!_calcSelected.includes(fid)) _calcSelected.push(fid);
+  }
+  window._calcFiberSuggestion = null;
+  rCalc();
+}
+
 function rCalc(){
   const mem     = MEMBERS.find(m=>m.uid===CU?.id);
   const el      = document.getElementById('calc-content');
