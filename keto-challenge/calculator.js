@@ -1269,9 +1269,26 @@ function _buildAutoMeal(){
 
   const fatMax    = Math.round(dayTargets.fat     * share);
   const protMax   = Math.round(dayTargets.protein * share);
+  // نسب الكارب الافتراضية حسب المرحلة (% من السعرات ÷ 4)
+  const CARB_PCT_BY_PHASE = {
+    0: 0.07,  // تمهيدية:  7% (رفع تدريجي)
+    1: 0.05,  // مرحلة 1:  5% كيتو كامل
+    2: 0.05,  // مرحلة 2:  5%
+    3: 0.05,  // مرحلة 3:  5%
+    4: 0.05,  // مرحلة 4:  5%
+    5: 0.07,  // مرحلة 5:  7% (صيانة بدء)
+    6: 0.10,  // مرحلة 6: 10% (مرونة أكثر)
+    7: 0.10,  // مرحلة 7: 10%
+  };
+  // الكارب اليومي: من الخطة المحفوظة أو من النسبة حسب المرحلة
+  const phaseCarbPct  = CARB_PCT_BY_PHASE[phase] || 0.05;
+  const phaseCarbG    = Math.round(dayTargets.cal * phaseCarbPct / 4);
+  const dayCarbTarget = dayTargets.carb || phaseCarbG; // الخطة أولاً، ثم المرحلة
+  const carbAutoForMeal = Math.round(dayCarbTarget * share);
+
   const carbLimit = _calcCarbLimit===999
-    ? Math.round((dayTargets.carb||20) * share)
-    : _calcCarbLimit;
+    ? carbAutoForMeal          // "حر" = مقترح تلقائي حسب المرحلة والسعرات
+    : Math.min(_calcCarbLimit, dayCarbTarget); // اختيار المشترك لكن بحد السقف اليومي
   const calMax    = Math.round(dayTargets.cal     * share);
 
   // sat_fat: فطور+غداء فقط (العشاء خفيف)
@@ -1532,6 +1549,9 @@ function _buildFatSel(uType, fid, shareGrams){
 }
 
 /* ─── بناء _sel لصنف بكمية محددة ─── */
+
+/* alias للتوافق */
+function _buildSelForQty(uType, fid, qty, food){ return _buildSelForItem(uType, fid, qty); }
 function _buildSelForItem(uType, fid, targetGrams){
   if(!uType) return {};
   const base = _getDefaultSel(uType, fid);
