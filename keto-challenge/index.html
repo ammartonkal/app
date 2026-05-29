@@ -1621,16 +1621,17 @@ function popSels(){['rb-isel','csel'].forEach(sid=>{const s=document.getElementB
 
 /* الإعدادات الافتراضية لتفضيلات الوجبات */
 const DEFAULT_MEAL_PREFS = {
-  meals_per_day: 3,
-  has_snack: true,
+  meals_per_day:       3,
+  has_snack:           true,
+  preferred_egg_count: 2,        // عدد البيضات المفضل في الفطور
+  sat_fat_limit:       'open',   // 'open' | 'lt20' | 'lt10' | 'lt7'
   meal_times: {
     breakfast: '08:00',
-    lunch: '13:00',
-    dinner: '19:00',
-    snack: '16:00'
+    lunch:     '13:00',
+    dinner:    '19:00',
+    snack:     '16:00'
   },
   dietary_notes: '',
-  sat_fat_limit: 'open'  // 'open' | '<20%' | '<10%' | '<7%'
 };
 
 /* ─── حساب الحد اليومي للدهون المشبعة بالغرام ─── */
@@ -2142,6 +2143,8 @@ function getTargetForDate(mem, date){
   if(mem?.target_fat){
     return {fat:mem.target_fat, protein:mem.target_prot||110, carb:mem.target_carb||25, cal:mem.target_cal||1800, date:'2000-01-01', label:'الخطة الأساسية'};
   }
+  // تحذير: المشترك لم يُدخل خطته — أرقام افتراضية
+  console.warn('[getTargetForDate] لا توجد خطة محفوظة — تُستخدم قيم افتراضية');
   return {fat:130, protein:110, carb:25, cal:1800, date:'2000-01-01', label:'افتراضية'};
 }
 

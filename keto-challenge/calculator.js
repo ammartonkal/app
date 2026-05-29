@@ -1087,24 +1087,49 @@ function _buildAutoMeal(){
     ? calcRemainingAfterMeals(mem, todayMls)
     : {fat:dayTargets.fat, protein:dayTargets.protein, carb:dayTargets.carb||25, cal:dayTargets.cal};
 
-  // نوع الوجبة وحصتها
+  // نوع الوجبة وحصتها — مع مراعاة السناك
   const mealTypeInfo = mem && typeof getMealType!=='undefined' ? getMealType(mem) : null;
   const mealType = mealTypeInfo ? mealTypeInfo.type : 'other';
-  const mealIdx  = {breakfast:0,lunch:1,dinner:2}[mealType]||0;
-  const SHARES   = {
-    3: [0.30, 0.35, 0.35],
-    2: [0.45, 0.55],
-  };
-  const shares = SHARES[mealsN] || [0.33,0.33,0.34];
-  const share  = shares[mealIdx] || 0.33;
+  const mealIdx  = {breakfast:0, lunch:1, dinner:2, snack:3}[mealType] || 0;
 
-  // أهداف هذه الوجبة من المتبقي
-  const mealTargets = {
-    fat:     Math.round(Math.min(remaining.fat     * share / (1 - shares.slice(0,mealIdx).reduce(function(s,x){return s+x;},0)||1), remaining.fat)),
-    protein: Math.round(Math.min(remaining.protein * share / (1 - shares.slice(0,mealIdx).reduce(function(s,x){return s+x;},0)||1), remaining.protein)),
-    carb:    Math.min(remaining.carb||25, _calcCarbLimit===999 ? Math.round((dayTargets.carb||25)*share) : _calcCarbLimit),
-    cal:     Math.round(remaining.cal * share / (1 - shares.slice(0,mealIdx).reduce(function(s,x){return s+x;},0)||1)),
+  // الحصص حسب عدد الوجبات والسناك
+  // السناك = 8-10% من اليوم — يُطرح من الوجبات الأخرى
+  const snackShare = hasSnack ? 0.09 : 0;  // 9% للسناك
+  const mainShare  = 1 - snackShare;        // الباقي للوجبات الرئيسية
+
+  const SHARES = {
+    3: [
+      Math.round(mainShare * 0.29 * 100) / 100,  // فطور 29%
+      Math.round(mainShare * 0.36 * 100) / 100,  // غداء 36%
+      Math.round(mainShare * 0.35 * 100) / 100,  // عشاء 35%
+    ],
+    2: [
+      Math.round(mainShare * 0.44 * 100) / 100,  // وجبة 1 — 44%
+      Math.round(mainShare * 0.56 * 100) / 100,  // وجبة 2 — 56%
+    ],
   };
+  const shares  = SHARES[mealsN] || [0.33, 0.33, 0.34];
+  const share   = mealType === 'snack' ? snackShare : (shares[mealIdx] || 0.33);
+
+  // أهداف هذه الوجبة = حصة من الأهداف اليومية الكاملة
+  // (لا من المتبقي — المتبقي يُستخدم للوجبات التالية فقط)
+  const isFirstMeal = todayMls.filter(function(m){
+    return (m.totals&&m.totals.cal||0) >= 100;
+  }).length === 0;
+
+  const mealTargets = {
+    fat:     Math.round(dayTargets.fat     * share),
+    protein: Math.round(dayTargets.protein * share),
+    carb:    _calcCarbLimit===999 ? Math.round((dayTargets.carb||25)*share) : _calcCarbLimit,
+    cal:     Math.round(dayTargets.cal     * share),
+  };
+
+  // إذا وجبة ثانية أو أكثر → استخدم المتبقي الفعلي إذا كان أقل
+  if(!isFirstMeal){
+    mealTargets.fat     = Math.min(mealTargets.fat,     Math.round(remaining.fat));
+    mealTargets.protein = Math.min(mealTargets.protein, Math.round(remaining.protein));
+    mealTargets.cal     = Math.min(mealTargets.cal,     Math.round(remaining.cal));
+  }
 
   // النسبة الكيتونية المستهدفة حسب المرحلة
   const KETO_BY_PHASE = {0:1.2, 1:1.6, 2:1.8, 3:2.0, 4:2.0, 5:1.8, 6:1.6, 7:1.6};
@@ -1124,9 +1149,11 @@ function _buildAutoMeal(){
     return f.protein > 8 || f.id === 10 ||
            ['بروتين','دواجن','لحوم','أسماك'].some(function(c){ return f.cat&&f.cat.includes(c); });
   });
-  // مصادر الدهون: fat > 30 وليست بروتين رئيسي
+  // مصادر الدهون: fat > 30 أو أفوكادو (fid=61) أو زيتون (fid=113)
+  const FAT_ALWAYS = [61, 113]; // دائماً دهن بغض النظر عن نسبة الدهن
   const fatSrcs = selFoods.filter(function(f){
-    return f.fat > 30 && !protSrcs.find(function(p){ return p.id===f.id; });
+    if(protSrcs.find(function(p){ return p.id===f.id; })) return false;
+    return f.fat > 30 || FAT_ALWAYS.includes(f.id);
   });
   // مصادر الكارب: ما تبقى (خضار، فواكه، مكسرات) — يُستثنى منها البروتين والدهون
   const carbSrcs = selFoods.filter(function(f){
@@ -1159,13 +1186,33 @@ function _buildAutoMeal(){
   // ════ الخطوة 2: البروتين — 80% من متبقي البروتين ════
   const protAfterCarb  = Math.max(mealTargets.protein - carbContrib.prot, 0);
   const protBudget80   = protAfterCarb * 0.80;
-  const perProtSrc     = protSrcs.length ? protBudget80 / protSrcs.length : 0;
+  // البيض يأخذ حصته المفضلة أولاً — الباقي للمصادر الأخرى
+  const hasEgg         = protSrcs.find(function(f){ return f.id===10; });
+  const eggQty         = hasEgg ? (prefs.preferred_egg_count||2) * 55 : 0;
+  const eggProtContrib = eggQty / 100 * 13; // 13غ بروتين/100غ
+  const protForOthers  = Math.max(protBudget80 - eggProtContrib, 0);
+  const otherProtSrcs  = protSrcs.filter(function(f){ return f.id !== 10; });
+  // إذا البيض وحده يكفي 80% من هدف البروتين → لا نضيف بروتين آخر
+  const eggCoversAll   = eggProtContrib >= protBudget80 * 0.85;
+  const perProtSrc     = (otherProtSrcs.length && !eggCoversAll)
+    ? protForOthers / otherProtSrcs.length : 0;
 
+  const eggPrefCount = prefs.preferred_egg_count || 2;
   const protContrib = {fat:0, prot:0, nc:0, cal:0};
   protSrcs.forEach(function(f){
     if(f.protein <= 0) return;
-    const rawG = perProtSrc / f.protein * 100;
-    const qty  = _snapToFriendlyProt(rawG, f);
+    // البيض: استخدم العدد المفضل من التفضيلات مباشرة
+    let qty;
+    if(f.id === 10){
+      qty = eggPrefCount * 55; // بيضة متوسطة = 55غ
+    } else {
+      // إذا البيض يكفي → لا نضيف مصدر بروتين آخر
+      if(eggCoversAll || perProtSrc <= 0){
+        return; // تخطّ هذا المصدر
+      }
+      const rawG = perProtSrc / f.protein * 100;
+      qty = _snapToFriendlyProt(rawG, f);
+    }
     const q    = qty/100;
     protContrib.fat  += f.fat      *q;
     protContrib.prot += f.protein  *q;
