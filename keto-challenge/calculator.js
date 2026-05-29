@@ -1350,8 +1350,8 @@ function _snapToFriendlyCarb(rawG, food){
   const uType = _calcGetUnitType(food.id);
   if(uType === '_fruit' || (food.cat && food.cat.includes('فواكه'))){
     const snaps = (food.qty_moderate||50)<=30
-      ? [5,10,15,20,25,30]
-      : [20,30,40,50,60,80,100];
+      ? [5,10,15,20]               // توت: أقصى 20غ ≈ 25 حبة
+      : [20,30,40,50,60];          // فاكهة: أقصى 60غ
     return Math.max(5, snaps.reduce(function(p,c){ return Math.abs(c-rawG)<Math.abs(p-rawG)?c:p; }));
   }
   if(uType === 'leafy_veg') return [40,60,80,100,120].reduce(function(p,c){ return Math.abs(c-rawG)<Math.abs(p-rawG)?c:p; });
@@ -1518,18 +1518,28 @@ function _buildAutoMeal(){
     const defSel = _getDefaultSel(uType||'', f.id);
     // كمية: نصف حبة صغيرة للخضار الكاملة، كوب للورقية
     let qty;
-    if(uType==='leafy_veg') qty = 80;       // كوب+ = 80غ (ألياف أفضل)
-    else if(uType==='whole_veg') qty = Math.round((
-      UNIT_INTELLIGENCE&&UNIT_INTELLIGENCE.whole_veg&&
-      UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS
-        ? (UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS[f.id]||100)
-        : 100) * 0.75);                    // ثلاثة أرباع حبة متوسطة
-    else qty = 80;
-    qty = Math.max(qty, 40);
-    // سقف الكارب: لا نتجاوز 35% من الحد لكل خضرة
+    // الكميات الطبيعية الثابتة لكل نوع — لا تتجاوز
+    const VEG_NATURAL = {
+      // ورقية: كوب مضغوط = 50-60غ
+      leafy_veg:  50,
+      // حبات: نصف حبة صغيرة كبداية
+      whole_veg:  null, // يُحسب من BASE_GRAMS × 0.5
+    };
+    if(uType==='leafy_veg'){
+      qty = 50; // حفنة واحدة = 50غ
+    } else if(uType==='whole_veg'){
+      const base = (UNIT_INTELLIGENCE&&UNIT_INTELLIGENCE.whole_veg&&
+        UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS)
+        ? (UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS[f.id]||100) : 100;
+      qty = Math.round(base * 0.5 / 5) * 5; // نصف حبة متوسطة
+    } else {
+      qty = 50;
+    }
+    qty = Math.max(qty, 30);
+    // سقف صارم: لا يتجاوز الطبيعي × 1.5 أياً كان الكارب
     const ncFromVeg = f.net_carb * qty/100;
-    if(ncFromVeg > mealCarb * 0.35 && qty > 40){
-      qty = Math.max(40, Math.round(mealCarb*0.35/f.net_carb*100/10)*10);
+    if(ncFromVeg > mealCarb * 0.40){
+      qty = Math.max(30, Math.round(mealCarb*0.40/Math.max(f.net_carb,0.1)*100/5)*5);
     }
     const q = qty/100;
     vegContrib.fat  +=f.fat*q; vegContrib.prot+=f.protein*q;
@@ -1579,7 +1589,15 @@ function _buildAutoMeal(){
     if(f.protein<=0) return;
     let qty;
     if(f.id===10){
-      qty = eggQty;
+      qty = eggQty; // EGG_PREF × 55غ
+      // تحقق: البيض لا يستهلك أكثر من 70% من سعرات الوجبة
+      const eggCal = f.cal * qty/100;
+      const calMax70 = mealCal * 0.70;
+      if(eggCal > calMax70 && qty > 55){
+        // قلّل بيضة واحدة
+        qty = Math.max(55, qty - 55);
+        console.log('[Calc] البيض قُلّل لـ'+(qty/55)+'بيضات لضبط السعرات');
+      }
     } else {
       if(eggCoversAll||perOtherProt<=0) return; // البيض يكفي
       const rawG = perOtherProt/f.protein*100;
@@ -1633,9 +1651,13 @@ function _buildAutoMeal(){
       rawG = Math.min(rawG, maxFromSat);
     }
     rawG = Math.max(rawG, 5);
-    const qty    = _snapToFriendlyFat(rawG, f);
-    const uType  = _calcGetUnitType(f.id);
-    const sel    = _buildSelForQty(uType, f.id, qty, f);
+    let qty = _snapToFriendlyFat(rawG, f);
+    // المكسرات: سقف 30غ (حفنة واحدة)
+    const uTypeFat = _calcGetUnitType(f.id);
+    if(uTypeFat === 'nuts' || uTypeFat === '_nuts_generic'){
+      qty = Math.min(qty, 30);
+    }
+    const sel = _buildSelForQty(uTypeFat, f.id, qty, f);
     calcItems.push({fid:f.id, qty:Math.max(qty,5), _sel:sel});
   });
 
