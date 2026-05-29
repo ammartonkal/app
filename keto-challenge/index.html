@@ -2165,18 +2165,28 @@ function getDayRemaining(mem, date){
 ═══════════════════════════════════════════ */
 
 function _calcMealRatio(items){
-  // items = [{fid, qty}, ...]
-  let fat=0, prot=0, nc=0, cal=0;
-  items.forEach(i=>{
-    const f=FOODS.find(x=>x.id===i.fid);
+  const ZERO_SW = [108,109,110,111,112]; // محليات خالية السعرات
+  let fat=0,prot=0,nc=0,cal=0,fiber=0;
+  (items||[]).forEach(function(i){
+    const f=FOODS.find(function(x){ return x.id===i.fid; });
     if(!f) return;
     const q=i.qty/100;
-    fat+=f.fat*q; prot+=f.protein*q; nc+=f.net_carb*q; cal+=f.cal*q;
+    fat  +=f.fat*q;
+    prot +=f.protein*q;
+    fiber+=(f.fiber||0)*q;
+    if(ZERO_SW.includes(f.id)){ return; } // كارب وسعرات المحلي = صفر
+    nc   +=f.net_carb*q;
+    cal  +=f.cal*q;
   });
-  const denom = nc + prot*0.6;
-  const ratio = denom>0 ? fat/denom : 0;
-  return {fat:Math.round(fat*10)/10, prot:Math.round(prot*10)/10, nc:Math.round(nc*10)/10,
-          cal:Math.round(cal), ratio:Math.round(ratio*100)/100};
+  const denom=nc+prot*0.6;
+  return {
+    fat:   Math.round(fat*10)/10,
+    prot:  Math.round(prot*10)/10,
+    nc:    Math.round(nc*10)/10,
+    cal:   Math.round(cal),
+    fiber: Math.round(fiber*10)/10,
+    ratio: denom>0?Math.round(fat/denom*100)/100:0
+  };
 }
 
 /* ═══════════════════════════════════════════

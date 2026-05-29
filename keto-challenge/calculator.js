@@ -286,6 +286,31 @@ function _calcGramsGeneric(unitType, sel, food){
   return food.qty_moderate || 50;
 }
 
+
+/* ─── كارب صافٍ ذكي = كارب - ألياف - محليات صفرية السعرات ─── */
+const ZERO_CAL_SWEETENERS = [108, 109, 110, 111]; // ستيفيا، إريثريتول، مونك فروت وما شابه
+function calcSmartNetCarb(items){
+  // items = [{fid, qty}]
+  return Math.round(items.reduce(function(total, item){
+    if(typeof item.fid !== 'number') return total;
+    const f = FOODS.find(function(x){ return x.id===item.fid; });
+    if(!f) return total;
+    const q = item.qty/100;
+    let nc = f.net_carb * q;
+    // المحليات الخالية من السعرات: كارب صافٍ = 0
+    if(ZERO_CAL_SWEETENERS.includes(f.id)) nc = 0;
+    return total + nc;
+  }, 0) * 10) / 10;
+}
+
+function calcTotalFiber(items){
+  return Math.round(items.filter(function(i){ return typeof i.fid==='number'; })
+    .reduce(function(s,i){
+      const f=FOODS.find(function(x){ return x.id===i.fid; });
+      return s+(f?(f.fiber||0)*i.qty/100:0);
+    },0)*10)/10;
+}
+
 function _renderCalcItems(){
   if(!calcItems.length) return '';
   // أولاً: أعد حساب qty من _sel لكل صنف لضمان التزامن
@@ -739,6 +764,11 @@ function _renderCalcNutrition(){
     nc:   Math.round((m0.nc  +extNc)*10)/10,
     cal:  Math.round(m0.cal  +extCal),
   };
+  // كارب صافٍ ذكي (يُحذف كارب المحليات الصفرية)
+  const smartNc = typeof calcSmartNetCarb!=='undefined'
+    ? calcSmartNetCarb(calcItems.filter(function(i){ return typeof i.fid==='number'; }))
+    : m.nc;
+  m.nc = smartNc; // استخدم الكارب الذكي
   const _d = m.prot*0.6+m.nc;
   m.ratio = _d>0 ? Math.round(m.fat/_d*100)/100 : 0;
 
@@ -916,7 +946,8 @@ function _toggleCalcFood(fid){
   const idx = _calcSelected.indexOf(numFid);
   if(idx > -1) _calcSelected.splice(idx,1);
   else         _calcSelected.push(numFid);
-  if(_calcMode === 'manual'){
+  // في الوضع اليدوي بعد البناء فقط: تعديل calcItems مباشرة
+  if(_calcMode === 'manual' && _calcBuilt){
     const ex = calcItems.find(function(i){ return i.fid===numFid; });
     if(ex){
       calcItems = calcItems.filter(function(i){ return i.fid!==numFid; });
@@ -978,7 +1009,7 @@ function _getDefaultSel(unitType, fid){
     sel.butter_amount = 1;
   }
   if(unitType === 'leafy_veg'){
-    sel.leaf_unit   = 'cup';
+    sel.leaf_unit   = 'handful';  // حفنة = 30غ
     sel.leaf_amount = 1;
   }
   if(unitType === 'whole_veg'){
