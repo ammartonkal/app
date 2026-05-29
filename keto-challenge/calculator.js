@@ -931,14 +931,6 @@ function _toggleCalcFood(fid){
         qty = _calcGramsGeneric(unitType, defSel, food2||{}) || 50;
       }
       calcItems.push({fid:numFid, qty:Math.max(qty,5), _sel:defSel});
-    }t ex = calcItems.find(i=>i.fid===numFid);
-    if(ex) calcItems = calcItems.filter(i=>i.fid!==numFid);
-    else {
-      const unitType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(numFid) : null;
-      const defSel   = unitType ? _getDefaultSel(unitType, numFid) : {};
-      const qty      = (unitType && typeof calcGramsFromSel!=='undefined')
-        ? (calcGramsFromSel(unitType, defSel, numFid) || 100) : 100;
-      calcItems.push({fid:numFid, qty:qty, _sel:defSel});
     }
   }
   rCalc();
