@@ -844,207 +844,311 @@ function _calcClearAll(){
 function _buildAutoMeal(){
   if(!_calcSelected.length){ alert('اختر مكوناً واحداً على الأقل'); return; }
 
-  const mem    = MEMBERS.find(function(m){ return m.uid === (CU&&CU.id); });
+  const mem    = MEMBERS.find(function(m){ return m.uid===(CU&&CU.id); });
   const prefs  = mem && typeof getMemPrefs!=='undefined' ? getMemPrefs(mem) : {};
   const phase  = mem ? (mem.phase||1) : 1;
-  const favIds = (mem&&mem.favorites_foods) || [];
   const mealsN = prefs.meals_per_day || 3;
+  const hasSnack = prefs.has_snack || false;
 
-  // أهداف اليوم والمتبقي
-  const targets  = mem && typeof getTargetForDate!=='undefined'
+  // أهداف اليوم
+  const dayTargets = mem && typeof getTargetForDate!=='undefined'
     ? getTargetForDate(mem) : {fat:130,protein:110,carb:25,cal:1800};
-  const todayMls = mem && typeof getTodayMeals!=='undefined'
-    ? getTodayMeals(mem.uid) : [];
-  const rem = mem && typeof calcRemainingAfterMeals!=='undefined'
+
+  // المتبقي (إذا وجبة ثانية أو ثالثة)
+  const todayMls = mem && typeof getTodayMeals!=='undefined' ? getTodayMeals(mem.uid) : [];
+  const remaining = mem && typeof calcRemainingAfterMeals!=='undefined'
     ? calcRemainingAfterMeals(mem, todayMls)
-    : {fat:targets.fat, protein:targets.protein, carb:targets.carb, cal:targets.cal};
+    : {fat:dayTargets.fat, protein:dayTargets.protein, carb:dayTargets.carb||25, cal:dayTargets.cal};
 
-  // حد الكارب للوجبة
-  const carbMax = _calcCarbLimit === 999 ? Math.min(rem.carb||20, 20) : _calcCarbLimit;
-
-  // نوع الوجبة الحالية
+  // نوع الوجبة وحصتها
   const mealTypeInfo = mem && typeof getMealType!=='undefined' ? getMealType(mem) : null;
-  const mealType     = mealTypeInfo ? mealTypeInfo.type : 'other';
-  const shares       = MEAL_SHARE ? (MEAL_SHARE[mealsN]||[0.33,0.33,0.34]) : [0.33,0.33,0.34];
-  const mealIdx      = {breakfast:0,lunch:1,dinner:2}[mealType]||0;
-  const mealShare    = shares[mealIdx]||0.33;
+  const mealType = mealTypeInfo ? mealTypeInfo.type : 'other';
+  const mealIdx  = {breakfast:0,lunch:1,dinner:2}[mealType]||0;
+  const SHARES   = {
+    3: [0.30, 0.35, 0.35],
+    2: [0.45, 0.55],
+  };
+  const shares = SHARES[mealsN] || [0.33,0.33,0.34];
+  const share  = shares[mealIdx] || 0.33;
 
-  // أهداف هذه الوجبة = المتبقي × حصة الوجبة (لكن لا نتجاوز المتبقي)
+  // أهداف هذه الوجبة من المتبقي
   const mealTargets = {
-    fat:     Math.round(Math.min(rem.fat     * mealShare, rem.fat)),
-    protein: Math.round(Math.min(rem.protein * mealShare, rem.protein)),
-    carb:    Math.min(carbMax, rem.carb||carbMax),
-    cal:     Math.round(rem.cal * mealShare),
+    fat:     Math.round(Math.min(remaining.fat     * share / (1 - shares.slice(0,mealIdx).reduce(function(s,x){return s+x;},0)||1), remaining.fat)),
+    protein: Math.round(Math.min(remaining.protein * share / (1 - shares.slice(0,mealIdx).reduce(function(s,x){return s+x;},0)||1), remaining.protein)),
+    carb:    Math.min(remaining.carb||25, _calcCarbLimit===999 ? Math.round((dayTargets.carb||25)*share) : _calcCarbLimit),
+    cal:     Math.round(remaining.cal * share / (1 - shares.slice(0,mealIdx).reduce(function(s,x){return s+x;},0)||1)),
   };
 
-  // sat_fat limit
-  const dailySatLim = mem && typeof getSatFatDailyLimit!=='undefined'
-    ? getSatFatDailyLimit(mem) : null;
-  const mealSatLim  = dailySatLim ? dailySatLim * mealShare : null;
+  // النسبة الكيتونية المستهدفة حسب المرحلة
+  const KETO_BY_PHASE = {0:1.2, 1:1.6, 2:1.8, 3:2.0, 4:2.0, 5:1.8, 6:1.6, 7:1.6};
+  const ketoTarget = KETO_BY_PHASE[phase] || 1.6;
 
-  // ── حاول استخدام قوالب الوجبات أولاً ──
-  // الأصناف المختارة من المشترك
-  const selFids = _calcSelected.filter(function(id){ return typeof id === 'number'; });
+  // حد sat_fat
+  const dailySatLim = mem && typeof getSatFatDailyLimit!=='undefined' ? getSatFatDailyLimit(mem) : null;
+  const mealSatLim  = dailySatLim ? Math.round(dailySatLim * share) : null;
 
-  let builtFromTemplate = false;
+  // ── تصنيف الأصناف المختارة ──
+  const selFids  = _calcSelected.filter(function(id){ return typeof id==='number'; });
+  const selFoods = selFids.map(function(id){ return FOODS.find(function(f){ return f.id===id; }); }).filter(Boolean);
 
-  // فطور + البيض مختار → BREAKFAST_EGG_TEMPLATES
-  if(mealType === 'breakfast' && selFids.includes(10) &&
-     typeof BREAKFAST_EGG_TEMPLATES !== 'undefined'){
-    const eggCount = prefs.preferred_egg_count || 2;
-    const eligible = BREAKFAST_EGG_TEMPLATES.filter(function(t){
-      if(t.keto_ratio < 1.4) return false;
-      if(t.phases.length>0 && !t.phases.includes(phase)) return false;
-      if(mealSatLim && t.macros.sat_fat > mealSatLim*1.2) return false;
-      // يجب أن يحتوي أصناف من المختارة
-      return t.components.some(function(c){ return selFids.includes(c.fid); });
-    });
-    const tpl = eligible[0];
-    if(tpl){
-      const scaled = eggCount !== tpl.egg_count && typeof scaleEggRecipe!=='undefined'
-        ? scaleEggRecipe(tpl, eggCount) : tpl;
-      calcItems = scaled.components
-        .filter(function(c){ return FOODS.find(function(f){ return f.id===c.fid; }); })
-        .map(function(c){
-          const uType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(c.fid) : null;
-          const defSel = uType ? _buildSelForItem(uType, c.fid, c.qty) : {};
-          return {fid:c.fid, qty:c.qty, _sel:defSel};
-        });
-      builtFromTemplate = true;
+  // مصادر الكارب: خضار + فواكه + مكسرات + ألبان (net_carb > 0.5)
+  const carbSrcs  = selFoods.filter(function(f){ return f.net_carb>0.5 && f.protein<15 && f.fat<25; });
+  // مصادر البروتين: protein > 8 أو بيض
+  const protSrcs  = selFoods.filter(function(f){ return f.protein>8 || f.id===10; });
+  // مصادر الدهون: fat > 25 وليست بروتين عالٍ
+  const fatSrcs   = selFoods.filter(function(f){
+    return f.fat>25 && f.protein<10 &&
+           !carbSrcs.find(function(c){ return c.id===f.id; }) &&
+           !protSrcs.find(function(p){ return p.id===f.id; });
+  });
+
+  calcItems = [];
+
+  // ════ الخطوة 1: مصادر الكارب — 60% من حد الكارب ════
+  const carbBudget60 = mealTargets.carb * 0.60;
+  const perCarbSrc   = carbBudget60 / Math.max(carbSrcs.length, 1);
+
+  const carbContrib = {fat:0, prot:0, nc:0, cal:0};
+  carbSrcs.forEach(function(f){
+    if(f.net_carb <= 0) return;
+    const rawG = perCarbSrc / f.net_carb * 100;
+    const qty  = _snapToFriendlyCarb(rawG, f);
+    const q    = qty/100;
+    carbContrib.fat  += f.fat      *q;
+    carbContrib.prot += f.protein  *q;
+    carbContrib.nc   += f.net_carb *q;
+    carbContrib.cal  += f.cal      *q;
+    const uType  = _calcGetUnitType(f.id);
+    const defSel = _buildSelForQty(uType, f.id, qty, f);
+    calcItems.push({fid:f.id, qty:qty, _sel:defSel});
+  });
+
+  // ════ الخطوة 2: البروتين — 80% من متبقي البروتين ════
+  const protAfterCarb  = Math.max(mealTargets.protein - carbContrib.prot, 0);
+  const protBudget80   = protAfterCarb * 0.80;
+  const perProtSrc     = protBudget80 / Math.max(protSrcs.length, 1);
+
+  const protContrib = {fat:0, prot:0, nc:0, cal:0};
+  protSrcs.forEach(function(f){
+    if(f.protein <= 0) return;
+    const rawG = perProtSrc / f.protein * 100;
+    const qty  = _snapToFriendlyProt(rawG, f);
+    const q    = qty/100;
+    protContrib.fat  += f.fat      *q;
+    protContrib.prot += f.protein  *q;
+    protContrib.nc   += f.net_carb *q;
+    protContrib.cal  += f.cal      *q;
+    const uType  = _calcGetUnitType(f.id);
+    const defSel = _buildSelForQty(uType, f.id, qty, f);
+    calcItems.push({fid:f.id, qty:qty, _sel:defSel});
+  });
+
+  // ════ الخطوة 3: الدهون المضافة ════
+  const fatUsed     = carbContrib.fat + protContrib.fat;
+  const ncUsed      = carbContrib.nc  + protContrib.nc;
+  const protUsed    = carbContrib.prot + protContrib.prot;
+  const calUsed     = carbContrib.cal + protContrib.cal;
+
+  // الدهن المطلوب لتحقيق النسبة الكيتونية
+  const denom       = protUsed*0.6 + ncUsed;
+  const fatForKeto  = denom>0 ? Math.max(ketoTarget*denom - fatUsed, 0) : 0;
+  // الدهن لإكمال هدف الوجبة
+  const fatForGoal  = Math.max(mealTargets.fat - fatUsed, 0);
+  // الدهن المطلوب = الأكبر من الاثنين، مع مراعاة حد السعرات
+  const calRemain   = Math.max(mealTargets.cal * 1.20 - calUsed, 0);
+  const fatFromCal  = calRemain / 9;
+  const fatToAdd    = Math.min(Math.max(fatForKeto, fatForGoal), fatFromCal);
+
+  const perFatSrc   = fatSrcs.length>0 ? fatToAdd / fatSrcs.length : 0;
+
+  fatSrcs.forEach(function(f){
+    if(f.fat<=0) return;
+    let rawG = perFatSrc / f.fat * 100;
+    // sat_fat check
+    if(mealSatLim){
+      const estSat = (f.sat_fat||0)*rawG/100;
+      if(estSat > mealSatLim*0.5) rawG = mealSatLim*0.5/((f.sat_fat||1)/100);
     }
-  }
+    const qty    = _snapToFriendlyFat(rawG, f);
+    const uType  = _calcGetUnitType(f.id);
+    const defSel = _buildSelForQty(uType, f.id, qty, f);
+    calcItems.push({fid:f.id, qty:qty, _sel:defSel});
+  });
 
-  // غداء → LUNCH_TEMPLATES
-  if(!builtFromTemplate && mealType === 'lunch' &&
-     typeof getBestLunchTemplate!=='undefined'){
-    const tpl = getBestLunchTemplate(mealTargets, favIds.filter(function(id){
-      return selFids.includes(id);
-    }).concat(selFids), phase, mealSatLim, []);
-    if(tpl){
-      const scaled = typeof scaleMealToRemaining!=='undefined'
-        ? scaleMealToRemaining(tpl, mealTargets) : tpl;
-      calcItems = scaled.components
-        .filter(function(c){ return FOODS.find(function(f){ return f.id===c.fid; }); })
-        .map(function(c){
-          const uType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(c.fid) : null;
-          const defSel = uType ? _buildSelForItem(uType, c.fid, c.qty) : {};
-          return {fid:c.fid, qty:c.qty, _sel:defSel};
-        });
-      builtFromTemplate = true;
-    }
-  }
-
-  // عشاء → DINNER_TEMPLATES
-  if(!builtFromTemplate && mealType === 'dinner' &&
-     typeof getBestDinnerTemplate!=='undefined'){
-    const tpl = getBestDinnerTemplate(mealTargets, favIds.filter(function(id){
-      return selFids.includes(id);
-    }).concat(selFids), phase, mealSatLim, []);
-    if(tpl){
-      const scaled = typeof scaleMealToRemaining!=='undefined'
-        ? scaleMealToRemaining(tpl, mealTargets) : tpl;
-      calcItems = scaled.components
-        .filter(function(c){ return FOODS.find(function(f){ return f.id===c.fid; }); })
-        .map(function(c){
-          const uType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(c.fid) : null;
-          const defSel = uType ? _buildSelForItem(uType, c.fid, c.qty) : {};
-          return {fid:c.fid, qty:c.qty, _sel:defSel};
-        });
-      builtFromTemplate = true;
-    }
-  }
-
-  // ── Fallback: بناء يدوي ذكي من الأصناف المختارة ──
-  if(!builtFromTemplate){
-    calcItems = [];
-    const foods    = selFids.map(function(id){ return FOODS.find(function(f){ return f.id===id; }); }).filter(Boolean);
-    const proteins = foods.filter(function(f){ return f.protein>10&&f.fat<40; });
-    const fats_    = foods.filter(function(f){ return f.fat>20&&!proteins.find(function(p){ return p.id===f.id; }); });
-    const vegs_    = foods.filter(function(f){ return f.net_carb<6&&!proteins.find(function(p){ return p.id===f.id; })&&!fats_.find(function(p){ return p.id===f.id; }); });
-    const rest_    = foods.filter(function(f){
-      return !proteins.find(function(p){ return p.id===f.id; })&&
-             !fats_.find(function(p){ return p.id===f.id; })&&
-             !vegs_.find(function(p){ return p.id===f.id; });
+  // الأصناف الخارجية (خبز، أرز)
+  _calcSelected.filter(function(id){ return typeof id==='string'&&id.startsWith('ext:'); })
+    .forEach(function(extId){
+      const uType = extId.replace('ext:','');
+      const sel   = _getDefaultSel(uType, null);
+      calcItems.push({fid:extId, qty:50, _sel:sel});
     });
 
-    // بروتين
-    proteins.forEach(function(f){
-      const uType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(f.id) : null;
-      const sel   = uType ? _getDefaultSel(uType, f.id) : {};
-      if(uType==='egg'){ sel.egg_size='medium'; sel.egg_count=prefs.preferred_egg_count||2; }
-      if(uType==='chicken'){ sel.chicken_cut='breast_no'; sel.chicken_count=1; sel.chicken_state='raw'; }
-      const tProt = mealTargets.protein / Math.max(proteins.length,1);
-      const qty   = (uType && typeof calcGramsFromSel!=='undefined')
-        ? calcGramsFromSel(uType, sel, f.id)
-        : Math.min(Math.max(Math.round(tProt/f.protein*100/5)*5, 50), 200);
-      calcItems.push({fid:f.id, qty:Math.max(qty||50,10), _sel:sel});
-    });
-
-    // الدهن المتبقي بعد البروتين
-    const protFat   = calcItems.reduce(function(s,i){ const f2=FOODS.find(function(x){ return x.id===i.fid; }); return s+(f2?f2.fat*i.qty/100:0); },0);
-    const fatTarget = Math.max(mealTargets.fat - protFat, 5);
-
-    // دهون
-    fats_.forEach(function(f){
-      const uType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(f.id) : null;
-      const share = fatTarget / Math.max(fats_.length,1);
-      const sel   = _buildFatSel(uType, f.id, share);
-      const qty   = (uType && typeof calcGramsFromSel!=='undefined')
-        ? (calcGramsFromSel(uType, sel, f.id)||15) : 14;
-      calcItems.push({fid:f.id, qty:Math.max(qty,5), _sel:sel});
-    });
-
-    // خضار
-    vegs_.forEach(function(f){
-      const uType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(f.id) : null;
-      const sel   = uType ? _getDefaultSel(uType, f.id) : {};
-      const qty   = (uType && typeof calcGramsFromSel!=='undefined')
-        ? (calcGramsFromSel(uType, sel, f.id)||80) : 80;
-      calcItems.push({fid:f.id, qty:qty, _sel:sel});
-    });
-
-    // بقية
-    rest_.forEach(function(f){
-      const uType = typeof getUnitTypeForFid!=='undefined' ? getUnitTypeForFid(f.id) : null;
-      const sel   = uType ? _getDefaultSel(uType, f.id) : {};
-      const qty   = (uType && typeof calcGramsFromSel!=='undefined')
-        ? (calcGramsFromSel(uType, sel, f.id)||30) : 30;
-      calcItems.push({fid:f.id, qty:Math.max(qty,10), _sel:sel});
-    });
-
-    // الأصناف الخارجية (خبز، أرز)
-    _calcSelected.filter(function(id){ return typeof id==='string'&&id.startsWith('ext:'); })
-      .forEach(function(extId){
-        const uType = extId.replace('ext:','');
-        const sel   = _getDefaultSel(uType, null);
-        calcItems.push({fid:extId, qty:50, _sel:sel});
-      });
-
-    // تحقق من الكارب
-    const totalNc = calcItems.reduce(function(s,i){
-      const f2=FOODS.find(function(x){ return x.id===i.fid; });
-      return s+(f2?f2.net_carb*i.qty/100:0);
-    },0);
-    if(totalNc > carbMax && carbMax < 999){
-      calcItems.forEach(function(item){
-        const f2=FOODS.find(function(x){ return x.id===item.fid; });
-        if(f2&&f2.net_carb>2){
-          item.qty = Math.max(Math.round(item.qty*(carbMax/totalNc)/5)*5, 20);
-        }
-      });
-    }
-  }
-
-  // تحقق من النسبة الكيتونية للمرحلة
-  const ketoMin = _getPhaseKetoTarget(phase);
-  _adjustForKetoRatio(ketoMin);
+  // ════ تحقق نهائي + تقرير ════
+  const finalTot = _calcTotalsAll();
+  console.log('[Calc] نتيجة البناء:', finalTot);
 
   _calcBuilt = true;
   _calcMode  = 'manual';
   rCalc();
 }
 
-/* ─── بناء _sel للدهون حسب النوع والهدف ─── */
+/* ─── تقريب الكميات ─── */
+function _snapToFriendlyCarb(rawG, food){
+  const type = _calcGetUnitType(food.id);
+  if(type === '_fruit' || food.cat === 'فواكه'){
+    const snaps = [5,10,15,20,25,30,40,50];
+    return Math.max(5, _nearestInList(rawG, snaps));
+  }
+  if(type === 'leafy_veg' || type === '_veg_generic'){
+    const snaps = [30,60,80,100,120,150];
+    return _nearestInList(rawG, snaps);
+  }
+  if(type === 'whole_veg'){
+    const base  = (UNIT_INTELLIGENCE&&UNIT_INTELLIGENCE.whole_veg&&UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS)
+      ? (UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS[food.id]||100) : 100;
+    const fracs = [0.25,0.33,0.5,0.67,0.75,1,1.25,1.5,2];
+    const best  = fracs.reduce(function(p,f){ return Math.abs(f*base-rawG)<Math.abs(p*base-rawG)?f:p; },1);
+    return Math.round(best*base/5)*5;
+  }
+  if(type === 'nuts'){
+    const snaps = [10,15,20,25,30,40];
+    return _nearestInList(rawG, snaps);
+  }
+  if(type === 'cheese'){
+    const snaps = [15,20,30,40,50,60];
+    return _nearestInList(rawG, snaps);
+  }
+  return Math.max(5, Math.round(rawG/5)*5);
+}
+
+function _snapToFriendlyProt(rawG, food){
+  const type = _calcGetUnitType(food.id);
+  if(type === 'egg'){
+    const eggW = 55; // متوسط
+    const count = Math.max(1, Math.round(rawG/eggW));
+    return count * eggW;
+  }
+  if(type === 'chicken' || type === 'beef' || type === 'fish'){
+    // مضاعفات 50
+    const snap = Math.max(50, Math.round(rawG/50)*50);
+    return Math.min(snap, 300);
+  }
+  if(type === 'cheese'){
+    const snap = Math.max(30, Math.round(rawG/30)*30);
+    return Math.min(snap, 150);
+  }
+  return Math.max(30, Math.round(rawG/10)*10);
+}
+
+function _snapToFriendlyFat(rawG, food){
+  const type = _calcGetUnitType(food.id);
+  if(type === 'oil' || type === 'butter'){
+    // ملاعق: م.ص=5، نصف م.ك=7، م.ك=14، 1.5م.ك=21، 2م.ك=28
+    const spoons = [5,7,10,14,21,28];
+    return _nearestInList(rawG, spoons);
+  }
+  if(type === 'avocado'){
+    // ربع، نصف، ثلاثة أرباع، كاملة
+    const base = 150*0.65; // متوسطة لب
+    const fracs = [0.25,0.5,0.75,1];
+    const best  = fracs.reduce(function(p,f){ return Math.abs(f*base-rawG)<Math.abs(p*base-rawG)?f:p; },0.5);
+    return Math.round(best*base/5)*5;
+  }
+  if(type === 'nuts'){
+    const snaps = [15,20,25,30,40];
+    return _nearestInList(rawG, snaps);
+  }
+  return Math.max(5, Math.round(rawG/5)*5);
+}
+
+function _nearestInList(val, list){
+  return list.reduce(function(p,c){ return Math.abs(c-val)<Math.abs(p-val)?c:p; });
+}
+
+/* ─── بناء _sel من qty المحسوبة ─── */
+function _buildSelForQty(uType, fid, qty, food){
+  if(!uType) return {};
+  if(uType === '_fruit')     return {fruit_amount: qty};
+  if(uType === '_veg_generic') return {generic_qty: qty};
+  if(uType === 'egg'){
+    const count = Math.max(1, Math.round(qty/55));
+    return {egg_type:'regular', egg_size:'medium', egg_count:count};
+  }
+  if(uType === 'oil'){
+    const tbsp = Math.max(0.5, Math.round(qty/14*2)/2);
+    return {oil_unit: tbsp<1 ? 'tsp' : 'tbsp', oil_amount: tbsp<1 ? Math.round(qty/5) : tbsp};
+  }
+  if(uType === 'butter'){
+    const tbsp = Math.max(0.5, Math.round(qty/14*2)/2);
+    return {butter_unit: tbsp<1 ? 'tsp' : 'tbsp', butter_amount: tbsp<1 ? Math.round(qty/5) : tbsp};
+  }
+  if(uType === 'avocado'){
+    const lbGrams = 97.5; // متوسطة لب
+    const frac = qty/lbGrams;
+    const portions = [{val:'quarter',f:0.25},{val:'half',f:0.5},{val:'whole',f:1}];
+    const best = portions.reduce(function(p,c){ return Math.abs(c.f-frac)<Math.abs(p.f-frac)?c:p; });
+    return {avo_size:'medium', avo_portion:best.val};
+  }
+  if(uType === 'leafy_veg'){
+    const cups = Math.max(0.5, Math.round(qty/60*2)/2);
+    return {leaf_unit:'cup', leaf_amount:cups};
+  }
+  if(uType === 'whole_veg'){
+    const base = (UNIT_INTELLIGENCE&&UNIT_INTELLIGENCE.whole_veg&&UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS)
+      ? (UNIT_INTELLIGENCE.whole_veg.BASE_GRAMS[fid]||100) : 100;
+    const frac = qty/base;
+    const sz   = frac<0.85?'small':frac>1.25?'large':'medium';
+    return {veg_unit:'piece', veg_size:sz, veg_amount:1};
+  }
+  if(uType === 'chicken'){
+    const cuts = {breast_no:120,breast_sk:130,thigh_no:100,thigh_sk:120,wing:60,drumstick:80};
+    const bestCut = Object.keys(cuts).reduce(function(p,c){ return Math.abs(cuts[c]-qty)<Math.abs(cuts[p]-qty)?c:p; },'breast_no');
+    const count = Math.max(1,Math.round(qty/cuts[bestCut]));
+    return {chicken_cut:bestCut, chicken_count:count, chicken_state:'raw'};
+  }
+  if(uType === 'fish'){
+    const srvs = {salmon:130,tuna:85,sardine:100,white:150,shrimp:150};
+    const bestType = Object.keys(srvs).reduce(function(p,c){
+      if(!FOODS.find(function(f2){ return f2.id===fid&&c==='tuna'; })) return p;
+      return Math.abs(srvs[c]-qty)<Math.abs(srvs[p]-qty)?c:p;
+    },'white');
+    return {fish_type:bestType, fish_amount:Math.max(0.5,Math.round(qty/srvs[bestType]*2)/2)};
+  }
+  if(uType === 'nuts'){
+    const handful = Math.max(0.5, Math.round(qty/25*2)/2);
+    return {nut_unit:'handful', nut_amount:handful};
+  }
+  if(uType === 'cheese'){
+    const slices = Math.max(1, Math.round(qty/20));
+    return {cheese_unit:'slice', cheese_amount:slices};
+  }
+  return _getDefaultSel(uType, fid);
+}
+
+/* ─── إجمالي كل المكونات (داخلية + خارجية) ─── */
+function _calcTotalsAll(){
+  const t = {fat:0,prot:0,nc:0,cal:0,sat:0};
+  calcItems.forEach(function(item){
+    if(typeof item.fid==='number'){
+      const f=FOODS.find(function(x){ return x.id===item.fid; });
+      if(!f) return;
+      const q=item.qty/100;
+      t.fat+=f.fat*q; t.prot+=f.protein*q;
+      t.nc+=f.net_carb*q; t.cal+=f.cal*q; t.sat+=(f.sat_fat||0)*q;
+    } else if(typeof item.fid==='string'){
+      const uType=item.fid.replace('ext:','');
+      const em=typeof getExternalMacros!=='undefined'?getExternalMacros(uType,item._sel||{},item.qty):null;
+      if(em){ t.fat+=em.fat||0; t.prot+=em.prot||0; t.nc+=em.nc||0; t.cal+=em.cal||0; }
+    }
+  });
+  return {
+    fat:Math.round(t.fat*10)/10, prot:Math.round(t.prot*10)/10,
+    nc:Math.round(t.nc*10)/10,   cal:Math.round(t.cal),
+    sat:Math.round(t.sat*10)/10
+  };
+}
+
+
 function _buildFatSel(uType, fid, shareGrams){
   if(uType === 'oil'){
     const tbsp = Math.max(Math.min(Math.round(shareGrams/12.4), 3), 1);
