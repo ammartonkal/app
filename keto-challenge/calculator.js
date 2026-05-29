@@ -1182,16 +1182,6 @@ function _buildAutoMeal(){
   const protUsed    = carbContrib.prot + protContrib.prot;
   const calUsed     = carbContrib.cal + protContrib.cal;
 
-  // الدهن المطلوب لتحقيق النسبة الكيتونية
-  const denom       = protUsed*0.6 + ncUsed;
-  const fatForKeto  = denom>0 ? Math.max(ketoTarget*denom - fatUsed, 0) : 0;
-  // الدهن لإكمال هدف الوجبة
-  const fatForGoal  = Math.max(mealTargets.fat - fatUsed, 0);
-  // الدهن المطلوب = الأكبر من الاثنين، مع مراعاة حد السعرات
-  const calRemain   = Math.max(mealTargets.cal * 1.20 - calUsed, 0);
-  const fatFromCal  = calRemain / 9;
-  const fatToAdd    = Math.min(Math.max(fatForKeto, fatForGoal), fatFromCal);
-
   // ── حساب الدهن المضمون لتحقيق النسبة الكيتونية ──
   // نحسب ماكرو ما تم إضافته حتى الآن
   const soFarMac = (function(){
