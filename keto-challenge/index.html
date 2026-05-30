@@ -2944,7 +2944,7 @@ function renderSuggSection(sugg, mem, rem, phase){
         <span style="font-size:20px">${mealTypeInfo.icon||'🍽️'}</span>
         <div style="min-width:0">
           <div class="sugg-title">اقتراح ${mealTypeInfo.label||'الوجبة'} — الوجبة ${sugg.mealNumber||''} من ${sugg.totalMeals||3}</div>
-          <div class="sugg-sub">حصة ${Math.round((sugg.share||0.33)*100)}% · نسبة كيتو ≥${ketoTarget} · سعرات ≤${typeof getMealCalLimit!=='undefined'?getMealCalLimit(sugg.totalMeals||3,prefs?.has_snack||false,false):600}</div>
+          <div class="sugg-sub">حصة ${Math.round((sugg.share||0.33)*100)}% · نسبة كيتو ≥${ketoTarget} · سعرات ≤${typeof getMealCalLimit!=='undefined'?getMealCalLimit(sugg.totalMeals||3,(sugg.hasSnack||false),false):600}</div>
           ${enrichNote}
         </div>
       </div>
@@ -3242,6 +3242,7 @@ function buildMealSuggestion(mem, rem, phase){
     mealTypeInfo,
     mealNumber:  mainDone + 1,
     totalMeals:  prefs.meals_per_day,
+    hasSnack:    prefs.has_snack || false,
     remaining:   prefs.meals_per_day - mainDone,
     share,
   };
