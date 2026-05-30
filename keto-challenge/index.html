@@ -2868,6 +2868,51 @@ function humanQty(food, grams){
 /* ═══════════════════════════════════════════════════════
    renderSuggSection — عرض بطاقة الوجبة المقترحة
 ═══════════════════════════════════════════════════════ */
+/* ── فتح الحاسبة مع مكونات الاقتراح ── */
+function openSuggInCalc(items){
+  if(typeof closeSuggModal!=='undefined') closeSuggModal();
+
+  // تنظيف items
+  const cleanItems = (Array.isArray(items)?items:[]).map(function(i){
+    return {fid: i.fid||(i.food&&i.food.id), qty: i.qty};
+  }).filter(function(i){ return i.fid && i.qty>0; });
+
+  if(!cleanItems.length){ alert('لا توجد مكونات'); return; }
+
+  // بناء calcItems مع _sel
+  if(typeof calcItems!=='undefined'){
+    calcItems = cleanItems.map(function(i){
+      const uType = typeof _calcGetUnitType!=='undefined' ? _calcGetUnitType(i.fid) : null;
+      const sel   = (uType && typeof _buildSelForItem!=='undefined')
+        ? _buildSelForItem(uType, i.fid, i.qty) : {};
+      return {fid:i.fid, qty:i.qty, _sel:sel};
+    });
+  }
+  if(typeof _calcSelected!=='undefined')
+    _calcSelected = cleanItems.map(function(i){ return i.fid; });
+  if(typeof _calcBuilt!=='undefined')   _calcBuilt = true;
+  if(typeof _calcMode!=='undefined')    _calcMode  = 'manual';
+
+  // حد الكارب من المرحلة
+  const _om = MEMBERS.find(function(m){ return m.uid===(CU&&CU.id); });
+  if(_om && typeof _calcCarbLimit!=='undefined'){
+    const _op = _om.phase||1;
+    const _cpct={0:0.07,1:0.05,2:0.05,3:0.05,4:0.05,5:0.07,6:0.10,7:0.10};
+    const _odt = typeof getTargetForDate!=='undefined' ? getTargetForDate(_om) : {cal:1800};
+    const _odcy= Math.round((_odt.cal||1800)*(_cpct[_op]||0.05)/4);
+    const _opr = typeof getMemPrefs!=='undefined' ? getMemPrefs(_om) : {};
+    const _osh = (_opr.meals_per_day===2) ? 0.44 : 0.29;
+    _calcCarbLimit = Math.min(10, Math.round(_odcy*_osh));
+  }
+
+  // انتقل للحاسبة
+  if(typeof gp!=='undefined') gp('calculator');
+  setTimeout(function(){
+    if(typeof rCalc!=='undefined') rCalc();
+  }, 200);
+}
+
+
 function renderSuggSection(sugg, mem, rem, phase){
   if(!sugg || !sugg.items || !sugg.items.length) return '';
 
@@ -2935,8 +2980,13 @@ function renderSuggSection(sugg, mem, rem, phase){
     </div>`;
 
   // زر فتح الحاسبة
-  const calcJSON = JSON.stringify(items.map(function(i){ return {fid:i.fid||i.food?.id, qty:i.qty}; }));
-  const openBtn  = `<button class="btn primary" style="width:100%;justify-content:center;background:var(--warning);border-color:var(--warning)" onclick='openSuggInCalc(${calcJSON})'>📊 جرّب وعدّل في الحاسبة ←</button>`;
+  // حفظ items كـ global للوصول من onclick
+  window._lastSuggItems = items.map(function(i){ return {fid:i.fid||i.food?.id, qty:i.qty}; });
+  const openBtn = `<button class="btn primary"
+    style="width:100%;justify-content:center;background:var(--warning);border-color:var(--warning)"
+    onclick="openSuggInCalc(window._lastSuggItems)">
+    📊 جرّب وعدّل في الحاسبة ←
+  </button>`;
 
   return `<div class="sugg-card">
     <div class="sugg-header">
@@ -2949,7 +2999,7 @@ function renderSuggSection(sugg, mem, rem, phase){
         </div>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn sm" onclick="rDash()" title="تحديث">🔄</button>
+        <button class="btn sm" onclick="rDash()" title="اقتراح وجبة مختلفة" style="white-space:nowrap">🔄 تغيير</button>
       </div>
     </div>
     <div class="sugg-body" style="padding:8px 0">
@@ -2965,7 +3015,7 @@ function renderSuggSection(sugg, mem, rem, phase){
         </div>
       </div>
     </div>
-    <div class="sugg-actions" style="padding:8px 12px 12px">
+    <div class="sugg-actions" style="padding:8px 12px 12px;display:flex;flex-direction:column;gap:8px">
       ${openBtn}
     </div>
   </div>`;
@@ -3362,7 +3412,7 @@ function _renderSnackCard(snack){
         <div class="sugg-macro-card"><div class="sugg-macro-card-val" style="color:var(--danger)">${macros.nc}غ</div><div class="sugg-macro-card-lbl">كارب صافٍ</div></div>
       </div>
       <div class="sugg-actions">
-        <button class="btn primary" style="width:100%;justify-content:center;background:var(--warning);border-color:var(--warning)" onclick='openSuggInCalc(${calcJSON})'>📊 جرّب وعدّل في الحاسبة ←</button>
+        <button class="btn primary" style="width:100%;justify-content:center;background:var(--warning);border-color:var(--warning)" onclick='openSuggInCalc(window._lastSuggItems)'>📊 جرّب وعدّل في الحاسبة ←</button>
       </div>
     </div>
   </div>`;
