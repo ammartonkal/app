@@ -490,6 +490,15 @@ function rCalc(){
   const _ingCard  = '<div class="card" style="margin-bottom:14px">' +
     '<div style="font-size:13px;font-weight:600;margin-bottom:12px">' + _ingLabel + '</div>' +
     ingredientsHTML + carbHTML + actionHTML + '</div>';
+  // رسالة استرشادية — تظهر فوق الوصفة بعد البناء فقط
+  const guidanceMsg = _calcBuilt
+    ? '<div style="background:rgba(41,182,246,.08);border:1px solid rgba(41,182,246,.25);' +
+      'border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:12px;' +
+      'font-size:12px;color:var(--text2);line-height:1.6">' +
+      '💡 <strong>الكميات استرشادية</strong> — يُفضل قراءة التوصيات أدناه وتعديل الكميات حسب شهيتك واحتياجك وقدرتك.' +
+      '</div>'
+    : '';
+
   const _builtCard = builtHTML
     ? '<div class="card" style="margin-bottom:14px">' +
       guidanceMsg +
