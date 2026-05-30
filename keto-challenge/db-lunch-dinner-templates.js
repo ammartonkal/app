@@ -2038,13 +2038,30 @@ function getBestLunchTemplate(remaining, favIds, phase, satLimit, skipFids, seed
     return true;
   });
 
-  // فلتر المفضلة بـ fid البروتين (أول component)
+  // فلتر المفضلة: ابحث في كل components (ليس الأول فقط)
   if(favIds.length > 0){
     var favPool = pool.filter(function(t){
-      var protFid = t.components && t.components[0] && t.components[0].fid;
-      return favIds.includes(protFid);
+      return t.components && t.components.some(function(c){ return favIds.includes(c.fid); });
     });
-    if(favPool.length > 0) pool = favPool;
+
+    // عدّ أنواع البروتين المختلفة (أول component = البروتين)
+    var favProtTypes = {};
+    favPool.forEach(function(t){
+      var pf = t.components && t.components[0] && t.components[0].fid;
+      if(pf) favProtTypes[pf] = true;
+    });
+
+    // إذا أقل من 4 أنواع بروتين → أكمل من pool الكاملة
+    if(Object.keys(favProtTypes).length < 4){
+      var extraPool = pool.filter(function(t){
+        var pf = t.components && t.components[0] && t.components[0].fid;
+        return !favProtTypes[pf];
+      });
+      var shuffled = extraPool.slice().sort(function(){ return Math.random()-0.5; });
+      pool = favPool.concat(shuffled.slice(0, Math.ceil(pool.length * 0.4)));
+    } else {
+      pool = favPool;
+    }
   }
 
   if(!pool.length) pool = LUNCH_TEMPLATES.filter(function(t){ return t.keto_ratio >= 1.4; });
@@ -2095,10 +2112,23 @@ function getBestDinnerTemplate(remaining, favIds, phase, satLimit, skipFids, see
 
   if(favIds.length > 0){
     var favPool = pool.filter(function(t){
-      var protFid = t.components && t.components[0] && t.components[0].fid;
-      return favIds.includes(protFid);
+      return t.components && t.components.some(function(c){ return favIds.includes(c.fid); });
     });
-    if(favPool.length > 0) pool = favPool;
+    var favProtTypes2 = {};
+    favPool.forEach(function(t){
+      var pf = t.components && t.components[0] && t.components[0].fid;
+      if(pf) favProtTypes2[pf] = true;
+    });
+    if(Object.keys(favProtTypes2).length < 4){
+      var extraPool2 = pool.filter(function(t){
+        var pf2 = t.components && t.components[0] && t.components[0].fid;
+        return !favProtTypes2[pf2];
+      });
+      var shuffled2 = extraPool2.slice().sort(function(){ return Math.random()-0.5; });
+      pool = favPool.concat(shuffled2.slice(0, Math.ceil(pool.length * 0.4)));
+    } else {
+      pool = favPool;
+    }
   }
 
   if(!pool.length) pool = DINNER_TEMPLATES.filter(function(t){ return t.keto_ratio >= 1.4; });
