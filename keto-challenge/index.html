@@ -2869,6 +2869,47 @@ function humanQty(food, grams){
    renderSuggSection — عرض بطاقة الوجبة المقترحة
 ═══════════════════════════════════════════════════════ */
 /* ── فتح الحاسبة مع مكونات الاقتراح ── */
+/* ── تجديد الاقتراح بوجبة مختلفة ── */
+function refreshSuggestion(){
+  const mem   = MEMBERS.find(function(m){ return m.uid===(CU&&CU.id); });
+  if(!mem) return;
+  const phase = mem.phase||1;
+  const prefs = getMemPrefs(mem);
+  const todayMls = getTodayMeals(mem.uid);
+  const rem   = typeof calcRemainingAfterMeals!=='undefined'
+    ? calcRemainingAfterMeals(mem, todayMls) : null;
+
+  // احسب الاقتراح مع shuffle لاختيار قالب مختلف
+  if(typeof buildMealSuggestion!=='undefined'){
+    // أضف seed عشوائي لتغيير القالب
+    window._suggSeed = (window._suggSeed||0) + 1;
+    const sugg = buildMealSuggestion(mem, rem, phase);
+    if(!sugg){ rDash(); return; }
+    const enriched = typeof _enrichMealSuggestion!=='undefined'
+      ? _enrichMealSuggestion(sugg, mem) : sugg;
+    const html = typeof renderSuggSection!=='undefined'
+      ? renderSuggSection(enriched, mem, rem, phase) : '';
+    // ابحث عن حاوية الاقتراح وحدّثها
+    const panel = document.getElementById('panel-dashboard');
+    if(panel && html){
+      // ابحث عن بطاقة الاقتراح الحالية وأستبدلها
+      const cards = panel.querySelectorAll('.card');
+      for(var i=0;i<cards.length;i++){
+        if(cards[i].textContent.includes('اقتراح')){
+          const tmp = document.createElement('div');
+          tmp.innerHTML = html;
+          cards[i].parentNode.replaceChild(tmp.firstChild, cards[i]);
+          return;
+        }
+      }
+    }
+    rDash();
+  } else {
+    rDash();
+  }
+}
+
+
 function openSuggInCalc(items){
   if(typeof closeSuggModal!=='undefined') closeSuggModal();
 
@@ -2914,111 +2955,103 @@ function openSuggInCalc(items){
 
 
 function renderSuggSection(sugg, mem, rem, phase){
-  if(!sugg || !sugg.items || !sugg.items.length) return '';
+  if(!sugg||!sugg.items||!sugg.items.length) return '';
 
-  const items       = sugg.items;
-  const macros      = sugg.macros || {};
-  const mealTypeInfo= sugg.mealTypeInfo || {label:'الوجبة', icon:'🍽️'};
-  const ketoTarget  = sugg.ketoTarget || 1.6;
-  const enrichedAdds= sugg.enriched || [];
-  const ratio       = macros.ratio || 0;
+  const mealTypeInfo = sugg.mealTypeInfo || {label:'الوجبة', icon:'🍽️', type:'lunch'};
+  const ketoTarget   = sugg.ketoTarget || 1.6;
+  const macros       = sugg.macros || {};
+  const ratio        = macros.ratio || 0;
+  const enriched     = sugg.enriched || [];
 
-  const ratioColor = ratio>=2.0?'var(--accent)':ratio>=ketoTarget?'#f59e0b':'var(--danger)';
-  const ratioLabel = ratio>=2.0?'ممتاز 🔥':ratio>=ketoTarget?'محفز ✓':'يحتاج تحسين';
-  const ketoP      = Math.min(Math.round(ratio/3*100),100);
+  // ── حفظ الـ items للحاسبة ──
+  window._lastSuggItems = sugg.items.map(function(i){
+    return {fid: i.fid||(i.food&&i.food.id), qty: i.qty};
+  }).filter(function(i){ return i.fid&&i.qty>0; });
 
-  const enrichNote = enrichedAdds.length
-    ? `<div style="font-size:10px;color:var(--accent);margin-top:4px">
-        ✨ أُضيف تلقائياً: ${enrichedAdds.map(a=>a.name+' ('+a.qty+'غ)').join(' · ')}
-       </div>` : '';
+  // ── ألوان وتسميات ──
+  const rc = ratio>=2.0?'var(--accent)':ratio>=ketoTarget?'#f59e0b':'var(--danger)';
+  const rl = ratio>=2.0?'ممتاز 🔥':ratio>=ketoTarget?'محفز ✓':'يحتاج تحسين';
+  const kp = Math.min(Math.round(ratio/(3)*100),100);
 
-  const itemsHTML = items.map(function(i){
-    const f = i.food || FOODS.find(function(x){ return x.id===i.fid; });
+  // ── نص الإضافات ──
+  const addNote = enriched.length
+    ? '<div style="font-size:10px;color:var(--accent);margin-top:2px">✨ أُضيف تلقائياً: '
+      + enriched.map(function(a){
+          var nm = a.name;
+          if(!nm){ var f2=FOODS&&FOODS.find(function(x){return x.id===a.fid;}); nm=f2?f2.name:''; }
+          return nm+' ('+a.qty+'غ)';
+        }).join(' · ')+'</div>'
+    : '';
+
+  // ── صفوف المكونات ──
+  var rowsHTML = sugg.items.map(function(i){
+    var f   = i.food || (FOODS&&FOODS.find(function(x){return x.id===i.fid;}));
     if(!f) return '';
-    const isNew = i.isNew || i.source==='enriched';
-    const isFav = i.source==='fav';
-    return `<div class="sugg-item-row${i.swappable?' swappable':''}"
-      ${i.swappable?`onclick="swapMealItem(${i.fid},${(i.alts&&i.alts[0])?i.alts[0].fid:i.fid},${(i.alts&&i.alts[0])?i.alts[0].qty:i.qty},'${mealTypeInfo.type||'lunch'}')"`:''}
-      >
-      <div class="sugg-item-name">
-        ${f.name}${isFav?' ⭐':''}${isNew?'<span style="font-size:9px;background:var(--accent);color:#fff;border-radius:4px;padding:1px 4px;margin-right:3px">+</span>':''}
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-        <div class="sugg-item-qty">${i.displayQty||i.qty+'غ'}</div>
-        <div class="sugg-item-macros">
-          <span class="sugg-macro"><span class="sugg-macro-val" style="color:var(--accent)">${Math.round((f.fat||0)*i.qty/100*10)/10}</span><span class="sugg-macro-lbl">د</span></span>
-          <span class="sugg-macro"><span class="sugg-macro-val" style="color:var(--info)">${Math.round((f.protein||0)*i.qty/100*10)/10}</span><span class="sugg-macro-lbl">ب</span></span>
-          <span class="sugg-macro"><span class="sugg-macro-val" style="color:var(--danger)">${Math.round((f.net_carb||0)*i.qty/100*10)/10}</span><span class="sugg-macro-lbl">ك</span></span>
-        </div>
-      </div>
-    </div>`;
+    var fat  = Math.round((f.fat||0)*i.qty/100*10)/10;
+    var prot = Math.round((f.protein||0)*i.qty/100*10)/10;
+    var nc   = Math.round((f.net_carb||0)*i.qty/100*10)/10;
+    var star = (i.source==='fav')?'⭐ ':'';
+    var badge= i.isNew?'<span style="font-size:9px;background:var(--accent);color:#fff;border-radius:3px;padding:1px 4px;margin-right:4px">+</span>':'';
+    return '<div class="suggestion-item" style="cursor:default">'
+      +'<div style="min-width:0;flex:1">'
+        +'<div style="font-size:13px;font-weight:500">'+badge+star+f.name+'</div>'
+        +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'
+          +(i.displayQty||i.qty+'غ')+' · '
+          +'<span style="color:var(--accent)">د'+fat+'</span> · '
+          +'<span style="color:var(--info)">ب'+prot+'</span> · '
+          +'<span style="color:var(--danger)">ك'+nc+'</span>'
+        +'</div>'
+      +'</div>'
+    +'</div>';
   }).join('');
 
-  // حد الكارب المقترح
-  const carbLimit = typeof _calcCarbLimit!=='undefined' && _calcCarbLimit!==999
-    ? _calcCarbLimit : 10;
+  // ── مجموع الماكرو ──
+  var totHTML = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0">'
+    +'<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px;text-align:center"><div style="font-size:16px;font-weight:700;color:var(--accent)">'+(macros.fat||0)+'غ</div><div style="font-size:10px;color:var(--text3)">دهون</div></div>'
+    +'<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px;text-align:center"><div style="font-size:16px;font-weight:700;color:var(--info)">'+(macros.prot||0)+'غ</div><div style="font-size:10px;color:var(--text3)">بروتين</div></div>'
+    +'<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px;text-align:center"><div style="font-size:16px;font-weight:700;color:var(--danger)">'+(macros.nc||0)+'غ</div><div style="font-size:10px;color:var(--text3)">كارب</div></div>'
+    +'<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px;text-align:center"><div style="font-size:16px;font-weight:700">'+(macros.cal||0)+'</div><div style="font-size:10px;color:var(--text3)">سعرة</div></div>'
+    +'</div>';
 
-  // إجمالي الماكرو
-  const totRow = `
-    <div class="sugg-macros-summary" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0;">
-      <div class="sugg-macro-card" style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px;text-align:center">
-        <div class="sugg-macro-card-val" style="font-size:15px;font-weight:700;color:var(--accent)">${macros.fat||0}غ</div>
-        <div class="sugg-macro-card-lbl" style="font-size:10px;color:var(--text3)">دهون</div>
-      </div>
-      <div class="sugg-macro-card" style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px;text-align:center">
-        <div class="sugg-macro-card-val" style="font-size:15px;font-weight:700;color:var(--info)">${macros.prot||0}غ</div>
-        <div class="sugg-macro-card-lbl" style="font-size:10px;color:var(--text3)">بروتين</div>
-      </div>
-      <div class="sugg-macro-card" style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px;text-align:center">
-        <div class="sugg-macro-card-val" style="font-size:15px;font-weight:700;color:var(--danger)">${macros.nc||0}غ</div>
-        <div class="sugg-macro-card-lbl" style="font-size:10px;color:var(--text3)">كارب</div>
-      </div>
-      <div class="sugg-macro-card" style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px;text-align:center">
-        <div class="sugg-macro-card-val" style="font-size:15px;font-weight:700">${macros.cal||0}</div>
-        <div class="sugg-macro-card-lbl" style="font-size:10px;color:var(--text3)">سعرة</div>
-      </div>
-    </div>`;
+  // ── شريط النسبة ──
+  var ratioBar = '<div style="margin:6px 0">'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">'
+      +'<span style="color:'+rc+';font-weight:600">نسبة كيتو: '+ratio+' — '+rl+'</span>'
+      +'<span style="color:var(--text3)">ألياف: '+(macros.fiber||0)+'غ</span>'
+    +'</div>'
+    +'<div style="height:6px;background:var(--surface2);border-radius:4px;overflow:hidden">'
+      +'<div style="height:100%;width:'+kp+'%;background:'+rc+';border-radius:4px;transition:width .5s"></div>'
+    +'</div>'
+    +'</div>';
 
-  // زر فتح الحاسبة
-  // حفظ items كـ global للوصول من onclick
-  window._lastSuggItems = items.map(function(i){ return {fid:i.fid||i.food?.id, qty:i.qty}; });
-  const openBtn = `<button class="btn primary"
-    style="width:100%;justify-content:center;background:var(--warning);border-color:var(--warning)"
-    onclick="openSuggInCalc(window._lastSuggItems)">
-    📊 جرّب وعدّل في الحاسبة ←
-  </button>`;
-
-  return `<div class="sugg-card">
-    <div class="sugg-header">
-      <div class="sugg-header-left">
-        <span style="font-size:20px">${mealTypeInfo.icon||'🍽️'}</span>
-        <div style="min-width:0">
-          <div class="sugg-title">اقتراح ${mealTypeInfo.label||'الوجبة'} — الوجبة ${sugg.mealNumber||''} من ${sugg.totalMeals||3}</div>
-          <div class="sugg-sub">حصة ${Math.round((sugg.share||0.33)*100)}% · نسبة كيتو ≥${ketoTarget} · سعرات ≤${typeof getMealCalLimit!=='undefined'?getMealCalLimit(sugg.totalMeals||3,(sugg.hasSnack||false),false):600}</div>
-          ${enrichNote}
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn sm" onclick="rDash()" title="اقتراح وجبة مختلفة" style="white-space:nowrap">🔄 تغيير</button>
-      </div>
-    </div>
-    <div class="sugg-body" style="padding:8px 0">
-      <div class="sugg-items-list">${itemsHTML}</div>
-      ${totRow}
-      <div style="margin-top:6px">
-        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
-          <span style="color:${ratioColor};font-weight:600">نسبة كيتو: ${ratio} — ${ratioLabel}</span>
-          <span style="color:var(--text3)">ألياف: ${macros.fiber||0}غ</span>
-        </div>
-        <div style="height:5px;background:var(--surface2);border-radius:4px;overflow:hidden">
-          <div style="height:100%;width:${ketoP}%;background:${ratioColor};border-radius:4px;transition:width .5s"></div>
-        </div>
-      </div>
-    </div>
-    <div class="sugg-actions" style="padding:8px 12px 12px;display:flex;flex-direction:column;gap:8px">
-      ${openBtn}
-    </div>
-  </div>`;
+  // ── الكارت الكامل ──
+  return '<div class="card" style="margin-bottom:14px">'
+    // Header
+    +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px">'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+          +'<span style="font-size:18px">🎯</span>'
+          +'<div>'
+            +'<div style="font-size:13px;font-weight:600">اقتراح '+mealTypeInfo.label+' — الوجبة '+(sugg.mealNumber||'')+' من '+(sugg.totalMeals||3)+'</div>'
+            +'<div style="font-size:11px;color:var(--text3)">حصة '+Math.round((sugg.share||0.33)*100)+'% · نسبة كيتو ≥'+ketoTarget+'</div>'
+            +addNote
+          +'</div>'
+        +'</div>'
+      +'</div>'
+      +'<button class="btn sm" onclick="refreshSuggestion()" style="flex-shrink:0;white-space:nowrap">🔄 تغيير</button>'
+    +'</div>'
+    // Items
+    +rowsHTML
+    // Totals
+    +totHTML
+    // Ratio bar
+    +ratioBar
+    // Action button
+    +'<button class="btn primary" onclick="openSuggInCalc(window._lastSuggItems)" '
+      +'style="width:100%;justify-content:center;background:var(--warning);border-color:var(--warning);margin-top:8px">'
+      +'📊 جرّب وعدّل في الحاسبة ←'
+    +'</button>'
+  +'</div>';
 }
 
 
@@ -3082,7 +3115,12 @@ function buildMealSuggestion(mem, rem, phase){
       });
 
       const fromFav_ = eligible_.filter(t => t.components.some(c => favIds_.includes(c.fid)));
-      const picked_  = (fromFav_.length ? fromFav_ : eligible_)[0];
+      // تجاهل القالب الأخير المستخدم عند الضغط على "تغيير"
+      const _skipId   = window._lastSuggTemplateId || null;
+      const pool_     = fromFav_.length ? fromFav_ : eligible_;
+      const filtered_ = _skipId ? pool_.filter(t=>t.id!==_skipId) : pool_;
+      const picked_   = (filtered_.length ? filtered_ : pool_)[0];
+      if(picked_) window._lastSuggTemplateId = picked_.id;
 
       if(picked_){
         const scaled_ = eggCount_ !== picked_.egg_count
