@@ -2,11 +2,17 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>تحدي الكيتو مع د. عمار</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+/* ── إصلاح أساسي للجوال ── */
+*,*::before,*::after{box-sizing:border-box;}
+html,body{width:100%;max-width:100%;}
+img,svg{max-width:100%;height:auto;}
+
+
 :root{
   --bg:#f4f7f0;--surface:#fff;--surface2:#f0f4ea;--surface3:#e4edd8;
   --border:rgba(70,130,50,0.14);--border2:rgba(70,130,50,0.3);
@@ -56,7 +62,7 @@ nav{padding:10px 8px;flex:1;}
 .panel{display:none;}.panel.active{display:block;}
 
 /* CARDS */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:18px;box-shadow:var(--shadow);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:18px;box-shadow:var(--shadow);;width:100%;box-sizing:border-box;}
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);}
 .card-title{font-size:14px;font-weight:500;}.card-sub{font-size:11px;color:var(--text3);margin-top:2px;}
 
@@ -275,102 +281,516 @@ textarea{resize:vertical;min-height:76px;}
 .day-macro-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 10px;text-align:center;box-shadow:var(--shadow);}
 .day-macro-val{font-size:22px;font-weight:700;font-family:var(--mono);}
 .day-macro-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+
+/* CIRCULAR MACRO */
+.cmac-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px;width:100%;overflow:hidden;}
+.cmac-item{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.cmac-svg{display:block;overflow:visible;}
+.cmac-track{fill:none;stroke-linecap:round;}
+.cmac-fill{fill:none;stroke-linecap:round;transition:stroke-dashoffset .6s ease;}
+.cmac-label{font-size:11px;color:var(--text3);font-weight:500;}
+.cmac-sub{font-size:10px;color:var(--text3);}
 .suggestion-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;margin-bottom:6px;}
 .suggestion-item:hover,.suggestion-item.selected{border-color:var(--accent);background:var(--accent-light);}
 
-/* ════════════════════════════════════════════════════
-   إصلاحات الجوال — لوحة التحكم وكل الصفحات
-════════════════════════════════════════════════════ */
-*,*::before,*::after{box-sizing:border-box;}
+/* ─── Smart Units ─── */
+.unit-wizard{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:7px;}
+.unit-wizard-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.unit-wizard-name{font-size:13px;font-weight:600;}
+.unit-step{margin-bottom:8px;}
+.unit-step-label{font-size:11px;color:var(--text3);font-weight:600;margin-bottom:5px;}
+.unit-options{display:flex;flex-wrap:wrap;gap:5px;}
+.unit-opt{padding:5px 10px;border-radius:100px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:all .15s;}
+.unit-opt.selected{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600;}
+.unit-opt.keto{border-color:rgba(58,140,63,.4);}
+.unit-opt.warning{border-color:rgba(239,83,80,.3);color:var(--danger);}
+.unit-summary{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--surface);border-radius:var(--radius-sm);margin-top:8px;font-size:12px;}
+.unit-summary-text{color:var(--text2);}
+.unit-summary-grams{font-family:var(--mono);font-weight:700;color:var(--accent);}
+.unit-warning-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--danger);background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.2);border-radius:100px;padding:2px 8px;margin-bottom:6px;}
 
+/* ═══ CALCULATOR v2 ═══ */
+/* ═══ CALCULATOR v2 ═══ */
+.calc-remaining-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+.calc-rem-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 8px;text-align:center;}
+.calc-rem-val{font-size:16px;font-weight:700;font-family:var(--mono);}
+.calc-rem-lbl{font-size:10px;color:var(--text3);margin-top:2px;}
+.calc-mode-btns{display:flex;gap:10px;margin-bottom:16px;}
+.calc-mode-btn{flex:1;padding:14px;border:2px solid var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;transition:all .15s;background:var(--surface2);}
+.calc-mode-btn.active{border-color:var(--accent);background:var(--accent-light);}
+.calc-mode-btn .icon{font-size:26px;margin-bottom:6px;}
+.calc-mode-btn .title{font-size:13px;font-weight:600;}
+.calc-mode-btn .sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.calc-cat-header{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.05em;padding:10px 0 6px;border-top:1px solid var(--border);margin-top:6px;}
+.calc-cat-header:first-child{border-top:none;margin-top:0;padding-top:0;}
+.calc-food-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:100px;font-size:12px;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--surface2);color:var(--text2);margin:3px;}
+.calc-food-chip.selected{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600;}
+.calc-food-chip.fav{border-color:rgba(58,140,63,.4);}
+.calc-carb-opts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.calc-carb-btn{padding:7px 14px;border-radius:100px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--surface2);transition:all .15s;}
+.calc-carb-btn.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600;}
+.calc-item-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:7px;}
+.calc-item-name{font-size:13px;font-weight:500;flex:1;}
+.calc-item-qty-wrap{display:flex;align-items:center;gap:5px;}
+.calc-item-qty-input{width:70px;text-align:center;font-family:var(--mono);font-size:13px;padding:5px 6px;}
+.calc-item-unit{font-size:11px;color:var(--text3);min-width:55px;}
+.calc-item-macros{display:flex;gap:8px;flex-shrink:0;}
+.calc-macro-pill{font-size:10px;padding:2px 6px;border-radius:100px;font-family:var(--mono);}
+.calc-macro-pill.fat{background:rgba(58,140,63,.12);color:var(--accent);}
+.calc-macro-pill.prot{background:rgba(41,182,246,.12);color:var(--info);}
+.calc-macro-pill.carb{background:rgba(239,83,80,.12);color:var(--danger);}
+.calc-nutrition-card{background:var(--surface);border:2px solid var(--accent);border-radius:var(--radius);padding:16px;margin:14px 0;}
+.calc-keto-ratio{font-size:32px;font-weight:700;font-family:var(--mono);text-align:center;margin-bottom:4px;}
+.calc-macro-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0;}
+.calc-macro-box{text-align:center;padding:8px;background:var(--surface2);border-radius:var(--radius-sm);}
+.calc-macro-box-val{font-size:15px;font-weight:700;font-family:var(--mono);}
+.calc-macro-box-lbl{font-size:10px;color:var(--text3);margin-top:2px;}
+.calc-unit-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+.calc-unit-tab{padding:5px 11px;border-radius:100px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:var(--surface2);transition:all .15s;}
+.calc-unit-tab.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
+
+/* SWAP PANEL */
+.swap-panel{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;margin-top:6px;display:none;}
+.swap-panel.open{display:block;}
+.swap-option{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:var(--radius-sm);cursor:pointer;margin-bottom:4px;border:1px solid transparent;transition:all .15s;}
+.swap-option:hover{background:var(--accent-light);border-color:var(--accent);}
+.swap-option.current{background:var(--accent-light);border-color:var(--accent);opacity:.6;cursor:default;}
+.swap-option-name{font-size:12px;font-weight:500;}
+.swap-option-macros{font-size:10px;color:var(--text3);font-family:var(--mono);}
+.sugg-item-row.swappable{cursor:pointer;}
+.sugg-item-row.swappable:hover .sugg-item-name::after{content:' ↔';color:var(--accent);font-size:10px;}
+
+/* MEAL SUGGESTION v2 */
+.sugg-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:18px;width:100%;box-sizing:border-box;box-shadow:var(--shadow);overflow:hidden;}
+.sugg-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border);background:var(--surface2);overflow:hidden;}
+.sugg-header-left{display:flex;align-items:center;gap:9px;;min-width:0;flex:1;}
+.sugg-title{font-size:13px;font-weight:600;color:var(--text2);}
+.sugg-sub{font-size:11px;color:var(--text3);}
+.sugg-body{padding:14px 16px;}
+.sugg-items{display:flex;flex-direction:column;gap:7px;margin-bottom:13px;}
+.sugg-item-row{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 11px;overflow:hidden;}
+.sugg-item-name{font-size:13px;font-weight:500;color:var(--text);;min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sugg-item-qty{font-size:12px;color:var(--text3);margin-top:2px;}
+.sugg-item-macros{display:flex;gap:8px;flex-shrink:0;min-width:0;}
+.sugg-macro{text-align:center;}
+.sugg-macro-val{font-size:12px;font-weight:600;font-family:var(--mono);}
+.sugg-macro-lbl{font-size:9px;color:var(--text3);}
+.sugg-ratio-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:9px 12px;background:var(--accent-dim);border:1px solid rgba(58,140,63,.18);border-radius:var(--radius-sm);}
+.sugg-ratio-val{font-size:18px;font-weight:700;font-family:var(--mono);color:var(--accent);}
+.sugg-ratio-lbl{font-size:11px;color:var(--text2);}
+.sugg-ratio-sub{font-size:10px;color:var(--text3);}
+.sugg-macros-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:13px;}
+.sugg-macro-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;text-align:center;}
+.sugg-macro-card-val{font-size:15px;font-weight:700;font-family:var(--mono);}
+.sugg-macro-card-lbl{font-size:10px;color:var(--text3);margin-top:2px;}
+.sugg-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.sugg-tag-fav{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--accent);background:var(--accent-dim);border:1px solid rgba(58,140,63,.2);border-radius:100px;padding:2px 8px;}
+
+/* CALC PANEL ACTIONS */
+.calc-action-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px;padding-top:13px;border-top:1px solid var(--border);}
+
+/* SUGG MODAL */
+.sugg-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;align-items:center;justify-content:center;padding:20px;}
+.sugg-modal-overlay.open{display:flex;}
+.sugg-modal{background:var(--surface);border-radius:var(--radius);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.sugg-modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1;}
+.sugg-modal-body{padding:18px;}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE SYSTEM
+   Desktop  ≥ 1024px  — sidebar دائم + محتوى واسع
+   Tablet   640–1023px — sidebar يطوى + شبكة مضغوطة
+   Mobile   < 640px   — sidebar drawer + تكديس كامل
+═══════════════════════════════════════════ */
+
+/* ── Desktop: لا تغيير عن التصميم الأصلي ── */
+@media (min-width:1024px){
+  .menu-btn{display:none!important;}
+  .sidebar{transform:none!important;}
+  .sidebar-overlay{display:none!important;}
+  .two-col{grid-template-columns:1fr 1fr;}
+  .form-row{grid-template-columns:1fr 1fr;}
+  .form-row.t3{grid-template-columns:1fr 1fr 1fr;}
+  .stats-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));}
+  .sugg-macros-summary{grid-template-columns:repeat(3,1fr);}
+  .week-grid{grid-template-columns:repeat(7,1fr);}
+}
+
+/* ── Tablet: 640px – 1023px ── */
+@media (min-width:640px) and (max-width:1023px){
+  .shell{position:relative;}
+
+  /* Sidebar: drawer يخرج من اليمين */
+  .sidebar{
+    position:fixed;right:0;top:0;bottom:0;
+    width:220px;
+    transform:translateX(100%);
+    box-shadow:-4px 0 16px rgba(0,0,0,.12);
+  }
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-overlay{display:block;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .sidebar-overlay.open{opacity:1;pointer-events:auto;}
+
+  .menu-btn{display:flex!important;}
+  .content{padding:16px 14px;}
+  .topbar{padding:0 14px;}
+
+  /* شبكات: من 2 عمود → 1 */
+  .two-col{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:1fr 1fr;}
+  .form-row.t3{grid-template-columns:1fr 1fr;}
+  .stats-grid{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));}
+  .sugg-macros-summary{grid-template-columns:repeat(3,1fr);}
+  .week-grid{grid-template-columns:repeat(7,1fr);gap:4px;}
+  .week-day{padding:6px 2px;}
+  .week-day-num{font-size:13px;}
+
+  /* جداول: تمرير أفقي */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  table{min-width:500px;}
+}
+
+/* ── Mobile: < 640px ── */
 @media (max-width:639px){
-
-  /* ── أساسي ── */
   body{font-size:13px;}
-  .content{padding:10px;}
-  .card{padding:13px;margin-bottom:12px;overflow:hidden;}
+
+  .shell{position:relative;}
+
+  /* Sidebar: drawer كامل */
+  .sidebar{
+    position:fixed;right:0;top:0;bottom:0;
+    width:80vw;max-width:280px;
+    transform:translateX(100%);
+    box-shadow:-6px 0 24px rgba(0,0,0,.15);
+  }
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-overlay{display:block;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .sidebar-overlay.open{opacity:1;pointer-events:auto;}
+
+  .menu-btn{display:flex!important;}
+
+  /* Topbar */
+  .topbar{padding:0 12px;height:48px;}
+  .page-title{font-size:14px;}
+
+  /* Content */
+  .content{padding:12px;}
+
+  /* Cards */
+  .card{padding:14px;margin-bottom:12px;}
   .card-header{margin-bottom:10px;padding-bottom:10px;}
 
-  /* ── شبكات ── */
-  .two-col{grid-template-columns:1fr!important;}
-  .form-row{grid-template-columns:1fr!important;}
-  .form-row.t3{grid-template-columns:1fr!important;}
-  .stats-grid{grid-template-columns:repeat(2,1fr)!important;gap:8px;}
+  /* شبكات: عمود واحد دائماً */
+  .two-col{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:1fr;}
+  .form-row.t3{grid-template-columns:1fr;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .stat-card{padding:11px;}
+  .stat-val{font-size:20px;}
 
-  /* ── بطاقة تسجيل الوزن ── */
-  /* الصف الأفقي: زر + تاريخ + وزن → عمود */
-  [style*="display:flex;gap:8px;align-items:flex-end"]{
-    flex-direction:column!important;
-    gap:8px!important;
-  }
-  [style*="display:flex;gap:8px;align-items:flex-end"] > *{
-    width:100%!important;
-    flex:unset!important;
-  }
-  /* input الوزن والتاريخ */
-  #dash-weight-input,
-  #dash-weight-date{
-    width:100%!important;
-    font-size:14px!important;
-  }
+  /* Suggestion cards */
+  .sugg-macros-summary{grid-template-columns:repeat(3,1fr);gap:5px;}
+  .sugg-macro-card{padding:6px;}
+  .sugg-macro-card-val{font-size:13px;}
+  .sugg-item-macros{gap:6px;}
+  .sugg-macro-val{font-size:11px;}
+  .sugg-item-row{padding:7px 9px;}
+  .sugg-ratio-val{font-size:16px;}
+  .sugg-actions{flex-direction:column;}
+  .sugg-actions .btn{width:100%;justify-content:center;}
 
-  /* ── بطاقات التحدي ── */
-  .challenge-card,
-  [id*="challenge"],
-  [class*="challenge"]{
-    overflow:hidden;
-  }
+  /* Macro chips */
+  .mrow{gap:5px;}
+  .mchip{padding:7px 5px;}
+  .mchip-v{font-size:14px;}
+
+  /* جداول */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -12px;padding:0 12px;}
+  table{min-width:480px;font-size:12px;}
+  th,td{padding:7px 9px;}
+
+  /* أزرار */
+  .btn{font-size:12px;padding:7px 11px;}
+  .btn.sm{padding:4px 8px;font-size:11px;}
+
+  /* جدول الأسبوع */
+  .week-grid{grid-template-columns:repeat(7,1fr);gap:3px;}
+  .week-day{padding:5px 2px;}
+  .week-day-name{font-size:9px;}
+  .week-day-num{font-size:12px;}
+
+  /* النماذج */
+  input,select,textarea{font-size:13px;padding:9px 10px;}
+
+  /* Modal السناك / الاقتراح */
+  .sugg-modal{max-width:calc(100vw - 24px);}
+
+  /* صفحة التفضيلات: labels الراديو */
+  .pref-meal-options{flex-direction:column!important;}
+
+  /* Preferences فاكهة chips */
+  .fav-chips{gap:4px!important;}
+
+  /* سجل التقدم stats */
+  .progress-stats{grid-template-columns:repeat(2,1fr)!important;}
+
+  /* حاسبة الاحتياج */
+  .needs-grid{grid-template-columns:1fr!important;}
+
+  /* ══════════════════════════════════════════════
+     إصلاحات الجوال الشاملة
+  ══════════════════════════════════════════════ */
+
+  /* منع أي overflow أفقي */
+  *{box-sizing:border-box;}
+  body,html{overflow-x:hidden;max-width:100vw;}
+  .content{overflow-x:hidden;padding:10px;}
 
   /* ── دوائر الماكرو ── */
   .cmac-wrap{
-    grid-template-columns:repeat(3,1fr)!important;
-    gap:4px!important;
-    overflow:hidden;
-    width:100%;
+    grid-template-columns:repeat(3,1fr);
+    gap:6px;
   }
-  .cmac-item{overflow:hidden;min-width:0;}
-  .cmac-svg{width:60px!important;height:60px!important;}
-  .cmac-label{font-size:9px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .cmac-sub{font-size:8px!important;max-width:75px;line-height:1.2;word-break:break-word;text-align:center;}
+  .cmac-svg{width:64px!important;height:64px!important;}
+  .cmac-label{font-size:10px;}
+  .cmac-sub{font-size:10px;max-width:90px;text-align:center;}
+
+  /* ── بطاقات الإحصاء ── */
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .stat-card{padding:10px;}
+  .stat-val{font-size:19px;}
+  .stat-label{font-size:10px;}
 
   /* ── بطاقة الاقتراح ── */
-  .sugg-card{overflow:hidden;width:100%;}
-  .sugg-header{
-    padding:10px 12px;
+  .sugg-card{padding:12px;}
+  .sugg-header{flex-wrap:wrap;gap:8px;}
+  .sugg-header-left{min-width:0;flex:1;}
+  .sugg-title{font-size:13px;line-height:1.3;}
+  .sugg-sub{font-size:10px;}
+  .sugg-body{padding:8px 0;}
+
+  /* مكونات الاقتراح: عمود واحد */
+  .sugg-item-row{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:6px;
+    padding:8px;
+  }
+  .sugg-item-macros{
+    flex-wrap:wrap;
+    gap:6px;
+    width:100%;
+  }
+  .sugg-macro{
+    flex:1;min-width:50px;
+    background:var(--surface2);
+    padding:4px;border-radius:4px;
+    text-align:center;
+  }
+  .sugg-macro-val{font-size:11px;}
+  .sugg-macros-summary{
+    grid-template-columns:repeat(2,1fr);
+    gap:6px;
+  }
+  .sugg-macro-card{padding:8px 6px;}
+  .sugg-macro-card-val{font-size:14px;}
+
+  /* ── بطاقة الماكرو اليومي ── */
+  .calc-macro-grid{
+    grid-template-columns:repeat(2,1fr);
+    gap:6px;
+  }
+  .calc-macro-box{padding:6px;}
+  .calc-macro-box-val{font-size:14px;}
+  .calc-macro-box-lbl{font-size:10px;}
+
+  /* ── بطاقة المغذيات في الحاسبة ── */
+  .calc-nutrition-card{padding:12px;}
+  .calc-keto-ratio{font-size:32px!important;}
+
+  /* ── حاسبة الوصفة: قائمة المكونات ── */
+  .calc-food-grid{
+    grid-template-columns:repeat(2,1fr)!important;
+    gap:6px;
+  }
+  .calc-food-btn{
+    font-size:11px!important;
+    padding:6px 8px!important;
+    min-height:36px;
+  }
+
+  /* ── بطاقة المرحلة ── */
+  .phase-card{padding:12px;}
+  .phase-header{flex-wrap:wrap;gap:8px;}
+
+  /* ── التاريخ والتقدم ── */
+  .week-grid{gap:2px;}
+  .week-day{padding:4px 1px;}
+  .week-day-name{font-size:8px;}
+  .week-day-num{font-size:11px;}
+
+  /* ── النسبة الكيتونية ── */
+  .keto-ratio-bar{height:6px;}
+  .kbar{height:5px;}
+
+  /* ── تفاصيل إضافية المغذيات ── */
+  [id^="sub-"]{font-size:9px;}
+
+  /* ── أزرار الأكشن في الحاسبة ── */
+  .calc-action-row{
     flex-wrap:wrap;
     gap:6px;
   }
-  .sugg-header-left{
-    min-width:0;flex:1;overflow:hidden;
+  .calc-action-row .btn{
+    flex:1;
+    min-width:120px;
+    justify-content:center;
   }
-  .sugg-title{font-size:12px;word-break:break-word;}
+
+  /* ── التوصيات ── */
+  .calc-nutrition-card [style*="display:flex;gap:8px"]{
+    flex-wrap:wrap;
+  }
+
+  /* ── الوجبات اليومية cards ── */
+  .meal-log-item{padding:10px;}
+  .meal-log-macros{flex-wrap:wrap;gap:4px;}
+
+  /* ── منع أي عنصر من تجاوز الشاشة ── */
+  img,svg,video{max-width:100%;}
+  .card, .sugg-card, .calc-nutrition-card{
+    overflow:hidden;
+    word-break:break-word;
+  }
+
+  /* ── عروض: كل العناصر ضمن الشاشة ── */
+  .card,.sugg-card,.phase-card,.stat-card{
+    width:100%;
+    box-sizing:border-box;
+    overflow:hidden;
+  }
+  .cmac-wrap{width:100%;box-sizing:border-box;}
+  .cmac-svg{width:60px!important;height:60px!important;}
+
+  /* ── دائرة الماكرو: حجم أصغر على الجوال ── */
+  .cmac-item{min-width:0;}
+  .cmac-label{font-size:10px;white-space:nowrap;}
+
+  /* ── بطاقة الاقتراح: منع الخروج ── */
+  .sugg-card *{max-width:100%;box-sizing:border-box;}
+  .sugg-header{gap:6px;}
+  .sugg-title{font-size:13px;line-height:1.4;word-break:break-word;}
   .sugg-sub{font-size:10px;word-break:break-word;}
 
-  /* صف المكوّن */
+  /* ── مكونات الاقتراح ── */
+  .sugg-items-list{width:100%;}
   .sugg-item-row{
-    flex-direction:column!important;
-    align-items:flex-start!important;
-    padding:8px 10px;
+    width:100%;
+    box-sizing:border-box;
     gap:4px;
-    overflow:hidden;
   }
   .sugg-item-name{
     font-size:12px;
-    white-space:normal!important;
-    overflow:visible!important;
-    text-overflow:unset!important;
-    max-width:100%;
+    flex:1;
     min-width:0;
+    white-space:normal;
+  }
+  .sugg-item-qty{
+    font-size:11px;
+    flex-shrink:0;
+    white-space:nowrap;
   }
   .sugg-item-macros{
-    flex-wrap:wrap!important;
-    gap:5px;
     width:100%;
-    flex-shrink:1!important;
+    flex-wrap:wrap;
+    gap:4px;
   }
   .sugg-macro{
-    flex:1;min-width:44px;
-    background:var(--surface3,#f5f5f5);
+    flex:1;
+    min-width:44px;
+    text-align:center;
+  }
+
+  /* ── النسبة الكيتونية ── */
+  .sugg-ratio{width:100%;box-sizing:border-box;}
+  .sugg-ratio-val{font-size:18px;}
+
+  /* ── ملخص الماكرو ── */
+  .sugg-macros-summary{
+    grid-template-columns:repeat(2,1fr);
+    width:100%;
+  }
+  .sugg-macro-card{
+    padding:6px 4px;
+    min-width:0;
+  }
+  .sugg-macro-card-val{font-size:13px;}
+  .sugg-macro-card-lbl{font-size:9px;}
+
+  /* ── أزرار الاقتراح ── */
+  .sugg-actions{
+    flex-direction:column;
+    width:100%;
+    gap:6px;
+  }
+  .sugg-actions .btn{
+    width:100%!important;
+    justify-content:center;
+    font-size:12px;
+  }
+
+  /* ── المغذيات اليومية ── */
+  .cmac-sub{
+    font-size:9px;
+    max-width:80px;
+    line-height:1.3;
+    word-break:break-word;
+  }
+
+  /* ── إصلاح flex overflow على الجوال ── */
+
+  /* دوائر الماكرو: تصغير وضمان العرض */
+  .cmac-wrap{
+    grid-template-columns:repeat(3,1fr);
+    gap:4px;
+    overflow:hidden;
+  }
+  .cmac-item{overflow:hidden;min-width:0;}
+  .cmac-svg{width:58px!important;height:58px!important;}
+  .cmac-label{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cmac-sub{font-size:9px;max-width:75px;line-height:1.2;word-break:break-word;text-align:center;}
+
+  /* بطاقة الاقتراح */
+  .sugg-header{padding:10px 12px;flex-wrap:wrap;}
+  .sugg-header-left{min-width:0;flex:1;overflow:hidden;}
+  .sugg-title{font-size:12px;white-space:normal;word-break:break-word;}
+  .sugg-sub{font-size:10px;line-height:1.4;}
+
+  /* صف المكوّن: column على الجوال */
+  .sugg-item-row{
+    flex-direction:column;
+    align-items:flex-start;
+    padding:8px 10px;
+    gap:4px;
+  }
+  .sugg-item-name{
+    font-size:12px;
+    white-space:normal;
+    overflow:visible;
+    text-overflow:unset;
+    max-width:100%;
+  }
+  .sugg-item-qty{font-size:11px;color:var(--text3);}
+  .sugg-item-macros{
+    flex-shrink:1;
+    flex-wrap:wrap;
+    gap:6px;
+    width:100%;
+  }
+  .sugg-macro{
+    flex:1;
+    min-width:48px;
+    background:var(--surface3);
     padding:3px 4px;
     border-radius:4px;
     text-align:center;
@@ -383,38 +803,20 @@ textarea{resize:vertical;min-height:76px;}
     grid-template-columns:repeat(2,1fr)!important;
     gap:6px;
   }
-  .sugg-macro-card{padding:6px 4px;}
-  .sugg-macro-card-val{font-size:13px;}
-  .sugg-macro-card-lbl{font-size:9px;}
+  .sugg-macro-card{padding:8px 6px;}
+  .sugg-macro-card-val{font-size:14px;}
 
-  /* أزرار الاقتراح */
-  .sugg-actions{
-    flex-direction:column!important;
-    gap:6px;
-  }
-  .sugg-actions .btn{
-    width:100%!important;
-    justify-content:center;
-    font-size:12px;
-  }
+  /* أزرار */
+  .sugg-actions{flex-direction:column;gap:6px;}
+  .sugg-actions .btn{width:100%;justify-content:center;}
 
-  /* ── الجدول الأسبوعي ── */
-  .week-grid{gap:2px;}
-  .week-day{padding:4px 1px;}
-  .week-day-name{font-size:8px;}
-  .week-day-num{font-size:11px;}
+  /* stats */
+  .stats-grid{grid-template-columns:repeat(2,1fr)!important;}
 
-  /* ── أزرار عامة ── */
-  .btn{font-size:12px;padding:7px 11px;}
-  .btn.sm{padding:4px 8px;font-size:11px;}
-
-  /* ── جداول ── */
-  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  table{min-width:420px;font-size:12px;}
-
-    /* ── بطاقة الوزن ── */
+  /* ── بطاقة تسجيل الوزن ── */
   .weight-form-row{
     flex-direction:column!important;
+    gap:8px!important;
   }
   .weight-form-row > div{
     width:100%!important;
@@ -424,18 +826,16 @@ textarea{resize:vertical;min-height:76px;}
     width:100%!important;
     min-width:0!important;
   }
+}
 
-  /* ── sidebar ── */
-  .sidebar{
-    position:fixed;right:0;top:0;bottom:0;
-    width:80vw;max-width:280px;
-    transform:translateX(100%);
-    z-index:100;
-  }
-  .sidebar.open{transform:translateX(0);}
-  .menu-btn{display:flex!important;}
-  .topbar{padding:0 12px;height:48px;}
-  .page-title{font-size:14px;}
+/* ── تحسينات اللمس لجميع الشاشات الصغيرة ── */
+@media (hover:none) and (pointer:coarse){
+  .btn{min-height:40px;}
+  .btn.sm{min-height:32px;}
+  .nav-item{padding:11px 11px;min-height:40px;}
+  .ch-task{min-height:44px;}
+  input,select{min-height:40px;}
+  .sugg-item-row{padding:10px 11px;}
 }
 
 </style>
@@ -465,6 +865,11 @@ function quickLogin(e,p){
 
 <!-- ════ DATABASE FILES ════ -->
 <script src="db-foods.js"></script>
+<script src="db-meals-logic.js"></script>
+<script src="db-meal-templates.js"></script>
+<script src="db-lunch-dinner-templates.js"></script>
+<script src="db-unit-intelligence.js"></script>
+<script src="calculator.js"></script>
 <script src="db-recipes.js"></script>
 <script src="db-supplements.js"></script>
 <script src="db-products.js"></script>
@@ -585,6 +990,7 @@ let MEALS=[];
       <div class="nav-item active" onclick="gp('dashboard')" id="nav-dashboard"><span class="nav-icon">◈</span>لوحة التحكم</div>
       <div class="nav-item" onclick="gp('meals')" id="nav-meals"><span class="nav-icon">🍽️</span>يومياتي الغذائية</div>
       <div class="nav-item" onclick="gp('phases')" id="nav-phases"><span class="nav-icon">🗺️</span>المراحل والبروتوكول</div>
+      <div class="nav-item" onclick="gp('preferences')" id="nav-preferences"><span class="nav-icon">⚙️</span>تفضيلاتي الغذائية</div>
       <div class="nav-section">التحديات</div>
       <div class="nav-item" onclick="gp('challenge_personal')" id="nav-challenge_personal"><span class="nav-icon">🎯</span>تحديي الشخصي</div>
       <div class="nav-item" onclick="gp('challenge_group')" id="nav-challenge_group"><span class="nav-icon">🏆</span>التحدي العام</div>
@@ -952,22 +1358,14 @@ let MEALS=[];
 
       <!-- CALCULATOR -->
       <div class="panel" id="panel-calculator">
-        <div class="two-col">
-          <div class="card">
-            <div class="card-header"><div><div class="card-title">حاسبة الوصفة المخصصة</div><div class="card-sub">أضف مكونات لحساب القيم الغذائية</div></div></div>
-            <div style="display:flex;gap:8px;margin-bottom:11px;flex-wrap:wrap">
-              <select id="csel" style="flex:1;min-width:110px"></select>
-              <input type="number" id="cqty" placeholder="كمية (غ)" style="width:95px">
-              <button class="btn primary sm" onclick="cAdd()">+</button>
-            </div>
-            <div id="citems" style="min-height:48px;margin-bottom:10px"></div>
-            <button class="btn sm dng" onclick="cClear()">مسح الكل</button>
-          </div>
-          <div class="card">
-            <div class="card-header"><div class="card-title">النتيجة الغذائية</div></div>
-            <div id="cresult"><div style="color:var(--text3);text-align:center;padding:28px 0">أضف مكونات للبدء</div></div>
-          </div>
+        <div id="calc-content">
+          <div style="color:var(--text3);text-align:center;padding:40px 0">جاري التحميل...</div>
         </div>
+        <!-- legacy hidden inputs for compatibility -->
+        <select id="csel" style="display:none"></select>
+        <input type="number" id="cqty" style="display:none">
+        <div id="citems" style="display:none"></div>
+        <div id="cresult" style="display:none"></div>
       </div>
 
       <!-- NEEDS -->
@@ -976,6 +1374,10 @@ let MEALS=[];
           <div style="color:var(--text3);text-align:center;padding:40px 0">جاري التحميل...</div>
         </div>
       </div>
+
+
+      <!-- PREFERENCES -->
+      <div class="panel" id="panel-preferences"><div id="preferences-content"></div></div>
 
       <!-- MEMBERS -->
       <div class="panel" id="panel-members">
@@ -1028,6 +1430,17 @@ let MEALS=[];
 
     </div>
   </main>
+</div>
+
+<!-- SUGGESTION MODAL -->
+<div class="sugg-modal-overlay" id="sugg-modal-overlay" onclick="if(event.target===this)closeSuggModal()">
+  <div class="sugg-modal" id="sugg-modal">
+    <div class="sugg-modal-header">
+      <div style="font-size:14px;font-weight:600">🎯 مراجعة الوجبة المقترحة</div>
+      <button class="btn sm" onclick="closeSuggModal()">✕</button>
+    </div>
+    <div class="sugg-modal-body" id="sugg-modal-body"></div>
+  </div>
 </div>
 
 
@@ -1424,12 +1837,19 @@ function showOnboarding(){
 }
 
 /* ═══ SIDEBAR ═══ */
-function openSb(){document.getElementById('sb').classList.add('open');document.getElementById('sov').style.display='block';}
-function closeSb(){document.getElementById('sb').classList.remove('open');document.getElementById('sov').style.display='none';}
+function openSb(){
+  document.getElementById('sb').classList.add('open');
+  document.getElementById('sov').classList.add('open');
+}
+function closeSb(){
+  document.getElementById('sb').classList.remove('open');
+  document.getElementById('sov').classList.remove('open');
+}
 
 /* ═══ NAV ═══ */
-const TITLES={dashboard:'لوحة التحكم',meals:'يومياتي الغذائية',phases:'المراحل والبروتوكول',challenge_personal:'تحديي الشخصي',challenge_group:'التحدي العام',schedule:'جدول الأسبوع',foods:'الأطعمة والمغذيات',recipes:'الوصفات الكيتونية',products:'منتجات السوق',supplements:'المكملات الغذائية',restaurants:'المطاعم الكيتو-فريندلي',stores:'المتاجر وأماكن التسوق',devices:'الأجهزة والمعدات الموصى بها',calculator:'حاسبة الوصفة',needs:'حاسبة الاحتياج اليومي',members:'المشتركون',progress:'سجل التقدم',profile:'ملفي الشخصي',addmember:'تسجيل مشترك جديد'};
+const TITLES={dashboard:'لوحة التحكم',preferences:'تفضيلاتي الغذائية',meals:'يومياتي الغذائية',phases:'المراحل والبروتوكول',challenge_personal:'تحديي الشخصي',challenge_group:'التحدي العام',schedule:'جدول الأسبوع',foods:'الأطعمة والمغذيات',recipes:'الوصفات الكيتونية',products:'منتجات السوق',supplements:'المكملات الغذائية',restaurants:'المطاعم الكيتو-فريندلي',stores:'المتاجر وأماكن التسوق',devices:'الأجهزة والمعدات الموصى بها',calculator:'حاسبة الوصفة',needs:'حاسبة الاحتياج اليومي',members:'المشتركون',progress:'سجل التقدم',profile:'ملفي الشخصي',addmember:'تسجيل مشترك جديد'};
 function gp(id){
+  if(window.innerWidth < 1024) closeSb(); // أغلق الـ drawer على الجوال والتابليت
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const panel=document.getElementById('panel-'+id);
@@ -1440,6 +1860,7 @@ function gp(id){
   /* الدوال تُحلّ lazily — لا تُقيَّم إلا عند الاستدعاء */
   const lookup=()=>({
     dashboard:typeof rDash!=='undefined'?rDash:null,
+    preferences:typeof rPreferences!=='undefined'?rPreferences:null,
     meals:typeof rMeals!=='undefined'?rMeals:null,
     needs:typeof rNeeds!=='undefined'?rNeeds:null,
     phases:typeof rPhases!=='undefined'?rPhases:null,
@@ -1457,6 +1878,8 @@ function gp(id){
     progress:typeof rProgress!=='undefined'?rProgress:null,
     profile:typeof rProfile!=='undefined'?rProfile:null,
     addmember:typeof rAddMember!=='undefined'?rAddMember:null,
+    calculator:typeof rCalc!=='undefined'?rCalc:null,
+    devices:typeof rDevices!=='undefined'?rDevices:null,
   });
   const fn=lookup()[id];
   if(fn) fn();
@@ -1486,6 +1909,479 @@ function initApp(){popSels();document.getElementById('pg-d').value=new Date().to
   }catch(e){localStorage.removeItem('keto_session');}
 })();
 function popSels(){['rb-isel','csel'].forEach(sid=>{const s=document.getElementById(sid);if(!s)return;s.innerHTML='<option value="">اختر مكوناً...</option>';[...new Set(FOODS.map(f=>f.cat))].forEach(cat=>{const og=document.createElement('optgroup');og.label=cat;FOODS.filter(f=>f.cat===cat).forEach(f=>{const o=document.createElement('option');o.value=f.id;o.textContent=f.name;og.appendChild(o);});s.appendChild(og);});});const pm=document.getElementById('pg-m');if(pm){pm.innerHTML='';MEMBERS.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.name;pm.appendChild(o);});}const pgs=document.getElementById('pgsel');if(pgs){pgs.innerHTML='<option value="">كل المشتركين</option>';MEMBERS.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.name;pgs.appendChild(o);});}}
+
+
+/* ═══════════════════════════════════════════
+   صفحة التفضيلات الغذائية
+═══════════════════════════════════════════ */
+
+/* الإعدادات الافتراضية لتفضيلات الوجبات */
+const DEFAULT_MEAL_PREFS = {
+  meals_per_day:       3,
+  has_snack:           true,
+  preferred_egg_count: 2,        // عدد البيضات المفضل في الفطور
+  sat_fat_limit:       'open',   // 'open' | 'lt20' | 'lt10' | 'lt7'
+  meal_times: {
+    breakfast: '08:00',
+    lunch:     '13:00',
+    dinner:    '19:00',
+    snack:     '16:00'
+  },
+  dietary_notes: '',
+};
+
+/* ─── حساب الحد اليومي للدهون المشبعة بالغرام ─── */
+function getSatFatDailyLimit(mem){
+  const prefs = getMemPrefs(mem);
+  const limit = prefs.sat_fat_limit || 'open';
+  if(limit === 'open') return null;
+  const targets = typeof getTargetForDate !== 'undefined'
+    ? getTargetForDate(mem) : {cal:1800};
+  const cal  = targets.cal || 1800;
+  const pcts = {'lt7':0.07, 'lt10':0.10, 'lt20':0.20, '<7%':0.07, '<10%':0.10, '<20%':0.20};
+  const pct  = pcts[limit];
+  if(!pct) return null;
+  return Math.round(cal * pct / 9 * 10) / 10;
+}
+
+/* ─── sat_fat لقائمة مكونات ─── */
+function calcSatFat(items){
+  if(!items || !items.length) return 0;
+  return Math.round(items.reduce((sum, item) => {
+    const f = FOODS.find(x => x.id === item.fid);
+    return sum + (f ? (f.sat_fat||0) * item.qty / 100 : 0);
+  }, 0) * 10) / 10;
+}
+
+/* ─── فحص sat_fat للوجبة ─── */
+function isMealSatFatOk(items, mealShare, dailyLimit){
+  if(!dailyLimit) return true;
+  return calcSatFat(items) <= dailyLimit * mealShare;
+}
+
+function getMemPrefs(mem){
+  return Object.assign({}, DEFAULT_MEAL_PREFS, mem?.meal_prefs || {});
+}
+
+/* ─── حفظ فوري لأي تغيير في التفضيلات بدون إعادة رسم ─── */
+function _renderSatFatPref(prefs){
+  const cur = prefs.sat_fat_limit || 'open';
+  const opts = [
+    {val:'open', icon:'🟢', label:'مفتوح',                  sub:'لا قيود على الدهون المشبعة'},
+    {val:'lt20', icon:'🟡', label:'أقل من 20% من السعرات', sub:'كيتو صحي عام — يسمح بالزبدة بكميات معتدلة'},
+    {val:'lt10', icon:'🟠', label:'أقل من 10% من السعرات', sub:'كيتو متحفظ — يفضّل زيت الزيتون والمكسرات'},
+    {val:'lt7',  icon:'🔴', label:'أقل من 7% (AHA)',        sub:'للمشتركين بأمراض قلبية أو ارتفاع LDL'},
+  ];
+  const mem = MEMBERS.find(m=>m.uid===CU?.id);
+  const lim = typeof getSatFatDailyLimit!=='undefined' ? getSatFatDailyLimit(mem) : null;
+  const calTarget = (typeof getTargetForDate!=='undefined'?getTargetForDate(mem):null)?.cal||1800;
+  const infoHtml = lim
+    ? '<div style="margin-top:8px;padding:8px 12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:11px;color:var(--text3)">📊 حدك اليومي = <strong style="color:var(--text)">'+lim+'غ</strong> دهون مشبعة ('+calTarget+' سعرة)</div>'
+    : '';
+  let rows = '';
+  opts.forEach(function(o){
+    const sel = cur === o.val;
+    const bg  = sel ? 'var(--accent-light)' : 'var(--surface2)';
+    const bc  = sel ? 'var(--accent)' : 'var(--border)';
+    const fw  = sel ? '600' : '400';
+    const fc  = sel ? 'var(--accent)' : 'var(--text)';
+    const ck  = sel ? '<span style="font-size:16px;color:var(--accent)">✓</span>' : '';
+    rows += '<div onclick="_setSatFat(this)" data-val="'+o.val+'"'+
+            ' style="display:flex;align-items:center;gap:10px;padding:10px 13px;'+
+            'background:'+bg+';border:2px solid '+bc+';border-radius:var(--radius-sm);'+
+            'cursor:pointer;transition:all .15s">'+
+            '<span style="font-size:18px">'+o.icon+'</span>'+
+            '<div style="flex:1">'+
+            '<div style="font-size:13px;font-weight:'+fw+';color:'+fc+'">'+o.label+'</div>'+
+            '<div style="font-size:11px;color:var(--text3);margin-top:1px">'+o.sub+'</div>'+
+            '</div>'+ck+'</div>';
+  });
+  return '<div style="margin-bottom:14px">'+
+         '<div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">🧈 حد الدهون المشبعة اليومي</div>'+
+         '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">يُؤثر على اقتراح الوصفات وبدائل الدهون</div>'+
+         '<div style="display:flex;flex-direction:column;gap:7px">'+rows+'</div>'+
+         infoHtml+'</div>';
+}
+
+function _setSatFat(el){
+  var val = typeof el === 'string' ? el : el.getAttribute('data-val');
+  if(!val) return;
+  _savePrefField('sat_fat_limit', val);
+  const mem = MEMBERS.find(m=>m.uid===CU?.id);
+  _invalidateDayPlan(mem);
+  rPreferences();
+  rDash();
+}
+
+function _renderEggCountPref(prefs){
+  const cur = prefs.preferred_egg_count || 2;
+  const emo = ['','🥚','🥚🥚','🥚🥚🥚','🥚🥚🥚🥚'];
+  let btns = '';
+  [1,2,3,4].forEach(function(n){
+    const sel = cur === n;
+    const bc  = sel ? 'var(--accent)' : 'var(--border)';
+    const bg  = sel ? 'var(--accent-light)' : 'var(--surface2)';
+    const fw  = sel ? '600' : '400';
+    const fc  = sel ? 'var(--accent)' : 'var(--text2)';
+    btns += '<div onclick="_setEggCount('+n+')"'+
+            ' style="flex:1;text-align:center;padding:10px 6px;cursor:pointer;'+
+            'border:2px solid '+bc+';background:'+bg+';border-radius:var(--radius-sm);transition:all .15s">'+
+            '<div style="font-size:16px">'+emo[n]+'</div>'+
+            '<div style="font-size:12px;font-weight:'+fw+';color:'+fc+';margin-top:4px">'+n+'</div>'+
+            '</div>';
+  });
+  return '<div style="margin-bottom:14px">'+
+         '<div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">🥚 عدد بيضات الفطور المفضل</div>'+
+         '<div style="display:flex;gap:8px">'+btns+'</div></div>';
+}
+
+function _setEggCount(n){
+  _savePrefField('preferred_egg_count', n);
+  const mem = MEMBERS.find(m=>m.uid===CU?.id);
+  _invalidateDayPlan(mem);
+  rPreferences();
+  rDash();
+}
+
+function _toggleAdvPref(key){
+  const mem = MEMBERS.find(m => m.uid === CU?.id);
+  if(!mem) return;
+  if(!mem.adv_prefs) mem.adv_prefs = {};
+  mem.adv_prefs[key] = !mem.adv_prefs[key];
+  _invalidateDayPlan(mem);
+  if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
+  rPreferences(); // إعادة رسم القسم
+}
+
+function _toggleStore(storeId){
+  const mem = MEMBERS.find(m => m.uid === CU?.id);
+  if(!mem) return;
+  if(!mem.adv_prefs) mem.adv_prefs = {};
+  if(!mem.adv_prefs.available_stores) mem.adv_prefs.available_stores = [];
+  const idx = mem.adv_prefs.available_stores.indexOf(storeId);
+  if(idx > -1) mem.adv_prefs.available_stores.splice(idx, 1);
+  else         mem.adv_prefs.available_stores.push(storeId);
+  if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
+  const btn = document.getElementById('store-btn-'+storeId);
+  const on  = mem.adv_prefs.available_stores.includes(storeId);
+  if(btn){
+    btn.style.borderColor  = on ? 'var(--accent)' : 'var(--border)';
+    btn.style.background   = on ? 'var(--accent-light)' : 'var(--surface2)';
+    btn.style.color        = on ? 'var(--accent)' : 'var(--text2)';
+  }
+}
+
+function _savePrefField(key, value){
+  const mem = MEMBERS.find(m => m.uid === CU?.id);
+  if(!mem) return;
+  if(!mem.meal_prefs) mem.meal_prefs = Object.assign({}, DEFAULT_MEAL_PREFS);
+  if(key === 'meal_time'){
+    if(!mem.meal_prefs.meal_times) mem.meal_prefs.meal_times = {};
+    mem.meal_prefs.meal_times[value.slot] = value.time;
+  } else {
+    mem.meal_prefs[key] = value;
+  }
+  // إذا تغيّر عدد الوجبات → أعد بناء الخطة
+  // أي تغيير يؤثر على بناء الوجبات → امسح الخطة وأعد بناءها
+  const MEAL_AFFECTING_KEYS = ['meals_per_day','sat_fat_limit','preferred_egg_count','has_snack'];
+  if(MEAL_AFFECTING_KEYS.includes(key)) _invalidateDayPlan(mem);
+  if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
+}
+
+function setMealsPerDay(n){
+  _savePrefField('meals_per_day', n);
+  // تحديث الـ UI المرئي فقط
+  document.querySelectorAll('.pref-meal-btn').forEach(btn=>{
+    const v = parseInt(btn.dataset.meals);
+    btn.style.borderColor   = v===n ? 'var(--accent)' : 'var(--border)';
+    btn.style.background    = v===n ? 'var(--accent-light)' : 'var(--surface2)';
+  });
+  // إظهار/إخفاء حقل الغداء
+  const lunchRow = document.getElementById('pref-lunch-row');
+  if(lunchRow) lunchRow.style.display = n===3 ? '' : 'none';
+  rDash();
+}
+
+function setSnackPref(checked){
+  _savePrefField('has_snack', checked);
+  // تحديث toggle مرئياً
+  const thumb = document.getElementById('pref-snack-thumb');
+  const track = document.getElementById('pref-snack-track');
+  if(thumb){ thumb.style.right = checked ? '2px' : '22px'; thumb.style.left = checked ? 'auto' : 'auto'; }
+  if(track){ track.style.background = checked ? 'var(--accent)' : 'var(--border)'; }
+  // إظهار/إخفاء موعد السناك
+  const snackTimeRow = document.getElementById('pref-snack-time-row');
+  if(snackTimeRow) snackTimeRow.style.display = checked ? '' : 'none';
+  rDash();
+}
+
+function rPreferences(){
+  const mem = MEMBERS.find(m => m.uid === CU?.id);
+  const el  = document.getElementById('preferences-content');
+  if(!el) return;
+
+  if(!mem){
+    el.innerHTML = `<div class="card" style="text-align:center;padding:28px">
+      <div style="font-size:32px;margin-bottom:10px">⚙️</div>
+      <div style="font-size:14px;color:var(--text3)">أكمل ملفك الشخصي أولاً</div>
+    </div>`;
+    return;
+  }
+
+  const prefs       = getMemPrefs(mem);
+  const n           = prefs.meals_per_day;
+  const hasSnack    = prefs.has_snack;
+  const favFoodIds  = mem.favorites_foods   || [];
+  const favRecipeIds= mem.favorites_recipes || [];
+
+  /* ── القسم 1: نمط الوجبات ── */
+  const mealPatternHTML = `
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-header">
+      <div><div class="card-title">🍽️ نمط الوجبات اليومي</div>
+        <div class="card-sub">يؤثر مباشرة على حجم كل وجبة مقترحة</div></div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px">عدد الوجبات الرئيسية يومياً</div>
+      <div style="display:flex;gap:10px" class="pref-meal-options">
+        <div class="pref-meal-btn" data-meals="2" onclick="setMealsPerDay(2)"
+          style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:12px 16px;border:2px solid ${n===2?'var(--accent)':'var(--border)'};border-radius:var(--radius-sm);flex:1;justify-content:center;background:${n===2?'var(--accent-light)':'var(--surface2)'};transition:all .15s;user-select:none">
+          <span style="font-size:20px">2️⃣</span>
+          <div><div style="font-size:13px;font-weight:500">وجبتان</div><div style="font-size:10px;color:var(--text3)">فطور + عشاء</div></div>
+        </div>
+        <div class="pref-meal-btn" data-meals="3" onclick="setMealsPerDay(3)"
+          style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:12px 16px;border:2px solid ${n===3?'var(--accent)':'var(--border)'};border-radius:var(--radius-sm);flex:1;justify-content:center;background:${n===3?'var(--accent-light)':'var(--surface2)'};transition:all .15s;user-select:none">
+          <span style="font-size:20px">3️⃣</span>
+          <div><div style="font-size:13px;font-weight:500">ثلاث وجبات</div><div style="font-size:10px;color:var(--text3)">فطور + غداء + عشاء</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:5px">🌅 الفطور</div>
+        <input type="time" id="pref-time-breakfast"
+          value="${prefs.meal_times?.breakfast||'08:00'}"
+          onchange="_savePrefField('meal_time',{slot:'breakfast',time:this.value})"
+          style="width:100%;font-family:var(--mono);font-size:13px;padding:5px 8px">
+      </div>
+      <div id="pref-lunch-row" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px;${n===2?'display:none':''}">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:5px">☀️ الغداء</div>
+        <input type="time" id="pref-time-lunch"
+          value="${prefs.meal_times?.lunch||'13:00'}"
+          onchange="_savePrefField('meal_time',{slot:'lunch',time:this.value})"
+          style="width:100%;font-family:var(--mono);font-size:13px;padding:5px 8px">
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:5px">🌙 العشاء</div>
+        <input type="time" id="pref-time-dinner"
+          value="${prefs.meal_times?.dinner||'19:00'}"
+          onchange="_savePrefField('meal_time',{slot:'dinner',time:this.value})"
+          style="width:100%;font-family:var(--mono);font-size:13px;padding:5px 8px">
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:${hasSnack?'12':'0'}px">
+      <div>
+        <div style="font-size:13px;font-weight:500">🥜 وجبة خفيفة (سناك)</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">يضاف تحت اقتراح الوجبة دائماً</div>
+      </div>
+      <div onclick="setSnackPref(!${hasSnack})"
+        style="width:44px;height:24px;border-radius:24px;background:${hasSnack?'var(--accent)':'var(--border)'};position:relative;cursor:pointer;transition:background .2s;flex-shrink:0"
+        id="pref-snack-track">
+        <div id="pref-snack-thumb"
+          style="position:absolute;top:2px;${hasSnack?'right:2px':'left:2px'};width:20px;height:20px;background:#fff;border-radius:50%;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+      </div>
+    </div>
+
+    <div id="pref-snack-time-row" style="${hasSnack?'':'display:none'};background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:5px">🕐 موعد السناك المفضل</div>
+      <input type="time" id="pref-time-snack"
+        value="${prefs.meal_times?.snack||'16:00'}"
+        onchange="_savePrefField('meal_time',{slot:'snack',time:this.value})"
+        style="width:100%;font-family:var(--mono);font-size:13px;padding:5px 8px">
+    </div>
+
+    ${_renderSatFatPref(prefs)}
+    ${_renderEggCountPref(prefs)}
+    <div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:5px">📝 ملاحظات غذائية وحساسيات</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:5px">📝 ملاحظات غذائية وحساسيات</div>
+      <textarea id="pref-notes" placeholder="مثال: لا أحب السمك، حساسية من المكسرات..."
+        onchange="_savePrefField('dietary_notes',this.value)"
+        style="width:100%;min-height:68px;font-size:13px">${prefs.dietary_notes||''}</textarea>
+    </div>
+  </div>`;
+
+  /* ── القسم 2: الأطعمة المفضلة ── */
+  const cats = [...new Set(FOODS.map(f=>f.cat))];
+  const favFoodsHTML = `
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-header">
+      <div><div class="card-title">⭐ الأطعمة المفضلة</div>
+        <div class="card-sub">تُستخدم أولاً في اقتراحات الوجبات</div></div>
+      <span style="font-size:12px;color:var(--accent);font-weight:600" id="fav-food-count">${favFoodIds.length} محدد</span>
+    </div>
+    ${cats.map(cat => {
+      const catFoods = FOODS.filter(f => f.cat === cat && f.keto_class <= 2);
+      if(!catFoods.length) return '';
+      return `
+        <div style="margin-bottom:14px">
+          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:7px">${cat}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px" class="fav-chips">
+            ${catFoods.map(f => {
+              const isFav = favFoodIds.includes(f.id);
+              return `<button onclick="toggleFavFood(${f.id})" id="fav-food-${f.id}"
+                style="display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:100px;font-size:12px;font-family:var(--font);cursor:pointer;transition:all .15s;border:1px solid ${isFav?'var(--accent)':'var(--border)'};background:${isFav?'var(--accent-light)':'var(--surface2)'};color:${isFav?'var(--accent)':'var(--text2)'}">
+                ${isFav?'⭐ ':''}${f.name}
+              </button>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }).join('')}
+  </div>`;
+
+  /* ── القسم 3: الوصفات المفضلة ── */
+  const favRecipesHTML = `
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-header">
+      <div><div class="card-title">📖 الوصفات المفضلة</div>
+        <div class="card-sub">تُقترح أولاً في وجبات اليوم</div></div>
+      <span style="font-size:12px;color:var(--accent);font-weight:600">${favRecipeIds.length} محدد</span>
+    </div>
+    ${RECIPES.length === 0
+      ? `<div style="text-align:center;padding:14px 0;font-size:13px;color:var(--text3)">لا توجد وصفات بعد</div>`
+      : `<div style="display:flex;flex-direction:column;gap:7px">
+          ${RECIPES.filter(r=>r.approved).map(r=>{
+            const isFav = favRecipeIds.includes(r.id);
+            const m = cmac(r);
+            const k = klbl(m.k);
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid ${isFav?'var(--accent)':'var(--border)'};border-radius:var(--radius-sm)">
+              <div>
+                <div style="font-size:13px;font-weight:500">${r.name}</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">${r.category} · <span class="badge ${k.c}" style="font-size:10px;padding:1px 7px">${k.l}</span></div>
+              </div>
+              <button onclick="toggleFavRecipe(${r.id})" id="fav-rec-${r.id}"
+                style="padding:5px 12px;border-radius:100px;font-size:12px;font-family:var(--font);cursor:pointer;border:1px solid ${isFav?'var(--accent)':'var(--border)'};background:${isFav?'var(--accent-light)':'var(--surface)'};color:${isFav?'var(--accent)':'var(--text2)'}">
+                ${isFav?'⭐ مفضلة':'+ إضافة'}
+              </button>
+            </div>`;
+          }).join('')}
+        </div>`
+    }
+  </div>`;
+
+  /* ── القسم 4: خيارات متقدمة ── */
+  const advPrefs   = mem.adv_prefs || {};
+  const stores     = ['panda','carrefour','othaim','lulu','amazon'];
+  const storeNames = {panda:'بندة', carrefour:'كارفور', othaim:'العثيم', lulu:'لولو', amazon:'أمازون'};
+  const memStores  = advPrefs.available_stores || [];
+
+  const advancedHTML = `
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-header">
+      <div><div class="card-title">🔧 خيارات متقدمة</div>
+        <div class="card-sub">تؤثر على تنوع الوجبات المقترحة</div></div>
+    </div>
+
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px;font-weight:600">بدائل الطهي والمخبوزات</div>
+    ${[
+      {key:'use_flour_sub',    icon:'🍞', label:'بدائل الدقيق', sub:'خبز اللوز والتورتيلا الكيتو'},
+      {key:'use_ready_recipes',icon:'🥗', label:'وصفات جاهزة',  sub:'صحن تونة، لفة دجاج، جواكامولي'},
+      {key:'use_keto_sweets',  icon:'🍫', label:'حلا كيتوني',   sub:'شوكولاتة داكنة، بسكويت، براني'},
+    ].map(opt=>{
+      const on = advPrefs[opt.key] || false;
+      return `<div onclick="_toggleAdvPref('${opt.key}')"
+        style="display:flex;align-items:center;justify-content:space-between;
+               padding:12px 14px;background:var(--surface2);border:1px solid ${on?'var(--accent)':'var(--border)'};
+               border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:all .15s">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">${opt.icon}</span>
+          <div>
+            <div style="font-size:13px;font-weight:500">${opt.label}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px">${opt.sub}</div>
+          </div>
+        </div>
+        <div style="width:40px;height:22px;border-radius:22px;background:${on?'var(--accent)':'var(--border)'};
+                    position:relative;flex-shrink:0;transition:background .2s">
+          <div style="position:absolute;top:2px;${on?'right:2px':'left:2px'};width:18px;height:18px;
+                      background:#fff;border-radius:50%;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+        </div>
+      </div>`;
+    }).join('')}
+
+    <div style="font-size:12px;color:var(--text3);margin:14px 0 8px;font-weight:600">المتاجر المتاحة</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px">يُفلتر المنتجات حسب المتاجر التي تتسوق منها</div>
+    <div style="display:flex;flex-wrap:wrap;gap:7px">
+      ${stores.map(s=>{
+        const on = memStores.includes(s);
+        return `<button onclick="_toggleStore('${s}')" id="store-btn-${s}"
+          style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:100px;
+                 font-size:12px;font-family:var(--font);cursor:pointer;transition:all .15s;
+                 border:1px solid ${on?'var(--accent)':'var(--border)'};
+                 background:${on?'var(--accent-light)':'var(--surface2)'};
+                 color:${on?'var(--accent)':'var(--text2)'}">
+          🛒 ${storeNames[s]}
+        </button>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  el.innerHTML = mealPatternHTML + favFoodsHTML + favRecipesHTML + advancedHTML;
+}
+
+function savePreferences(){
+  // هذا الزر لم يعد مطلوباً — الحفظ يحدث فورياً
+  // لكن نبقيه للتوافق
+  const mem = MEMBERS.find(m => m.uid === CU?.id);
+  if(!mem) return;
+  const btn = document.querySelector('[onclick="savePreferences()"]');
+  if(btn){ const o=btn.textContent; btn.textContent='✅ محفوظ'; setTimeout(()=>btn.textContent=o,1500); }
+  _invalidateDayPlan(mem);
+  if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
+  rDash();
+}
+
+
+function toggleFavFood(fid){
+  const mem = MEMBERS.find(m => m.uid === CU?.id);
+  if(!mem) return;
+  if(!mem.favorites_foods) mem.favorites_foods = [];
+  const idx = mem.favorites_foods.indexOf(fid);
+  if(idx > -1) mem.favorites_foods.splice(idx,1);
+  else         mem.favorites_foods.push(fid);
+  _invalidateDayPlan(mem);
+  if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
+  /* تحديث الزر مباشرة بدون إعادة render كاملة */
+  const btn = document.getElementById('fav-food-'+fid);
+  const isFav = mem.favorites_foods.includes(fid);
+  if(btn){
+    btn.style.border = isFav ? '1px solid var(--accent)' : '1px solid var(--border)';
+    btn.style.background = isFav ? 'var(--accent-light)' : 'var(--surface2)';
+    btn.style.color = isFav ? 'var(--accent)' : 'var(--text2)';
+    const f = FOODS.find(x=>x.id===fid);
+    btn.textContent = (isFav?'⭐ ':'')+( f?.name||'' );
+  }
+}
+
+function toggleFavRecipe(rid){
+  const mem = MEMBERS.find(m => m.uid === CU?.id);
+  if(!mem) return;
+  if(!mem.favorites_recipes) mem.favorites_recipes = [];
+  const idx = mem.favorites_recipes.indexOf(rid);
+  if(idx > -1) mem.favorites_recipes.splice(idx,1);
+  else         mem.favorites_recipes.push(rid);
+  if(typeof window.DB?.saveMember === 'function') window.DB.saveMember(mem);
+  const btn = document.getElementById('fav-rec-'+rid);
+  const isFav = mem.favorites_recipes.includes(rid);
+  if(btn){
+    btn.style.border = isFav ? '1px solid var(--accent)' : '1px solid var(--border)';
+    btn.style.background = isFav ? 'var(--accent-light)' : 'var(--surface)';
+    btn.style.color = isFav ? 'var(--accent)' : 'var(--text2)';
+    btn.textContent = isFav ? '⭐ مفضلة' : '+ إضافة';
+  }
+}
 
 /* ═══ DASHBOARD ═══ */
 function getPhaseLabel(ph){const map={0:'تمهيدية',1:'الأولى',2:'الثانية',3:'الثالثة',4:'الرابعة',5:'الخامسة',6:'السادسة',7:'السابعة'};return map[ph]||'—';}
@@ -1517,9 +2413,17 @@ function getDayKetoRatio(mem, date){
   const phase   = mem?.phase || 1;
   const tgt     = (typeof PHASE_KETO_TARGETS!=='undefined' ? PHASE_KETO_TARGETS[phase]?.advanced : null) || 1.5;
   const rv      = parseFloat(adv) || 0;
-  const type    = rv >= tgt+0.3 ? 'positive' : rv >= tgt-0.3 ? 'neutral' : 'negative';
-  const label   = type==='positive' ? 'محفز للكيتون' : type==='neutral' ? 'غير محفز' : 'مثبط للكيتون';
-  return {simple, advanced:adv, label, type};
+  // positive = فوق الهدف | neutral = قريب (±0.2) | negative = تحت الهدف
+  const type    = rv >= tgt        ? 'positive'
+                : rv >= tgt - 0.2  ? 'neutral'
+                : 'negative';
+  const label   = rv === 0       ? 'لا توجد وجبات'
+                : rv >= tgt+0.5  ? 'محفز جداً 🔥'
+                : rv >= tgt      ? 'محفز للكيتون ✓'
+                : rv >= tgt-0.2  ? 'قريب من الهدف'
+                : rv >= tgt*0.5  ? 'غير محفز بعد'
+                : 'مثبط للكيتون';
+  return {simple, advanced:adv, label, type, target:tgt, value:rv};
 }
 /* الحصول على الخطة الغذائية السارية في تاريخ معين */
 function getTargetForDate(mem, date){
@@ -1535,6 +2439,8 @@ function getTargetForDate(mem, date){
   if(mem?.target_fat){
     return {fat:mem.target_fat, protein:mem.target_prot||110, carb:mem.target_carb||25, cal:mem.target_cal||1800, date:'2000-01-01', label:'الخطة الأساسية'};
   }
+  // تحذير: المشترك لم يُدخل خطته — أرقام افتراضية
+  console.warn('[getTargetForDate] لا توجد خطة محفوظة — تُستخدم قيم افتراضية');
   return {fat:130, protein:110, carb:25, cal:1800, date:'2000-01-01', label:'افتراضية'};
 }
 
@@ -1551,73 +2457,836 @@ function getDayRemaining(mem, date){
     cal:     Math.round( plan.cal     - consumed.cal)
   };
 }
-function rDash(){
-  const adm=CU.role==='admin';
-  if(adm){
-    document.getElementById('d-rbar').innerHTML='⬡ دخلت كمدير — صلاحيات كاملة';
-    document.getElementById('d-stats').innerHTML=`<div class="stat-card"><div class="stat-label">الأطعمة</div><div class="stat-val">${FOODS.length}</div></div><div class="stat-card"><div class="stat-label">الوصفات</div><div class="stat-val">${RECIPES.length}</div></div><div class="stat-card"><div class="stat-label">المشتركون</div><div class="stat-val inf">${MEMBERS.length}</div></div><div class="stat-card"><div class="stat-label">المطاعم</div><div class="stat-val warn">${typeof RESTAURANTS!=='undefined'?RESTAURANTS.length:0}</div></div>`;
-    document.getElementById('d-bottom').innerHTML=`<div class="card"><div class="card-header"><div class="card-title">آخر الوصفات</div><button class="btn sm" onclick="gp('recipes')">عرض الكل ←</button></div>${RECIPES.slice(-4).map(r=>{const m=cmac(r);const k=klbl(m.k);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px;font-weight:500">${r.name}</div><div style="font-size:11px;color:var(--text3)">${Math.round(m.cal/r.servings)} سعر/حصة</div></div><span class="badge ${k.c}">${k.l}</span></div>`;}).join('')}</div><div class="card"><div class="card-header"><div class="card-title">تحدي الأسبوع</div><button class="btn sm" onclick="gp('challenge_personal')">عرض ←</button></div>${miniChallenge()}</div>`;
-    return;
+/* ═══════════════════════════════════════════
+   اقتراح الوجبة القادمة v2
+   المنطق: أطعمة من التفضيلات أولاً ← الأطعمة المسموحة في المرحلة
+   الهدف: تحقيق النسبة الكيتونية المستهدفة مع المتبقي من الأهداف
+═══════════════════════════════════════════ */
+
+function _calcMealRatio(items){
+  const ZERO_SW = [108,109,110,111,112]; // محليات خالية السعرات
+  let fat=0,prot=0,nc=0,cal=0,fiber=0;
+  (items||[]).forEach(function(i){
+    const f=FOODS.find(function(x){ return x.id===i.fid; });
+    if(!f) return;
+    const q=i.qty/100;
+    fat  +=f.fat*q;
+    prot +=f.protein*q;
+    fiber+=(f.fiber||0)*q;
+    if(ZERO_SW.includes(f.id)){ return; } // كارب وسعرات المحلي = صفر
+    nc   +=f.net_carb*q;
+    cal  +=f.cal*q;
+  });
+  const denom=nc+prot*0.6;
+  return {
+    fat:   Math.round(fat*10)/10,
+    prot:  Math.round(prot*10)/10,
+    nc:    Math.round(nc*10)/10,
+    cal:   Math.round(cal),
+    fiber: Math.round(fiber*10)/10,
+    ratio: denom>0?Math.round(fat/denom*100)/100:0
+  };
+}
+
+/* ═══════════════════════════════════════════
+   تصنيف الأطعمة — وجبة رئيسية أم سناك
+═══════════════════════════════════════════ */
+const SNACK_CATS = ['مكسرات وبذور', 'مكسرات', 'بذور', 'ألبان'];
+const SNACK_FOODS_IDS = []; // يمكن إضافة IDs محددة هنا لاحقاً
+
+// أطعمة السناك: مكسرات + بذور + ألبان + أصناف كارب<4 وكمية معتدلة ≤40غ
+function isSnackFood(f){
+  if(SNACK_CATS.some(c => f.cat?.includes(c))) return true;
+  if(SNACK_FOODS_IDS.includes(f.id)) return true;
+  // زبادي يوناني وجبنة كريمية بالاسم
+  const snackNames = ['زبادي','يوناني','جبنة كريمية','ماسكاربوني','قشطة'];
+  if(snackNames.some(n => f.name?.includes(n))) return true;
+  return false;
+}
+function isMainFood(f){ return !isSnackFood(f); }
+
+/* ─── تحديد نوع الوجبة حسب الوقت والتاريخ ─── */
+function getMealType(mem){
+  const todayMeals = getTodayMeals(mem?.uid);
+  const prefs      = getMemPrefs(mem);
+  const total      = prefs.meals_per_day; // 2 أو 3
+
+  // وجبة رئيسية = أي وجبة ليست سناك وسعراتها >= 150
+  // هذا يشمل: وجبات مباشرة + وجبات من الاقتراح (type:'other') + من الحاسبة
+  const SNACK_TYPES = ['snack'];
+  const MIN_MEAL_CAL = 150;
+  const mainDone = todayMeals.filter(m =>
+    !SNACK_TYPES.includes(m.type) &&
+    (m.totals?.cal || 0) >= MIN_MEAL_CAL
+  );
+
+  // إذا لم تُسجَّل أي وجبة رئيسية → فطور دائماً
+  if(mainDone.length === 0) return {type:'breakfast', label:'الفطور', icon:'🌅', index:0};
+
+  // إذا اكتملت الوجبات → لا مقترح
+  if(mainDone.length >= total) return null;
+
+  if(total === 2){
+    return {type:'dinner', label:'العشاء', icon:'🌙', index:1};
   }
-  const mem=MEMBERS.find(m=>m.uid===CU.id);
-  if(!mem){
-    document.getElementById('d-rbar').innerHTML=`⬡ أهلاً ${CU.name}`;
-    document.getElementById('d-stats').innerHTML='';
-    document.getElementById('d-bottom').innerHTML=`<div class="card" style="grid-column:1/-1"><div style="text-align:center;padding:10px 0 18px"><div style="font-size:40px;margin-bottom:10px">👋</div><div style="font-size:16px;font-weight:600;margin-bottom:6px">أهلاً ${CU.name}!</div><div style="font-size:13px;color:var(--text2);margin-bottom:18px">لم يكتمل ملفك بعد</div><button class="btn primary" onclick="showOnboarding()">إكمال الملف الشخصي ←</button></div></div>`;
-    return;
+  // ثلاث وجبات
+  if(mainDone.length === 1){
+    return {type:'lunch', label:'الغداء', icon:'☀️', index:1};
   }
-  const missing=[];
-  if(!mem.start_weight||mem.start_weight===0)missing.push({label:'الوزن الحالي',icon:'⚖️'});
-  if(!mem.goal_weight||mem.goal_weight===0)missing.push({label:'وزن الهدف',icon:'🏁'});
-  if(!mem.height||mem.height===0)missing.push({label:'الطول',icon:'📏'});
-  const phase=mem.phase!==undefined&&mem.phase!==null?mem.phase:1;
-  /* حساب عدد الأيام — يعتمد على phase_start أولاً ثم challenge_start */
-  const startDate = mem.phase_start || mem.challenge_start || null;
-  const phDay = startDate
-    ? Math.max(1, Math.floor((new Date() - new Date(startDate)) / 86400000) + 1)
-    : 1;
-  /* تحية حسب وقت اليوم */
-  const hr = new Date().getHours();
-  const greeting = hr < 12 ? 'صباح الخير،' : hr < 18 ? 'مساء الخير،' : 'مساء النور،';
-  const rem=getDayRemaining(mem);
-  const ratio=getDayKetoRatio(mem);
-  const ratioColor=ratio.type==='positive'?'var(--accent)':ratio.type==='neutral'?'var(--warning)':'var(--danger)';
-  /* الشريط يكون صفر إذا لا توجد وجبات */
-  const hasRatio = ratio.simple !== '—' && ratio.advanced !== '—';
-  const ratioFill = hasRatio ? Math.min(100,(parseFloat(ratio.advanced)||0)/4*100) : 0;
-  document.getElementById('d-rbar').innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:12px;flex-wrap:wrap">
-      <div><div style="font-size:11px;color:var(--text3);margin-bottom:1px">${greeting}</div><div style="font-size:16px;font-weight:600;color:var(--text)">${CU.name} 👋</div></div>
-      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 13px;text-align:center;flex-shrink:0;cursor:pointer" onclick="gp('phases')" title="اضغط لعرض المراحل">
-        <div style="font-size:9px;color:var(--text3)">المرحلة</div>
-        <div style="font-size:13px;font-weight:700;color:var(--accent)">المرحلة ${getPhaseLabel(phase)}</div>
-        <div style="font-size:9px;color:var(--text3)">اليوم ${phDay} · ${getPhaseName(phase)}</div>
+  return {type:'dinner', label:'العشاء', icon:'🌙', index:2};
+}
+
+/* ─── نسب توزيع الوجبات ─── */
+const MEAL_SHARE = {
+  2: [0.45, 0.55],          // فطور 45% | عشاء 55%
+  3: [0.30, 0.35, 0.35],    // فطور 30% | غداء 35% | عشاء 35%
+};
+
+/* ─── تحويل الكمية لعرض طبيعي ─── */
+function humanQty(food, grams){
+  const name = food.name || '';
+  const g    = Math.round(grams);
+
+  // بيض
+  if(food.cat === 'بيض' || name.includes('بيض')){
+    const eggs = Math.max(1, Math.round(grams / 55));
+    return `${eggs} ${eggs===1?'بيضة':'بيضات'} كبيرة (${g}غ)`;
+  }
+  // دجاج / ديك رومي
+  if(['دواجن','دجاج'].includes(food.cat) || name.includes('دجاج') || name.includes('ديك')){
+    if(g <= 130) return `صدر دجاج متوسط (${g}غ مطبوخ)`;
+    if(g <= 220) return `صدران دجاج (${g}غ مطبوخ)`;
+    return `${g}غ دجاج مطبوخ`;
+  }
+  // لحم مفروم / شرائح
+  if(food.cat === 'لحوم' || name.includes('لحم')){
+    return `${g}غ (~${Math.round(g/100)} حصة)`;
+  }
+  // سمك
+  if(food.cat === 'أسماك' || name.includes('سلمون') || name.includes('تونة') || name.includes('سمك')){
+    if(name.includes('تونة')) return `${Math.max(1,Math.round(g/85))} علبة تونة (${g}غ)`;
+    return `فيليه متوسط (${g}غ)`;
+  }
+  // زبدة / سمن / زيوت
+  if(food.cat === 'دهون' || name.includes('زبدة') || name.includes('سمن') || name.includes('زيت')){
+    const tbsp = Math.round(g / 14);
+    if(tbsp <= 1) return `ملعقة كبيرة (${g}غ)`;
+    return `${tbsp} ملاعق كبيرة (${g}غ)`;
+  }
+  // جبن شرائح
+  if(food.cat === 'ألبان' || name.includes('جبن') || name.includes('شيدر') || name.includes('موزاريلا')){
+    if(name.includes('كريم') || name.includes('ماسكاربوني')) return `${g}غ (~${Math.round(g/30)} ملعقة كبيرة)`;
+    const slices = Math.max(1, Math.round(g / 20));
+    return `${slices} ${slices===1?'شريحة':'شرائح'} (${g}غ)`;
+  }
+  // زبادي
+  if(name.includes('زبادي') || name.includes('يوناني')){
+    return `وعاء (${g}غ)`;
+  }
+  // مكسرات / بذور
+  if(isSnackFood(food)){
+    const pieces = food.qty_moderate ? Math.round(g / (food.qty_moderate / 15)) : null;
+    const pcsText = pieces ? ` / ~${pieces} حبة` : '';
+    if(g <= 30) return `حفنة صغيرة (${g}غ${pcsText})`;
+    return `${g}غ${pcsText}`;
+  }
+  // أفوكادو
+  if(name.includes('أفوكادو')){
+    const halves = Math.max(1, Math.round(g / 75));
+    return `${halves===1?'نصف':'حبة كاملة'} أفوكادو (${g}غ)`;
+  }
+  // خضار ورقية
+  if(food.cat === 'خضار'){
+    if(g <= 50) return `حفنة صغيرة (${g}غ)`;
+    if(g <= 100) return `طبق سلطة صغير (${g}غ)`;
+    return `${g}غ`;
+  }
+  return `${g}غ`;
+}
+
+/* ─── بناء اقتراح الوجبة الرئيسية ─── */
+/* يستخدم db-meals-logic.js — getNextMealPlan() */
+function buildMealSuggestion(mem, rem, phase){
+  if(typeof getNextMealPlan === 'undefined') return null;
+
+  // ── قراءة الحدود المتفق عليها ──
+  const prefs2    = getMemPrefs(mem);
+  const mealsN2   = prefs2.meals_per_day || 3;
+  const hasSnack2 = prefs2.has_snack || false;
+  const mti2      = getMealType(mem);
+  const isSnack2  = mti2?.type === 'snack';
+  // سقف السعرات حسب خطة الوجبات
+  const calLimit2 = typeof getMealCalLimit!=='undefined'
+    ? getMealCalLimit(mealsN2, hasSnack2, isSnack2)
+    : (mealsN2===3 && hasSnack2 ? 500 : mealsN2===3 ? 600 : 700);
+  // الكارب الصافٍ: 5-10غ للوجبة الرئيسية، 3غ للسناك
+  const carbMin2  = isSnack2 ? 0  : 5;
+  const carbMax2  = isSnack2 ? 3  : 10;
+  // البروتين الأدنى متحرك
+  const dayProt2  = (rem&&rem.protein_target) || (typeof getTargetForDate!=='undefined'
+    ? (getTargetForDate(mem)?.protein||90) : 90);
+  const protMin2  = dayProt2<70 ? 20 : dayProt2<90 ? 25 : 30;
+  // للفطور: استخدم BREAKFAST_EGG_TEMPLATES إذا متاحة
+  if(typeof BREAKFAST_EGG_TEMPLATES !== 'undefined'){
+    const mealTypeCheck = getMealType(mem);
+    if(mealTypeCheck?.type === 'breakfast'){
+      const favIds_   = mem?.favorites_foods || [];
+      const phase_    = mem?.phase || 1;
+      const prefs_    = getMemPrefs(mem);
+      const eggCount_ = prefs_.preferred_egg_count || 2;
+
+      // اختر قالباً مناسباً مع مراعاة المفضلات و sat_fat
+      const dailySatLim_ = typeof getSatFatDailyLimit !== 'undefined' ? getSatFatDailyLimit(mem) : null;
+      const bfShare_     = (MEAL_SHARE?.[prefs_.meals_per_day] || [0.30,0.35,0.35])[0];
+      const mealSatLim_  = dailySatLim_ ? dailySatLim_ * bfShare_ : null;
+
+      const eligible_ = BREAKFAST_EGG_TEMPLATES.filter(t => {
+        if(t.phases.length > 0 && !t.phases.includes(phase_)) return false;
+        if(t.keto_ratio < 1.4) return false;
+        // فلتر البيضات: إذا EGG_PREF>1 لا نعرض قوالب بيضة واحدة
+        if(eggCount_ > 1 && t.egg_count === 1 && !t.id_s?.includes('side')) return false;
+        // فلتر sat_fat
+        if(mealSatLim_){
+          const tSat = t.components.reduce((s,c)=>{
+            const f=FOODS.find(x=>x.id===c.fid); return s+(f?(f.sat_fat||0)*c.qty/100:0);
+          },0);
+          if(tSat > mealSatLim_ * 1.2) return false;
+        }
+        // فلتر skipFids
+        if((_mealSkipFids||[]).some(fid => t.components.find(c=>c.fid===fid))) return false;
+        // فلتر المفضلة: إذا عند المشترك مفضلات دهون أو بروتين
+        // → اقترح فقط الوصفات التي تحتوي مكوناً من المفضلة
+        if(favIds_.length > 0){
+          const templateHasFav = t.components.some(c => favIds_.includes(c.fid));
+          // إذا لا يوجد أي مكوّن مفضل → استبعد هذه الوصفة
+          // لكن نتسامح بـ 1 مكوّن على الأقل (مش لازم كلها مفضلة)
+          if(!templateHasFav) return false;
+        }
+        return true;
+      });
+
+      const fromFav_ = eligible_.filter(t => t.components.some(c => favIds_.includes(c.fid)));
+      const picked_  = (fromFav_.length ? fromFav_ : eligible_)[0];
+
+      if(picked_){
+        const scaled_ = eggCount_ !== picked_.egg_count
+          ? scaleEggRecipe(picked_, eggCount_) : picked_;
+        // أضف خضار مقترحة
+        // اختيار الخضار: من المفضلة أولاً — إذا لا مفضلة خضار نأخذ الأول المتاح
+        // إذا شطب المشترك خضاراً من مفضلته لا يُقترح
+        const suggestedVeg_ = (function(){
+          if(typeof getSuggestedAddons === 'undefined') return [];
+          const allAddons = getSuggestedAddons(scaled_.method, phase_, favIds_);
+          if(!allAddons.length) return [];
+          // إذا عنده مفضلات خضار → اختر منها فقط
+          if(favIds_.length){
+            const fromFav = allAddons.filter(a => favIds_.includes(a.fid));
+            if(fromFav.length) return fromFav.slice(0,1);
+            // لا مفضلات خضار → لا نضيف خضار (المشترك لم يختر شيئاً)
+            // إلا إذا لم يضف أي مفضلة على الإطلاق (حساب جديد)
+            const hasFavFoods = favIds_.length > 0;
+            if(hasFavFoods) return []; // عنده مفضلات لكن لا خضار مفضلة → لا تضف
+          }
+          // لا مفضلات → اقترح الأول المتاح
+          return allAddons.slice(0,1);
+        })();
+
+        const allItems_ = [
+          ...scaled_.components.map(c=>({fid:c.fid,qty:c.qty})),
+          ...suggestedVeg_.map(v=>({fid:v.fid,qty:v.qty})),
+        ];
+        const macros_ = _calcMealRatio(allItems_);
+        const hasFav_ = scaled_.components.some(c=>favIds_.includes(c.fid));
+
+        const todayM_ = getTodayMeals(mem?.uid);
+        const mainD_  = todayM_.filter(m=>!['snack'].includes(m.type)&&(m.totals?.cal||0)>=150).length;
+        const prefs2_ = getMemPrefs(mem);
+
+        return {
+          items: [
+            ...scaled_.components.map(c=>{
+              const food=FOODS.find(x=>x.id===c.fid);
+              return food ? {fid:c.fid,qty:c.qty,food,
+                displayQty:humanQty(food,c.qty),
+                source:favIds_.includes(c.fid)?'fav':'std',
+                groupName:'بروتين الفطور',note:c.note||''} : null;
+            }).filter(Boolean),
+            ...suggestedVeg_.map(v=>{
+              const food=FOODS.find(x=>x.id===v.fid);
+              return food ? {fid:v.fid,qty:v.qty,food,
+                displayQty:humanQty(food,v.qty),
+                source:'std',groupName:'خضار الفطور',note:v.note||''} : null;
+            }).filter(Boolean),
+          ],
+          macros: macros_,
+          ratioOk: macros_.ratio >= 1.5,
+          ketoTarget: 1.5,
+          hasFav: hasFav_,
+          phase,
+          mealTypeInfo: mealTypeCheck,
+          mealNumber:  mainD_ + 1,
+          totalMeals:  prefs2_.meals_per_day,
+          remaining:   prefs2_.meals_per_day - mainD_,
+          share:       bfShare_,
+          templateId:  scaled_.id,
+          cookingTip:  scaled_.cooking_tip || '',
+        };
+      }
+    }
+  }
+
+  // للغداء: استخدم LUNCH_TEMPLATES
+  if(typeof LUNCH_TEMPLATES !== 'undefined'){
+    const mealTypeCheck = getMealType(mem);
+    if(mealTypeCheck?.type === 'lunch'){
+      const todayMeals_ = getTodayMeals(mem?.uid);
+      const remaining_  = typeof calcRemainingAfterMeals!=='undefined'
+        ? calcRemainingAfterMeals(mem, todayMeals_)
+        : {fat:40,protein:30,carb:8,cal:500};
+      const dailySatLim_ = typeof getSatFatDailyLimit!=='undefined' ? getSatFatDailyLimit(mem) : null;
+      const prefs_  = getMemPrefs(mem);
+      const shares_ = MEAL_SHARE?.[prefs_.meals_per_day] || [0.30,0.35,0.35];
+      const share_  = shares_[1] || 0.35;
+      const satLim_ = dailySatLim_ ? dailySatLim_ * share_ : null;
+      const favIds_ = mem?.favorites_foods || [];
+      const phase_  = mem?.phase || 1;
+
+      let tpl = typeof getBestLunchTemplate!=='undefined'
+        ? getBestLunchTemplate(remaining_, favIds_, phase_, satLim_, _mealSkipFids||[])
+        : null;
+
+      if(tpl){
+        tpl = typeof scaleMealToRemaining!=='undefined'
+          ? scaleMealToRemaining(tpl, remaining_) : tpl;
+
+        const items = tpl.components.map(c=>{
+          const food=FOODS.find(x=>x.id===c.fid);
+          return food ? {fid:c.fid,qty:c.qty,food,
+            displayQty:humanQty(food,c.qty),
+            source:favIds_.includes(c.fid)?'fav':'std',
+            groupName:c.role==='protein'?'بروتين الغداء':c.role==='fat'?'دهون':'خضار',
+            note:''} : null;
+        }).filter(Boolean);
+
+        const macros_  = _calcMealRatio(items.map(i=>({fid:i.fid,qty:i.qty})));
+        const mainDone_ = getTodayMeals(mem?.uid).filter(m=>!['snack'].includes(m.type)&&(m.totals?.cal||0)>=150).length;
+
+        return {
+          items, macros:macros_,
+          ratioOk: macros_.ratio >= 1.5,
+          ketoTarget: 1.5, hasFav: items.some(i=>i.source==='fav'),
+          phase, mealTypeInfo: mealTypeCheck,
+          mealNumber: mainDone_+1, totalMeals: prefs_.meals_per_day,
+          remaining: prefs_.meals_per_day - mainDone_, share: share_,
+          cookingTip: tpl.cooking_tip || '',
+        };
+      }
+    }
+  }
+
+  // للعشاء: استخدم DINNER_TEMPLATES مع المتبقي الفعلي
+  if(typeof DINNER_TEMPLATES !== 'undefined'){
+    const mealTypeCheck = getMealType(mem);
+    if(mealTypeCheck?.type === 'dinner'){
+      const todayMeals_ = getTodayMeals(mem?.uid);
+      const remaining_  = typeof calcRemainingAfterMeals!=='undefined'
+        ? calcRemainingAfterMeals(mem, todayMeals_)
+        : {fat:35,protein:25,carb:5,cal:400};
+      const dailySatLim_ = typeof getSatFatDailyLimit!=='undefined' ? getSatFatDailyLimit(mem) : null;
+      const prefs_  = getMemPrefs(mem);
+      const shares_ = MEAL_SHARE?.[prefs_.meals_per_day] || [0.30,0.35,0.35];
+      const share_  = shares_[2] || 0.35;
+      const satLim_ = dailySatLim_ ? dailySatLim_ * share_ : null;
+      const favIds_ = mem?.favorites_foods || [];
+      const phase_  = mem?.phase || 1;
+
+      let tpl = typeof getBestDinnerTemplate!=='undefined'
+        ? getBestDinnerTemplate(remaining_, favIds_, phase_, satLim_, _mealSkipFids||[])
+        : null;
+
+      if(tpl){
+        tpl = typeof scaleMealToRemaining!=='undefined'
+          ? scaleMealToRemaining(tpl, remaining_) : tpl;
+
+        const items = tpl.components.map(c=>{
+          const food=FOODS.find(x=>x.id===c.fid);
+          return food ? {fid:c.fid,qty:c.qty,food,
+            displayQty:humanQty(food,c.qty),
+            source:favIds_.includes(c.fid)?'fav':'std',
+            groupName:c.role==='protein'?'بروتين العشاء':c.role==='fat'?'دهون':'خضار',
+            note:''} : null;
+        }).filter(Boolean);
+
+        const macros_  = _calcMealRatio(items.map(i=>({fid:i.fid,qty:i.qty})));
+        const mainDone_ = getTodayMeals(mem?.uid).filter(m=>!['snack'].includes(m.type)&&(m.totals?.cal||0)>=150).length;
+
+        return {
+          items, macros:macros_,
+          ratioOk: macros_.ratio >= 1.5,
+          ketoTarget: 1.5, hasFav: items.some(i=>i.source==='fav'),
+          phase, mealTypeInfo: mealTypeCheck,
+          mealNumber: mainDone_+1, totalMeals: prefs_.meals_per_day,
+          remaining: prefs_.meals_per_day - mainDone_, share: share_,
+          cookingTip: tpl.cooking_tip || '',
+        };
+      }
+    }
+  }
+
+  const result = getNextMealPlan(mem, _mealSkipFids||[]);
+  if(!result) return null;
+
+  const {meal, mealTypeInfo, template} = result;
+  const ketoTarget = (typeof PHASE_KETO_TARGETS!=='undefined'
+    ? PHASE_KETO_TARGETS[phase]?.advanced : null) || 1.5;
+  const favIds = mem?.favorites_foods || [];
+  const prefs  = getMemPrefs(mem);
+  const shares = MEAL_SHARE?.[prefs.meals_per_day] || [0.30, 0.35, 0.35];
+  const share  = shares[mealTypeInfo.index] || 0.33;
+
+  // حوّل meal items إلى الهيكل المتوقع في renderSuggSection
+  const items = meal.map(i => {
+    const food = FOODS.find(x => x.id === i.fid);
+    if(!food) return null;
+    return {
+      fid:        i.fid,
+      qty:        i.qty,
+      food:       food,
+      displayQty: humanQty(food, i.qty),
+      source:     favIds.includes(i.fid) ? 'fav' : 'std',
+      groupName:  i.groupName || '',
+      note:       i.note || '',
+    };
+  }).filter(Boolean);
+
+  if(!items.length) return null;
+
+  const macros  = _calcMealRatio(items.map(i=>({fid:i.fid, qty:i.qty})));
+  const hasFav  = items.some(i => i.source === 'fav');
+
+  const todayMeals = getTodayMeals(mem?.uid);
+  const mainDone   = todayMeals.filter(m =>
+    !['snack'].includes(m.type) && (m.totals?.cal||0) >= 150
+  ).length;
+
+  return {
+    items, macros,
+    ratioOk:     macros.ratio >= ketoTarget,
+    ketoTarget,  hasFav,   phase,
+    mealTypeInfo,
+    mealNumber:  mainDone + 1,
+    totalMeals:  prefs.meals_per_day,
+    remaining:   prefs.meals_per_day - mainDone,
+    share,
+  };
+}
+
+
+/* ─── بناء اقتراح السناك ─── */
+function buildSnackSuggestion(mem, rem, phase){
+  const prefs = getMemPrefs(mem);
+  if(!prefs.has_snack) return null;
+
+  const skip     = typeof _snackSkipIds !== 'undefined' ? _snackSkipIds : [];
+  const skipCount = skip.length;
+  const groupIdx  = skipCount % SNACK_GROUP_ORDER.length;
+  const targetGroup = SNACK_GROUP_ORDER[groupIdx];
+
+  // فلتر حسب المجموعة والمرحلة وعدم التخطي
+  let candidates = SNACK_PRESETS.filter(s =>
+    s.group === targetGroup &&
+    !skip.includes(s.id) &&
+    (s.phases.length === 0 || s.phases.includes(phase))
+  );
+  // fallback: أي preset غير متخطي
+  if(!candidates.length)
+    candidates = SNACK_PRESETS.filter(s =>
+      !skip.includes(s.id) &&
+      (s.phases.length === 0 || s.phases.includes(phase))
+    );
+  // fallback نهائي
+  if(!candidates.length) candidates = SNACK_PRESETS;
+
+  // أولوية المفضلة
+  const favIds  = mem?.favorites_foods || [];
+  const fromFav = candidates.filter(s => s.items.some(i => favIds.includes(i.fid)));
+  const preset  = (fromFav.length ? fromFav : candidates)[0];
+
+  // بناء items مع بيانات FOODS الكاملة
+  const items = preset.items.map(i => {
+    const food = FOODS.find(x => x.id === i.fid);
+    return {
+      fid:        i.fid,
+      qty:        i.qty,
+      food:       food || {id:i.fid, name:'—', cat:'', fat:0, protein:0, net_carb:0, cal:0},
+      displayQty: food ? humanQty(food, i.qty) : `${i.qty}غ`,
+      source:     favIds.includes(i.fid) ? 'fav' : 'std'
+    };
+  });
+
+  // حساب الماكرو الإجمالي بنفس دالة الوجبة
+  const macros = _calcMealRatio(items.map(i => ({fid:i.fid, qty:i.qty})));
+  const hasFav = items.some(i => i.source === 'fav');
+
+  return {
+    preset, items, macros, hasFav,
+    snackTime: prefs.meal_times?.snack || '16:00',
+    group:     targetGroup
+  };
+}
+
+
+let _snackSkipIds = []; // preset IDs السناك التي تم تخطيها
+let _mealSkipFids = []; // fids الوجبة التي تم تخطيها
+
+function _renderSnackCard(snack){
+  const calcJSON   = JSON.stringify(snack.items.map(i=>({fid:i.fid,qty:i.qty})));
+  const ketoTarget = 1.0; // السناك هدف نسبة أدنى
+  const macros     = snack.macros;
+  const ratioColor = macros.ratio >= ketoTarget ? 'var(--accent)'
+                   : macros.ratio >= 0.7 ? 'var(--warning)' : 'var(--danger)';
+  const ratioLabel = macros.ratio >= ketoTarget ? 'كيتوني ✓'
+                   : macros.ratio >= 0.7 ? 'مقبول' : 'تحقق';
+
+  return `<div class="sugg-card" style="border-color:rgba(212,131,10,.35)">
+    <div class="sugg-header" style="background:rgba(212,131,10,.06)">
+      <div class="sugg-header-left">
+        <span style="font-size:20px">🥜</span>
+        <div>
+          <div class="sugg-title" style="color:var(--warning)">${snack.preset.label}${snack.hasFav?' ⭐':''}</div>
+          <div class="sugg-sub">سناك · الساعة ${snack.snackTime} · ${snack.group} · ≤${snack.preset.maxCal} سعرة</div>
+        </div>
+      </div>
+      <button class="btn sm" onclick="refreshSnack(${snack.preset.id})">🔄 تغيير</button>
+    </div>
+    <div class="sugg-body">
+      <div class="sugg-items">
+        ${snack.items.map(i => {
+          const im = _calcMealRatio([{fid:i.fid, qty:i.qty}]);
+          return `<div class="sugg-item-row">
+            <div style="flex:1">
+              <div class="sugg-item-name">${i.food.name}${i.source==='fav'?' ⭐':''}${i.isNew?'<span style="font-size:9px;background:var(--accent);color:#fff;border-radius:4px;padding:1px 4px;margin-right:3px">+</span>':''}</div>
+              <div class="sugg-item-qty">${i.displayQty}</div>
+            </div>
+            <div class="sugg-item-macros">
+              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--accent)">${im.fat}غ</div><div class="sugg-macro-lbl">دهون</div></div>
+              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--info)">${im.prot}غ</div><div class="sugg-macro-lbl">بروتين</div></div>
+              <div class="sugg-macro"><div class="sugg-macro-val" style="color:var(--danger)">${im.nc}غ</div><div class="sugg-macro-lbl">كارب</div></div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="sugg-ratio-row">
+        <div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">النسبة الكيتونية للسناك</div>
+          <div style="display:flex;align-items:baseline;gap:6px">
+            <span class="sugg-ratio-val" style="color:${ratioColor}">${macros.ratio}</span>
+            <span style="font-size:11px;color:${ratioColor};font-weight:600">${ratioLabel}</span>
+          </div>
+        </div>
+        <div style="margin-right:auto;text-align:left">
+          <div style="font-size:10px;color:var(--text3)">سعرات السناك</div>
+          <div style="font-size:15px;font-weight:700;font-family:var(--mono)">${macros.cal} <span style="font-size:10px;color:var(--text3)">سعرة</span></div>
+        </div>
+      </div>
+      <div class="sugg-macros-summary">
+        <div class="sugg-macro-card"><div class="sugg-macro-card-val" style="color:var(--accent)">${macros.fat}غ</div><div class="sugg-macro-card-lbl">دهون</div></div>
+        <div class="sugg-macro-card"><div class="sugg-macro-card-val" style="color:var(--info)">${macros.prot}غ</div><div class="sugg-macro-card-lbl">بروتين</div></div>
+        <div class="sugg-macro-card"><div class="sugg-macro-card-val" style="color:var(--danger)">${macros.nc}غ</div><div class="sugg-macro-card-lbl">كارب صافٍ</div></div>
+      </div>
+      <div class="sugg-actions">
+        <button class="btn primary" style="width:100%;justify-content:center;background:var(--warning);border-color:var(--warning)" onclick='openSuggInCalc(${calcJSON})'>📊 جرّب وعدّل في الحاسبة ←</button>
       </div>
     </div>
-    ${missing.length>0?`<div style="margin-top:10px;background:var(--warning-dim);border:1px solid rgba(160,112,16,.25);border-radius:var(--radius-sm);padding:9px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div style="font-size:11px;font-weight:600;color:var(--warning);margin-bottom:4px">💡 أكمل ملفك للحصول على تجربة مخصصة</div><div style="display:flex;flex-wrap:wrap;gap:4px">${missing.map(m=>`<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(160,112,16,.12);border:1px solid rgba(160,112,16,.2);color:var(--warning);border-radius:100px;padding:2px 9px;font-size:11px">${m.icon} ${m.label}</span>`).join('')}</div></div><button class="btn sm" style="background:var(--warning);color:#fff;border-color:var(--warning);white-space:nowrap;flex-shrink:0" onclick="gp('profile')">إكمال الملف ←</button></div>`:''}`;
-  const ratioSection=`<div class="card" style="margin-bottom:14px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="font-size:12px;font-weight:600;color:var(--text2)">النسبة الكيتونية اليوم</div>
-      <span style="font-size:11px;font-weight:700;color:${hasRatio?ratioColor:'var(--text3)'};background:${hasRatio?(ratio.type==='positive'?'var(--accent-light)':ratio.type==='neutral'?'var(--warning-dim)':'var(--danger-dim)'):'var(--surface2)'};padding:2px 9px;border-radius:100px">${ratio.label}</span>
-    </div>
-    <div class="keto-ratio-bar" style="margin-bottom:6px">
-      <div class="keto-ratio-fill ${ratio.type==='positive'?'ratio-positive':ratio.type==='neutral'?'ratio-neutral':'ratio-negative'}" style="width:${ratioFill}%"></div>
-    </div>
-    ${hasRatio
-      ? `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3)"><span>مبسطة: <strong style="color:var(--text2);font-family:var(--mono)">${ratio.simple}</strong></span><span>متقدمة: <strong style="color:${ratioColor};font-family:var(--mono)">${ratio.advanced}</strong></span><span>هدف المرحلة: <strong style="color:var(--info);font-family:var(--mono)">≥ ${(typeof PHASE_KETO_TARGETS!=='undefined'?PHASE_KETO_TARGETS[phase]?.advanced:null)||'—'}</strong></span></div>`
-      : `<div style="font-size:11px;color:var(--text3);text-align:center">سجّل وجباتك لحساب النسبة الكيتونية · هدف المرحلة ≥ ${(typeof PHASE_KETO_TARGETS!=='undefined'?PHASE_KETO_TARGETS[phase]?.advanced:null)||'—'}</div>`}
   </div>`;
-  /* carbPct يُحسب من المستهلك (consumed) لا من المتبقي */
-  const carbConsumedPct=rem.plan.carb>0?Math.round((rem.consumed?.net_carb||0)/rem.plan.carb*100):0;
-  const carbPct=carbConsumedPct;
-  const macroSection=`<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:var(--text2)">المتبقي لليوم</div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:var(--text3)">${rem.cal} سعرة متبقية</span><button onclick="gp('needs')" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 8px;font-size:10px;color:var(--text2);cursor:pointer">✏️ تعديل الأهداف</button></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:${carbPct>80?'10':'0'}px">${[['دهون',rem.fat,rem.plan.fat,'var(--accent)',rem.consumed?.fat||0],['بروتين',rem.protein,rem.plan.protein,'var(--info)',rem.consumed?.protein||0],['كارب صافٍ',rem.carb,rem.plan.carb,'var(--danger)',rem.consumed?.net_carb||0]].map(([lbl,val,total,col,consumed])=>{const consumedPct=total>0?Math.min(100,Math.round(consumed/total*100)):0;const isWarn=lbl==='كارب صافٍ'&&consumedPct>80;return`<div class="day-macro-card" style="${isWarn?'border-color:var(--danger);background:var(--danger-dim)':''}"><div class="day-macro-val" style="color:${isWarn?'var(--danger)':col}">${val}</div><div style="font-size:8px;color:var(--text3);margin-bottom:6px">غ متبقي</div><div class="keto-ratio-bar" style="height:4px"><div class="keto-ratio-fill" style="width:${consumedPct}%;background:${isWarn?'var(--danger)':col}"></div></div><div class="day-macro-sub">${lbl} · ${total}غ</div></div>`;}).join('')}</div>${carbPct>80?`<div style="background:var(--danger-dim);border:1px solid rgba(192,57,43,.2);border-radius:var(--radius-sm);padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--danger);margin-bottom:10px"><span>⚠️</span> استهلكت ${carbPct}% من الكارب اليومي — تجنب الأصناف النشوية في باقي اليوم</div>`:''}<button class="btn primary" style="width:100%;justify-content:center" onclick="gp('meals')">🍽️ تسجيل وجبة جديدة</button></div>`;
-  const suggestions=typeof getSuggestionsToImproveRatio==='function'?getSuggestionsToImproveRatio(rem.plan.fat-rem.fat,rem.plan.protein-rem.protein,rem.plan.carb-rem.carb,(typeof PHASE_KETO_TARGETS!=='undefined'?PHASE_KETO_TARGETS[phase]?.advanced:null)||1.5,phase,mem.activity||'sedentary'):[];
-  const suggSection=`<div class="card" style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:18px">🎯</span><div><div style="font-size:12px;font-weight:600;color:var(--text2)">اقتراح الوجبة القادمة</div><div style="font-size:11px;color:var(--text3)">بناءً على المتبقي ومتطلبات النسبة الكيتونية</div></div></div>${suggestions.length>0?suggestions.map((s,i)=>`<div class="suggestion-item" onclick="this.classList.toggle('selected')"><div><div style="font-size:13px;font-weight:500">${s.food.name}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${s.qty}غ · دهون ${s.nutrients.fat}غ · بروتين ${s.nutrients.protein}غ · كارب ${s.nutrients.net_carb}غ</div></div><div style="text-align:center;flex-shrink:0"><div style="font-size:10px;color:var(--text3)">النسبة</div><div style="font-size:14px;font-weight:700;color:var(--accent)">+${s.improvement}</div></div></div>`).join(''):`<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0">سجّل وجباتك اليوم لعرض الاقتراحات</div>`}</div>`;
-  const lost=mem.start_weight?(mem.start_weight-(mem.current_weight||mem.start_weight)).toFixed(1):'—';
-  const pctGoal=mem.start_weight&&mem.goal_weight&&parseFloat(lost)>0?Math.min(100,Math.round(parseFloat(lost)/(mem.start_weight-mem.goal_weight)*100)):0;
-  document.getElementById('d-stats').innerHTML=`<div class="stat-card"><div class="stat-label">وزن البداية</div><div class="stat-val warn">${mem.start_weight?mem.start_weight+' كغ':'—'}</div></div><div class="stat-card"><div class="stat-label">الوزن الحالي</div><div class="stat-val">${mem.current_weight?mem.current_weight+' كغ':'—'}</div></div><div class="stat-card"><div class="stat-label">المفقود</div><div class="stat-val">${mem.start_weight?lost+' كغ':'—'}</div></div><div class="stat-card"><div class="stat-label">نحو الهدف</div><div class="stat-val inf">${mem.start_weight&&mem.goal_weight?pctGoal+'%':'—'}</div></div>`;
-  document.getElementById('d-bottom').innerHTML=`<div>${ratioSection}${macroSection}${suggSection}</div><div><div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">⚖️ تسجيل الوزن اليومي</div></div><div class="weight-form-row" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px"><div class="fg" style="flex:1"><label>الوزن (كغ)</label><input type="number" step="0.1" id="dash-weight-input" placeholder="${mem.current_weight||'0.0'}" style="font-size:16px;padding:10px 12px"></div><div class="fg"><label>التاريخ</label><input type="date" id="dash-weight-date" value="${new Date().toISOString().split('T')[0]}"></div><button class="btn primary" onclick="dashAddWeight()" style="padding:10px 16px;white-space:nowrap">تسجيل ✓</button></div>${PROGRESS.filter(p=>p.mid===mem.id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5).map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3)">${p.date}</span><div style="display:flex;align-items:center;gap:10px"><span class="mono" style="color:var(--accent);font-size:13px">${p.weight} كغ</span><button class="btn sm dng" style="padding:2px 7px;font-size:11px" onclick="dashDeleteWeight('${p.date}',${mem.id})">✕</button></div></div>`).join('')||'<div style="color:var(--text3);font-size:13px;text-align:center;padding:12px 0">لا توجد قياسات بعد</div>'}</div><div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">🏆 تحدي الأسبوع</div><button class="btn sm" onclick="gp('challenge_personal')">متابعة ←</button></div>${miniChallenge()}</div><div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">🎯 تحديي الشخصي</div><button class="btn sm" onclick="gp('challenge_personal')">عرض ←</button></div>${(()=>{const ch=typeof WEEKLY_CHALLENGES!=='undefined'?WEEKLY_CHALLENGES.find(c=>c.active&&c.uid===CU.id):null;if(!ch)return`<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">لا يوجد تحدٍّ شخصي نشط</div><button class="btn sm" style="width:100%;justify-content:center;margin-top:8px" onclick="gp('challenge_personal')">إنشاء تحدٍّ جديد +</button>`;const done=ch.tasks.filter(t=>CHALLENGE_PROGRESS[CU.id]?.[ch.id+'_'+t.id]).length;const pct=Math.round(done/ch.tasks.length*100);return`<div style="font-size:13px;font-weight:500;margin-bottom:6px">${ch.title}</div><div style="display:flex;align-items:center;gap:10px"><div class="kbar" style="flex:1;margin:0"><div class="kfill gr" style="width:${pct}%"></div></div><span class="mono" style="color:var(--accent);font-weight:600">${pct}%</span></div><div style="font-size:11px;color:var(--text3);margin-top:4px">${done} من ${ch.tasks.length} مهام مكتملة</div>`;})()}</div><div class="card"><div class="card-header"><div class="card-title">🏅 التحدي العام</div><button class="btn sm" onclick="gp('challenge_group')">عرض ←</button></div>${(()=>{const ch=typeof GROUP_CHALLENGES!=='undefined'?GROUP_CHALLENGES.find(c=>c.active):null;if(!ch)return'<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">لا يوجد تحدٍّ عام نشط حالياً</div>';const prog=GROUP_CHALLENGE_PROGRESS[CU.id]?.[ch.id]||{};const done=ch.tasks.filter(t=>prog[t.id]).length;const pts=ch.tasks.filter(t=>prog[t.id]).reduce((s,t)=>s+t.points,0);const totalPts=ch.tasks.reduce((s,t)=>s+t.points,0);const pct=Math.round(done/ch.tasks.length*100);return`<div style="font-size:13px;font-weight:500;margin-bottom:6px">${ch.title}</div><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><div class="kbar" style="flex:1;margin:0"><div class="kfill gr" style="width:${pct}%"></div></div><span class="mono" style="color:var(--accent);font-weight:600">${pct}%</span></div><div style="font-size:11px;color:var(--text3)">${done} من ${ch.tasks.length} مهام · <strong style="color:var(--warning);font-family:var(--mono)">${pts}</strong> من ${totalPts} نقطة</div>`;})()}</div></div>`;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   _enrichMealSuggestion — إثراء الاقتراح بالشروط الكيتونية
+   يُضاف على القالب الثابت: خضار + ألياف + mono_fat + sat check
+═══════════════════════════════════════════════════════════════ */
+function _enrichMealSuggestion(sugg, mem){
+  if(!sugg || !sugg.items) return sugg;
+
+  const prefs    = getMemPrefs(mem);
+  const phase    = mem?.phase || 1;
+  const mealsN   = prefs.meals_per_day || 3;
+  const hasSnack = prefs.has_snack || false;
+  const mealType = sugg.mealTypeInfo?.type || 'other';
+  const isSnack  = mealType === 'snack';
+  const favIds   = mem?.favorites_foods || [];
+  const eggPref  = prefs.preferred_egg_count || 2;
+
+  // ── أهداف الوجبة (نفس منطق _buildAutoMeal) ──
+  const dayTgt   = typeof getTargetForDate!=='undefined'
+    ? getTargetForDate(mem) : {fat:130,protein:110,carb:20,cal:1800};
+  const KETO_PH  = {0:1.2,1:1.6,2:1.8,3:2.0,4:2.0,5:1.8,6:1.6,7:1.6};
+  const ketoT    = KETO_PH[phase]||1.6;
+  const CARB_PCT = {0:0.07,1:0.05,2:0.05,3:0.05,4:0.05,5:0.07,6:0.10,7:0.10};
+  const snackSh  = hasSnack ? 0.09 : 0;
+  const mainSh   = 1 - snackSh;
+  const SHARES   = {3:[+(mainSh*0.29).toFixed(3),+(mainSh*0.36).toFixed(3),+(mainSh*0.35).toFixed(3)],
+                    2:[+(mainSh*0.44).toFixed(3),+(mainSh*0.56).toFixed(3)]};
+  const shares   = SHARES[mealsN]||[0.33,0.33,0.34];
+  const mIdx     = {breakfast:0,lunch:1,dinner:2,snack:3}[mealType]||0;
+  const share    = isSnack ? snackSh : (shares[mIdx]||0.33);
+
+  const mealFat  = Math.round(dayTgt.fat     * share);
+  const mealProt = Math.round(dayTgt.protein * share);
+  const mealCal  = typeof getMealCalLimit!=='undefined'
+    ? getMealCalLimit(mealsN, hasSnack, isSnack)
+    : (mealsN===3&&hasSnack?500:mealsN===3?600:700);
+  const dayCarbT = dayTgt.carb || Math.round(dayTgt.cal*(CARB_PCT[phase]||0.05)/4);
+  const mealCarb = Math.min(10, Math.round(dayCarbT * share));
+
+  // ── تصنيف الدهون ──
+  const FAT_MONO  = typeof FAT_MONO_FIDS!=='undefined' ? FAT_MONO_FIDS : [1,2,6,61,46,50,113];
+  const FAT_SAT   = typeof FAT_SAT_FIDS !=='undefined' ? FAT_SAT_FIDS  : [3,4,5,7,8,9];
+  const FAT_PUFA  = typeof FAT_PUFA_FIDS!=='undefined' ? FAT_PUFA_FIDS : [47,55,56,59,17,18];
+  const FAT_ALWAYS= [61,113];
+  const LEAFY_MAX = 20; const WHOLE_MAX = 30; const FRUIT_NC_MAX = 3;
+
+  // ── استخرج fids من الاقتراح الأصلي ──
+  const origFids = sugg.items.map(function(i){ return i.fid||i.food?.id; }).filter(Boolean);
+
+  // ── تصنيف الأصناف (نفس منطق _buildAutoMeal) ──
+  const PROT_CATS = ['بروتين','دواجن','لحوم','أسماك','بيض'];
+  const selFoods  = origFids.map(function(fid){
+    return FOODS.find(function(f){ return f.id===fid; });
+  }).filter(Boolean);
+
+  const protSrcs = selFoods.filter(function(f){
+    return f.protein>8 || f.id===10 ||
+      PROT_CATS.some(function(c){ return f.cat&&f.cat.includes(c); });
+  });
+  const fatSrcs = selFoods.filter(function(f){
+    return !protSrcs.find(function(p){ return p.id===f.id; }) &&
+      (f.fat>30 || FAT_ALWAYS.includes(f.id));
+  });
+  const leafyVegs = selFoods.filter(function(f){
+    return !protSrcs.find(function(p){ return p.id===f.id; }) &&
+      !fatSrcs.find(function(ft){ return ft.id===f.id; }) &&
+      (f.net_carb<3 && (f.fiber||0)>=1);
+  });
+  const wholeVegs = selFoods.filter(function(f){
+    return !protSrcs.find(function(p){ return p.id===f.id; }) &&
+      !fatSrcs.find(function(ft){ return ft.id===f.id; }) &&
+      !leafyVegs.find(function(v){ return v.id===f.id; }) &&
+      f.cat&&f.cat.includes('خضار') && f.net_carb<=8;
+  });
+  const fruits = selFoods.filter(function(f){
+    return !protSrcs.find(function(p){ return p.id===f.id; }) &&
+      !fatSrcs.find(function(ft){ return ft.id===f.id; }) &&
+      !leafyVegs.find(function(v){ return v.id===f.id; }) &&
+      !wholeVegs.find(function(v){ return v.id===f.id; }) &&
+      f.cat&&(f.cat.includes('فواكه')||f.cat.includes('فاكهة'));
+  });
+
+  // ── احسب الكميات بنفس منطق _buildAutoMeal ──
+  const newItems = []; // {fid, qty, isNew}
+  let ncUsed=0, fatUsed=0, protUsed=0, calUsed=0, satUsed=0;
+
+  // A. فاكهة ≤3غ nc/نوع
+  fruits.forEach(function(f){
+    if(f.net_carb<=0) return;
+    const maxG = FRUIT_NC_MAX/f.net_carb*100;
+    const qty  = Math.max(5, Math.min(20, Math.round(maxG/5)*5));
+    const q=qty/100;
+    ncUsed+=f.net_carb*q; fatUsed+=f.fat*q; protUsed+=f.protein*q; calUsed+=f.cal*q;
+    newItems.push({fid:f.id, qty:qty, isNew:false});
+  });
+
+  // B. خضار ورقية ≤20غ
+  leafyVegs.forEach(function(f){
+    const qty=LEAFY_MAX; const q=qty/100;
+    ncUsed+=f.net_carb*q; fatUsed+=f.fat*q; protUsed+=f.protein*q; calUsed+=f.cal*q;
+    newItems.push({fid:f.id, qty:qty, isNew:false});
+  });
+
+  // C. خضار حبات ≤30غ
+  wholeVegs.forEach(function(f){
+    const qty=WHOLE_MAX; const q=qty/100;
+    ncUsed+=f.net_carb*q; fatUsed+=f.fat*q; protUsed+=f.protein*q; calUsed+=f.cal*q;
+    newItems.push({fid:f.id, qty:qty, isNew:false});
+  });
+
+  // إضافة خضار إذا لا يوجد
+  if(!leafyVegs.length && !wholeVegs.length && !isSnack){
+    const LEAFY_FIDS_DEF=[62,64,63]; // جرجير، سبانخ
+    const addLeafy = favIds.find(function(id){ return LEAFY_FIDS_DEF.includes(id); })||62;
+    const lf = FOODS.find(function(x){ return x.id===addLeafy; });
+    if(lf){
+      const qty=LEAFY_MAX; const q=qty/100;
+      ncUsed+=lf.net_carb*q; fatUsed+=lf.fat*q; calUsed+=lf.cal*q;
+      newItems.push({fid:lf.id, qty:qty, isNew:true});
+    }
+  }
+
+  // D. بروتين ≥30غ ديناميكي
+  const dayProt2  = dayTgt.protein||90;
+  const dynMin    = dayProt2<70?20:dayProt2<90?25:30;
+  const protNeeded= Math.max(dynMin, mealProt*0.80);
+  const hasEgg    = protSrcs.find(function(f){ return f.id===10; });
+  let eggQty      = hasEgg ? eggPref*55 : 0;
+  if(hasEgg){
+    const eggCal = (FOODS.find(function(x){return x.id===10;})||{cal:143}).cal * eggQty/100;
+    if(eggCal > mealCal*0.65) eggQty = Math.max(55, eggQty-55);
+  }
+  const eggProt     = eggQty/100*13;
+  const eggCovers   = eggProt >= protNeeded*0.85;
+  const otherProts  = protSrcs.filter(function(f){ return f.id!==10; });
+  const protForOther= Math.max(protNeeded - eggProt, 0);
+  const perOther    = (otherProts.length&&!eggCovers) ? protForOther/otherProts.length : 0;
+
+  protSrcs.forEach(function(f){
+    if(f.protein<=0) return;
+    let qty;
+    if(f.id===10){
+      qty = eggQty;
+    } else {
+      if(eggCovers||perOther<=0) return;
+      const rawG = perOther/f.protein*100;
+      const lower = Math.max(50, Math.floor(rawG/50)*50);
+      const upper = lower+50;
+      qty = Math.min((upper-rawG)<(rawG-lower)*0.8?upper:lower, 250);
+      if(f.protein*qty/100 > perOther*1.20 && qty>50) qty-=50;
+    }
+    if(!qty||qty<=0) return;
+    const q=qty/100;
+    fatUsed+=f.fat*q; protUsed+=f.protein*q;
+    ncUsed+=f.net_carb*q; calUsed+=f.cal*q; satUsed+=(f.sat_fat||0)*q;
+    newItems.push({fid:f.id, qty:qty, isNew:false});
+  });
+
+  // E. بذور إذا لا يوجد
+  if(!isSnack){
+    const hasSeed = origFids.some(function(fid){
+      const f2=FOODS.find(function(x){return x.id===fid;});
+      return f2&&f2.cat&&f2.cat.includes('بذور');
+    });
+    if(!hasSeed){
+      const SEEDS=[{fid:56,name:'بذور الشيا',fiber:34.4,fat:30.7,cal:486},
+                   {fid:55,name:'بذور الكتان',fiber:27.3,fat:42.2,cal:534}];
+      const bestSeed = SEEDS.find(function(s){ return favIds.includes(s.fid); })||SEEDS[0];
+      const sf = FOODS.find(function(x){return x.id===bestSeed.fid;});
+      if(sf){
+        const qty=15; const q=qty/100;
+        fatUsed+=sf.fat*q; calUsed+=sf.cal*q; ncUsed+=sf.net_carb*q;
+        newItems.push({fid:sf.id, qty:qty, isNew:true});
+      }
+    } else {
+      const seedFid = origFids.find(function(fid){
+        const f2=FOODS.find(function(x){return x.id===fid;});
+        return f2&&f2.cat&&f2.cat.includes('بذور');
+      });
+      if(seedFid){
+        const sf=FOODS.find(function(x){return x.id===seedFid;});
+        const qty=15; const q=qty/100;
+        fatUsed+=sf.fat*q; calUsed+=sf.cal*q;
+        newItems.push({fid:seedFid, qty:qty, isNew:false});
+      }
+    }
+  }
+
+  // F. الدهون — من المعادلة مباشرة
+  const denom      = protUsed*0.6 + ncUsed;
+  const fatForKeto = denom>0 ? Math.max(ketoT*denom-fatUsed,0) : 10;
+  const fatForGoal = Math.max(mealFat-fatUsed, 0);
+  let fatToAdd     = isSnack
+    ? Math.max(mealCal*0.70/9-fatUsed, fatForKeto, 5)
+    : Math.max(fatForKeto, fatForGoal*0.80);
+  const calLeft = mealCal*1.15 - calUsed;
+  fatToAdd = Math.min(fatToAdd, Math.max(calLeft/9, 5));
+
+  const monoSrcs = fatSrcs.filter(function(f){ return FAT_MONO.includes(f.id)||FAT_ALWAYS.includes(f.id); });
+  const satSrcs  = fatSrcs.filter(function(f){ return FAT_SAT.includes(f.id); });
+  const pufaSrcs = fatSrcs.filter(function(f){ return FAT_PUFA.includes(f.id); });
+
+  // إذا لا دهون مختارة → أضف زيت زيتون
+  if(!fatSrcs.length){
+    const oilF = FOODS.find(function(x){return x.id===1;});
+    if(oilF){
+      const rawG = fatToAdd;
+      const spoons = [5,7,14,21,28];
+      const qty = spoons.reduce(function(p,c){ return Math.abs(c-rawG)<Math.abs(p-rawG)?c:p; });
+      newItems.push({fid:1, qty:qty, isNew:true});
+    }
+  } else {
+    const grps = [{srcs:monoSrcs,lim:null},{srcs:satSrcs,lim:14},{srcs:pufaSrcs,lim:28}];
+    let added=0;
+    grps.forEach(function(grp){
+      if(!grp.srcs.length||added>=fatToAdd*0.95) return;
+      const perSrc=(fatToAdd-added)/grp.srcs.length;
+      grp.srcs.forEach(function(f){
+        if(added>=fatToAdd*0.95) return;
+        let rawG=perSrc/f.fat*100;
+        if(grp.lim) rawG=Math.min(rawG,(grp.lim-satUsed)/(f.sat_fat/100||1));
+        rawG=Math.max(rawG,5);
+        // snap حسب النوع
+        let qty;
+        if(f.id===61){ // أفوكادو
+          const b=97.5; const fracs=[0.25,0.5,0.75,1.0];
+          const best=fracs.reduce(function(p,fr){ return Math.abs(fr*b-rawG)<Math.abs(p*b-rawG)?fr:p; },0.5);
+          qty=Math.round(best*b/5)*5;
+        } else if(f.id===113){ // زيتون
+          qty=[15,20,30,40].reduce(function(p,c){ return Math.abs(c-rawG)<Math.abs(p-rawG)?c:p; });
+        } else {
+          qty=[5,7,14,21,28].reduce(function(p,c){ return Math.abs(c-rawG)<Math.abs(p-rawG)?c:p; });
+        }
+        qty=Math.max(qty,5);
+        const q=qty/100; added+=f.fat*q; satUsed+=(f.sat_fat||0)*q;
+        newItems.push({fid:f.id, qty:qty, isNew:false});
+      });
+    });
+  }
+
+  // ── بناء enrichedItems مع displayQty ──
+  const additions = newItems.filter(function(i){ return i.isNew; });
+  const enrichedItems = newItems.map(function(i){
+    const f=FOODS.find(function(x){ return x.id===i.fid; });
+    if(!f) return null;
+    return {
+      fid:       i.fid,
+      qty:       i.qty,
+      food:      f,
+      displayQty: (typeof humanQty==='function') ? humanQty(f,i.qty) : i.qty+'غ',
+      source:    favIds.includes(i.fid) ? 'fav' : (i.isNew ? 'enriched' : 'std'),
+      isNew:     i.isNew,
+    };
+  }).filter(Boolean);
+
+  // ── ماكرو نهائي ──
+  function calcM(items){
+    const t={fat:0,prot:0,nc:0,cal:0,fib:0,sat:0};
+    items.forEach(function(i){
+      const f2=FOODS.find(function(x){return x.id===i.fid;});
+      if(!f2) return; const q=i.qty/100;
+      t.fat+=f2.fat*q; t.prot+=f2.protein*q; t.nc+=f2.net_carb*q;
+      t.cal+=f2.cal*q; t.fib+=(f2.fiber||0)*q; t.sat+=(f2.sat_fat||0)*q;
+    });
+    return {fat:Math.round(t.fat*10)/10, prot:Math.round(t.prot*10)/10,
+            nc:Math.round(t.nc*10)/10,   cal:Math.round(t.cal),
+            fiber:Math.round(t.fib*10)/10, sat:Math.round(t.sat*10)/10};
+  }
+  const m2 = calcM(newItems);
+  const d2 = m2.prot*0.6+m2.nc;
+  const ratio2 = d2>0 ? Math.round(m2.fat/d2*100)/100 : 0;
+
+  return Object.assign({}, sugg, {
+    items:     enrichedItems,
+    macros:    Object.assign({}, sugg.macros, {
+      fat:m2.fat, prot:m2.prot, nc:m2.nc, cal:m2.cal,
+      fiber:m2.fiber, sat:m2.sat, ratio:ratio2,
+    }),
+    ratioOk:   ratio2 >= ketoT,
+    enriched:  additions,
+    fiberOk:   m2.fiber >= 5,
+    monoOk:    true,
+  });
+}
+
+
 /* ═══════════════════════════════════════════
    صفحة المراحل والبروتوكول
 ═══════════════════════════════════════════ */
@@ -2259,6 +3928,7 @@ async function saveMealEntry(type){
   const meal = {uid:CU.id,date,ts,type,name,items:mealsDraftItems.map(i=>({fid:i.fid,name:i.name,qty:i.qty})),totals};
   MEALS.push(meal);
   if(window.DB) window.DB.saveMeal(meal);
+  onMealRegistered(type);
   mealsDraftItems = [];
   closeMealForm();
   rMeals();
@@ -3675,13 +5345,16 @@ function saveSuppLink(id){const inp=document.getElementById('slnk-'+id);if(!inp)
 
 
 /* ═══ CALCULATOR ═══ */
-function cAdd(){const fid=parseInt(document.getElementById('csel').value);const qty=parseFloat(document.getElementById('cqty').value);if(!fid||!qty){alert('اختر مكوناً وأدخل الكمية');return;}const ex=calcItems.find(i=>i.fid===fid);if(ex)ex.qty+=qty;else calcItems.push({fid,qty});document.getElementById('cqty').value='';renderCI();updateCR();}
-function cClear(){calcItems=[];renderCI();updateCR();}
+function cAdd(){const fid=parseInt(document.getElementById('csel').value);const qty=parseFloat(document.getElementById('cqty').value);if(!fid||!qty){alert('اختر مكوناً وأدخل الكمية');return;}const ex=calcItems.find(i=>i.fid===fid);if(ex)ex.qty+=qty;else calcItems.push({fid,qty});document.getElementById('cqty').value='';renderCI();updateCR();setTimeout(_addCalcActionBar,50);}
+function cClear(){calcItems=[];renderCI();updateCR();const b=document.getElementById('calc-action-bar');if(b)b.remove();}
 function remCI(fid){calcItems=calcItems.filter(i=>i.fid!==fid);renderCI();updateCR();}
 function renderCI(){const el=document.getElementById('citems');if(!calcItems.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:10px 0">لا توجد مكونات</div>';return;}el.innerHTML=calcItems.map(i=>{const f=FOODS.find(x=>x.id===i.fid);if(!f)return'';return`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px">${f.name}</span><div style="display:flex;align-items:center;gap:7px"><span class="mono" style="font-size:12px;color:var(--accent)">${i.qty}غ</span><button class="btn sm dng" onclick="remCI(${f.id})">✕</button></div></div>`;}).join('');}
 function updateCR(){const el=document.getElementById('cresult');if(!calcItems.length){el.innerHTML='<div style="color:var(--text3);text-align:center;padding:28px 0">أضف مكونات للبدء</div>';return;}const m=cmac({ingredients:calcItems});const k=klbl(m.k);el.innerHTML=`<div style="text-align:center;margin-bottom:13px"><div style="font-size:36px;font-weight:700;font-family:var(--mono);color:${kc(m.k)}">${m.k}</div><div style="font-size:12px;color:var(--text3)">نقاط التوافق الكيتوني</div><div style="margin-top:5px"><span class="badge ${k.c}">${k.l}</span></div></div><div class="kbar" style="margin-bottom:12px"><div class="kfill ${m.k>=80?'gr':m.k>=60?'ok':'bd'}" style="width:${m.k}%"></div></div>${macHTML(m,1)}`;}
 
+/* Calculator moved to calculator.js */
+
 /* ═══ NEEDS ═══ */
+
 
 const PHASE_MACRO_TARGETS = {
   0:{name:'التمهيدية',fat_pct:[60,70],carb_max:[50,100],prot_gkg:[1.2,1.5],note:'مرحلة تهيئة — تقليل تدريجي للكارب',deficit:0},
@@ -3991,6 +5664,32 @@ function _manualTargetsHTML(tFat, tProt, tCarb, lastW, tdee){
 }
 
 /* تحديث ديناميكي */
+/* ─── إعادة بناء خطة اليوم عند تغيير الأهداف أو المفضلات ─── */
+function _invalidateDayPlan(mem){
+  if(!mem) return;
+  const today = new Date().toISOString().split('T')[0];
+
+  // امسح خطة اليوم فقط (الأيام الماضية تبقى)
+  if(mem.day_plans?.[today]){
+    delete mem.day_plans[today];
+  }
+
+  // إعادة البناء الفورية من db-meals-logic.js
+  if(typeof buildDayPlan !== 'undefined'){
+    if(!mem.day_plans) mem.day_plans = {};
+    const plan = buildDayPlan(mem, today);
+    if(plan){
+      mem.day_plans[today] = {
+        breakfast: plan.breakfast,
+        lunch:     plan.lunch,
+        dinner:    plan.dinner,
+        built_at:  Date.now(),
+        built_from:'auto'
+      };
+    }
+  }
+}
+
 function saveTargetsManual(){
   const v = window._mtv;
   if(!v){ alert('عدّل القيم أولاً'); return; }
@@ -4018,11 +5717,14 @@ function saveTargetsManual(){
   /* حفظ Firebase */
   if(window.DB) window.DB.saveMember(mem);
 
+  /* مسح خطة اليوم وإعادة بنائها بالأهداف الجديدة */
+  _invalidateDayPlan(mem);
+
   /* تحديث لوحة التحكم */
   rDash();
 
   /* رسالة تأكيد */
-  _showToast(`✅ تم حفظ الخطة بتاريخ ${today}`);
+  _showToast(`✅ تم حفظ الخطة بتاريخ ${today} — تم تحديث الوجبات المقترحة`);
 
   /* تحديث عنوان القسم */
   const sub = document.querySelector('#manual-targets-card .card-header div:last-child');

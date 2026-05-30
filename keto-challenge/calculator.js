@@ -1691,13 +1691,21 @@ function _buildAutoMeal(){
   calcItems = [];
   let ncUsed=0, fiberUsed=0, fatUsed=0, protUsed=0, calUsed=0, satUsed=0, monoUsed=0, pufa_used=0;
 
+  // دالة مضمّنة للكارب الصافٍ الذكي (تتجاهل المحليات الصفرية)
+  function _nc(fid, qty){
+    if(typeof ZERO_SWEETENER_FIDS!=='undefined' && ZERO_SWEETENER_FIDS.includes(fid)) return 0;
+    const _f=FOODS.find(function(x){ return x.id===fid; });
+    return _f ? Math.round((_f.net_carb||0)*qty/100*10)/10 : 0;
+  }
+
   /* ════ A. فاكهة: ≤3غ كارب صافٍ/نوع ════ */
   fruits.forEach(function(f){
     if(f.net_carb<=0) return;
-    const maxG = MEAL_LIMITS.fruit_nc_max_g / f.net_carb * 100;
+    const fruitNc = (typeof ZERO_SWEETENER_FIDS!=='undefined'&&ZERO_SWEETENER_FIDS.includes(f.id))?0:(f.net_carb||0);
+    const maxG = fruitNc>0 ? MEAL_LIMITS.fruit_nc_max_g / fruitNc * 100 : 999;
     const qty  = Math.max(5, Math.min(20, Math.round(maxG/5)*5));
     const q=qty/100;
-    ncUsed+=f.net_carb*q; fiberUsed+=(f.fiber||0)*q; calUsed+=f.cal*q; fatUsed+=f.fat*q;
+    ncUsed += _nc(f.id, qty); fiberUsed+=(f.fiber||0)*q; calUsed+=f.cal*q; fatUsed+=f.fat*q;
     const uType=_calcGetUnitType(f.id);
     calcItems.push({fid:f.id, qty:qty, _sel:_buildSelForItem(uType,f.id,qty)});
   });
@@ -1706,7 +1714,7 @@ function _buildAutoMeal(){
   leafyVegs.forEach(function(f){
     const qty = MEAL_LIMITS.veg_leafy_max_g; // 20غ ثابت
     const q=qty/100;
-    ncUsed+=f.net_carb*q; fiberUsed+=(f.fiber||0)*q; calUsed+=f.cal*q; fatUsed+=f.fat*q;
+    ncUsed += _nc(f.id, qty); fiberUsed+=(f.fiber||0)*q; calUsed+=f.cal*q; fatUsed+=f.fat*q;
     const uType=_calcGetUnitType(f.id);
     calcItems.push({fid:f.id, qty:qty, _sel:_buildSelForItem(uType,f.id,qty)});
   });
@@ -1715,7 +1723,7 @@ function _buildAutoMeal(){
   wholeVegs.forEach(function(f){
     const qty = MEAL_LIMITS.veg_whole_max_g; // 30غ ثابت
     const q=qty/100;
-    ncUsed+=f.net_carb*q; fiberUsed+=(f.fiber||0)*q; calUsed+=f.cal*q; fatUsed+=f.fat*q;
+    ncUsed += _nc(f.id, qty); fiberUsed+=(f.fiber||0)*q; calUsed+=f.cal*q; fatUsed+=f.fat*q;
     const uType=_calcGetUnitType(f.id);
     calcItems.push({fid:f.id, qty:qty, _sel:_buildSelForItem(uType,f.id,qty)});
   });
@@ -1773,7 +1781,7 @@ function _buildAutoMeal(){
     const qty    = Math.min(maxQ, isSeed?15:20);
     nutsTotal   += qty;
     const q=qty/100;
-    ncUsed+=f.net_carb*q; fiberUsed+=(f.fiber||0)*q; calUsed+=f.cal*q;
+    ncUsed += _nc(f.id, qty); fiberUsed+=(f.fiber||0)*q; calUsed+=f.cal*q;
     fatUsed+=f.fat*q; satUsed+=(f.sat_fat||0)*q;
     const uType=_calcGetUnitType(f.id);
     calcItems.push({fid:f.id, qty:qty, _sel:_buildSelForItem(uType,f.id,qty)});
@@ -1783,7 +1791,15 @@ function _buildAutoMeal(){
   const denom      = protUsed*0.6 + ncUsed;
   const fatForKeto = denom>0 ? Math.max(ketoTarget*denom - fatUsed, 0) : 10;
   const fatForGoal = Math.max(mealFatTarget - fatUsed, 0);
-  let fatToAdd     = Math.max(fatForKeto, fatForGoal*0.80);
+
+  // السناك: 70% دهون من السعرات المتاحة
+  let fatToAdd;
+  if(isSnack){
+    const snackFat70 = (mealCal * 0.70 / 9) - fatUsed;
+    fatToAdd = Math.max(snackFat70, fatForKeto, 5);
+  } else {
+    fatToAdd = Math.max(fatForKeto, fatForGoal*0.80);
+  }
 
   // قيد السعرات
   const calBudget  = mealCal - calUsed;
