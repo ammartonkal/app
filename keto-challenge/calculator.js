@@ -1035,6 +1035,13 @@ function _calcSearchFood(query){
 }
 
 function _renderCalcNutrition(){
+  // ── سياق الوجبة ──
+  const _rnMem      = MEMBERS.find(function(mb){ return mb.uid===(CU&&CU.id); });
+  const _rnMti      = _rnMem && typeof getMealType!=='undefined' ? getMealType(_rnMem) : null;
+  const mealType    = _rnMti ? _rnMti.type : 'other';
+  const dayTargets  = _rnMem && typeof getTargetForDate!=='undefined'
+    ? getTargetForDate(_rnMem) : {fat:130,protein:90,carb:20,cal:1800};
+
   // ── ماكرو كامل ──
   const regularItems = calcItems.filter(function(i){ return typeof i.fid==='number'; });
   const m0 = _calcMealRatio(regularItems);
