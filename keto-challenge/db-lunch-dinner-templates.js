@@ -2030,29 +2030,40 @@ const DINNER_TEMPLATES = [
 function getBestLunchTemplate(remaining, favIds, phase, satLimit, skipFids, seed){
   favIds   = favIds   || [];
   skipFids = skipFids || [];
+  seed     = seed     || 0;
 
-  let pool = LUNCH_TEMPLATES.filter(t => {
-    if(t.phases.length > 0 && !t.phases.includes(phase)) return false;
-    if(skipFids.some(fid => t.components.find(c=>c.fid===fid))) return false;
+  let pool = LUNCH_TEMPLATES.filter(function(t){
+    if(t.phases && t.phases.length > 0 && !t.phases.includes(phase)) return false;
     if(t.keto_ratio < 1.4) return false;
-    // فلتر sat_fat
-    if(satLimit && t.macros.sat_fat > satLimit * 1.2) return false;
-    // فلتر المفضلة: إذا عنده مفضلات → اقترح ما فيها فقط
-    if(favIds.length > 0){
-      const hasFav = t.components.some(c => favIds.includes(c.fid));
-      if(!hasFav) return false;
-    }
+    if(satLimit && t.macros && t.macros.sat_fat > satLimit * 1.2) return false;
     return true;
   });
 
-  if(!pool.length) pool = LUNCH_TEMPLATES.filter(t => t.keto_ratio >= 1.4);
+  // فلتر المفضلة بـ fid البروتين (أول component)
+  if(favIds.length > 0){
+    const favPool = pool.filter(function(t){
+      const protFid = t.components && t.components[0] && t.components[0].fid;
+      return favIds.includes(protFid);
+    });
+    if(favPool.length > 0) pool = favPool;
+  }
 
-  // رتّب حسب أقرب نسبة كيتونية للهدف
-  pool.sort((a,b) => Math.abs(a.keto_ratio-2.0) - Math.abs(b.keto_ratio-2.0));
-  // استخدم seed للتنويع عند الضغط على "تغيير"
-  const _idx  = (seed||0) % pool.length;
-  return pool[_idx] || null;
+  if(!pool.length) pool = LUNCH_TEMPLATES.filter(function(t){ return t.keto_ratio >= 1.4; });
+
+  // جمّع حسب fid البروتين الفعلي لضمان التنويع
+  var groups = {};
+  pool.forEach(function(t){
+    var protFid = String((t.components && t.components[0] && t.components[0].fid) || '0');
+    if(!groups[protFid]) groups[protFid] = [];
+    groups[protFid].push(t);
+  });
+  var groupKeys   = Object.keys(groups).sort();
+  var groupIdx    = seed % groupKeys.length;
+  var chosenGroup = groups[groupKeys[groupIdx]] || pool;
+  var tplIdx      = Math.floor(seed / groupKeys.length) % chosenGroup.length;
+  return chosenGroup[tplIdx] || pool[0] || null;
 }
+
 
 /* ─── اختر أفضل وصفة عشاء حسب المتبقي الفعلي ─── */
 function getBestDinnerTemplate(remaining, favIds, phase, satLimit, skipFids, seed){
@@ -2066,21 +2077,23 @@ function getBestDinnerTemplate(remaining, favIds, phase, satLimit, skipFids, see
     return true;
   });
 
+  // فلتر المفضلة — حسب fid البروتين (أول component) فقط
   if(favIds.length > 0){
     const favPool = pool.filter(function(t){
-      return t.components.some(function(c){ return favIds.includes(c.fid); });
+      const protFid = t.components && t.components[0] && t.components[0].fid;
+      return favIds.includes(protFid);
     });
     if(favPool.length > 0) pool = favPool;
   }
 
   if(!pool.length) pool = DINNER_TEMPLATES.filter(function(t){ return t.keto_ratio >= 1.4; });
 
-  // تنويع حسب protein_group
+  // جمّع حسب fid البروتين الفعلي
   const groups = {};
   pool.forEach(function(t){
-    const g = t.protein_group || 'other';
-    if(!groups[g]) groups[g] = [];
-    groups[g].push(t);
+    const protFid = String((t.components && t.components[0] && t.components[0].fid) || 'other');
+    if(!groups[protFid]) groups[protFid] = [];
+    groups[protFid].push(t);
   });
   const groupKeys = Object.keys(groups).sort();
   const groupIdx  = seed % groupKeys.length;
