@@ -2116,6 +2116,8 @@ function setSnackPref(checked){
 }
 
 function rDash(){
+  // أعد تعيين قائمة البروتينات عند إعادة رسم لوحة التحكم
+  if(!window._recentProtFids) window._recentProtFids = [];
   const adm=CU.role==='admin';
   if(adm){
     document.getElementById('d-rbar').innerHTML='⬡ دخلت كمدير — صلاحيات كاملة';

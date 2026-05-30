@@ -2058,17 +2058,23 @@ function getBestLunchTemplate(remaining, favIds, phase, satLimit, skipFids, seed
   });
   var groupKeys = Object.keys(groups);
 
-  // استبعد البروتين الأخير المستخدم (تشجيع التنويع)
-  var lastProt  = String(window._lastSuggProtFid || '');
-  var otherKeys = groupKeys.filter(function(k){ return k !== lastProt; });
+  // استبعد آخر 3 بروتينات مستخدمة (قائمة دوّارة)
+  if(!window._recentProtFids) window._recentProtFids = [];
+  var recent    = window._recentProtFids;
+  var otherKeys = groupKeys.filter(function(k){ return recent.indexOf(k) === -1; });
   var pickFrom  = otherKeys.length > 0 ? otherKeys : groupKeys;
 
-  // اختيار عشوائي حقيقي
-  var randKey   = pickFrom[Math.floor(Math.random() * pickFrom.length)];
-  var chosen    = groups[randKey];
-  var picked    = chosen[Math.floor(Math.random() * chosen.length)];
+  // اختيار عشوائي من البروتينات غير المتكررة
+  var randKey = pickFrom[Math.floor(Math.random() * pickFrom.length)];
+  var chosen  = groups[randKey];
+  var picked  = chosen[Math.floor(Math.random() * chosen.length)];
 
-  // احفظ البروتين المختار لتجنبه في المرة القادمة
+  // أضف للقائمة الدوّارة (max 3)
+  if(randKey){
+    recent.push(randKey);
+    if(recent.length > 3) recent.shift();
+    window._recentProtFids = recent;
+  }
   if(picked && picked.components && picked.components[0])
     window._lastSuggProtFid = picked.components[0].fid;
 
@@ -2104,12 +2110,18 @@ function getBestDinnerTemplate(remaining, favIds, phase, satLimit, skipFids, see
     groups[pf].push(t);
   });
   var groupKeys = Object.keys(groups);
-  var lastProt  = String(window._lastSuggProtFid || '');
-  var otherKeys = groupKeys.filter(function(k){ return k !== lastProt; });
+  if(!window._recentProtFids) window._recentProtFids = [];
+  var recent2   = window._recentProtFids;
+  var otherKeys = groupKeys.filter(function(k){ return recent2.indexOf(k) === -1; });
   var pickFrom  = otherKeys.length > 0 ? otherKeys : groupKeys;
   var randKey   = pickFrom[Math.floor(Math.random() * pickFrom.length)];
   var chosen    = groups[randKey];
   var picked    = chosen[Math.floor(Math.random() * chosen.length)];
+  if(randKey){
+    recent2.push(randKey);
+    if(recent2.length > 3) recent2.shift();
+    window._recentProtFids = recent2;
+  }
   if(picked && picked.components && picked.components[0])
     window._lastSuggProtFid = picked.components[0].fid;
   return picked || pool[0] || null;
