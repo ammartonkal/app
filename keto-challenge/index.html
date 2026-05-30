@@ -2,11 +2,18 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>تحدي الكيتو مع د. عمار</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+/* ── إصلاح أساسي للجوال ── */
+*,*::before,*::after{box-sizing:border-box;}
+html{overflow-x:hidden;}
+body{overflow-x:hidden;max-width:100vw;}
+img,svg{max-width:100%;height:auto;}
+
+
 :root{
   --bg:#f4f7f0;--surface:#fff;--surface2:#f0f4ea;--surface3:#e4edd8;
   --border:rgba(70,130,50,0.14);--border2:rgba(70,130,50,0.3);
@@ -27,7 +34,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .shell{display:flex;height:100vh;overflow:hidden;}
 .sidebar{width:230px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;transition:transform .25s;z-index:200;}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:199;}
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;max-width:100%;}
 
 /* LOGO */
 .logo{padding:18px 16px 14px;border-bottom:1px solid var(--border);}
@@ -50,7 +57,7 @@ nav{padding:10px 8px;flex:1;}
 .topbar-left{display:flex;align-items:center;gap:10px;}
 .menu-btn{display:none;background:none;border:none;cursor:pointer;font-size:22px;color:var(--text2);padding:4px;line-height:1;}
 .page-title{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.content{flex:1;overflow-y:auto;padding:22px 20px;}
+.content{flex:1;overflow-y:auto;overflow-x:hidden;padding:22px 20px;max-width:100%;}
 
 /* PANELS */
 .panel{display:none;}.panel.active{display:block;}
@@ -530,6 +537,132 @@ textarea{resize:vertical;min-height:76px;}
 
   /* حاسبة الاحتياج */
   .needs-grid{grid-template-columns:1fr!important;}
+
+  /* ══════════════════════════════════════════════
+     إصلاحات الجوال الشاملة
+  ══════════════════════════════════════════════ */
+
+  /* منع أي overflow أفقي */
+  *{box-sizing:border-box;}
+  body,html{overflow-x:hidden;max-width:100vw;}
+  .content{overflow-x:hidden;padding:10px;}
+
+  /* ── دوائر الماكرو ── */
+  .cmac-wrap{
+    grid-template-columns:repeat(3,1fr);
+    gap:6px;
+  }
+  .cmac-svg{width:64px!important;height:64px!important;}
+  .cmac-label{font-size:10px;}
+  .cmac-sub{font-size:10px;max-width:90px;text-align:center;}
+
+  /* ── بطاقات الإحصاء ── */
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .stat-card{padding:10px;}
+  .stat-val{font-size:19px;}
+  .stat-label{font-size:10px;}
+
+  /* ── بطاقة الاقتراح ── */
+  .sugg-card{padding:12px;}
+  .sugg-header{flex-wrap:wrap;gap:8px;}
+  .sugg-header-left{min-width:0;flex:1;}
+  .sugg-title{font-size:13px;line-height:1.3;}
+  .sugg-sub{font-size:10px;}
+  .sugg-body{padding:8px 0;}
+
+  /* مكونات الاقتراح: عمود واحد */
+  .sugg-item-row{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:6px;
+    padding:8px;
+  }
+  .sugg-item-macros{
+    flex-wrap:wrap;
+    gap:6px;
+    width:100%;
+  }
+  .sugg-macro{
+    flex:1;min-width:50px;
+    background:var(--surface2);
+    padding:4px;border-radius:4px;
+    text-align:center;
+  }
+  .sugg-macro-val{font-size:11px;}
+  .sugg-macros-summary{
+    grid-template-columns:repeat(2,1fr);
+    gap:6px;
+  }
+  .sugg-macro-card{padding:8px 6px;}
+  .sugg-macro-card-val{font-size:14px;}
+
+  /* ── بطاقة الماكرو اليومي ── */
+  .calc-macro-grid{
+    grid-template-columns:repeat(2,1fr);
+    gap:6px;
+  }
+  .calc-macro-box{padding:6px;}
+  .calc-macro-box-val{font-size:14px;}
+  .calc-macro-box-lbl{font-size:10px;}
+
+  /* ── بطاقة المغذيات في الحاسبة ── */
+  .calc-nutrition-card{padding:12px;}
+  .calc-keto-ratio{font-size:32px!important;}
+
+  /* ── حاسبة الوصفة: قائمة المكونات ── */
+  .calc-food-grid{
+    grid-template-columns:repeat(2,1fr)!important;
+    gap:6px;
+  }
+  .calc-food-btn{
+    font-size:11px!important;
+    padding:6px 8px!important;
+    min-height:36px;
+  }
+
+  /* ── بطاقة المرحلة ── */
+  .phase-card{padding:12px;}
+  .phase-header{flex-wrap:wrap;gap:8px;}
+
+  /* ── التاريخ والتقدم ── */
+  .week-grid{gap:2px;}
+  .week-day{padding:4px 1px;}
+  .week-day-name{font-size:8px;}
+  .week-day-num{font-size:11px;}
+
+  /* ── النسبة الكيتونية ── */
+  .keto-ratio-bar{height:6px;}
+  .kbar{height:5px;}
+
+  /* ── تفاصيل إضافية المغذيات ── */
+  [id^="sub-"]{font-size:9px;}
+
+  /* ── أزرار الأكشن في الحاسبة ── */
+  .calc-action-row{
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .calc-action-row .btn{
+    flex:1;
+    min-width:120px;
+    justify-content:center;
+  }
+
+  /* ── التوصيات ── */
+  .calc-nutrition-card [style*="display:flex;gap:8px"]{
+    flex-wrap:wrap;
+  }
+
+  /* ── الوجبات اليومية cards ── */
+  .meal-log-item{padding:10px;}
+  .meal-log-macros{flex-wrap:wrap;gap:4px;}
+
+  /* ── منع أي عنصر من تجاوز الشاشة ── */
+  img,svg,video{max-width:100%;}
+  .card, .sugg-card, .calc-nutrition-card{
+    overflow:hidden;
+    word-break:break-word;
+  }
 }
 
 /* ── تحسينات اللمس لجميع الشاشات الصغيرة ── */
