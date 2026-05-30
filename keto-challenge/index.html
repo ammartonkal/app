@@ -2347,6 +2347,8 @@ function buildMealSuggestion(mem, rem, phase){
       const eligible_ = BREAKFAST_EGG_TEMPLATES.filter(t => {
         if(t.phases.length > 0 && !t.phases.includes(phase_)) return false;
         if(t.keto_ratio < 1.4) return false;
+        // فلتر البيضات: إذا EGG_PREF>1 لا نعرض قوالب بيضة واحدة
+        if(eggCount_ > 1 && t.egg_count === 1 && !t.id_s?.includes('side')) return false;
         // فلتر sat_fat
         if(mealSatLim_){
           const tSat = t.components.reduce((s,c)=>{
@@ -2667,7 +2669,7 @@ function _renderSnackCard(snack){
           const im = _calcMealRatio([{fid:i.fid, qty:i.qty}]);
           return `<div class="sugg-item-row">
             <div style="flex:1">
-              <div class="sugg-item-name">${i.food.name}${i.source==='fav'?' ⭐':''}</div>
+              <div class="sugg-item-name">${i.food.name}${i.source==='fav'?' ⭐':''}${i.isNew?'<span style="font-size:9px;background:var(--accent);color:#fff;border-radius:4px;padding:1px 4px;margin-right:3px">+</span>':''}</div>
               <div class="sugg-item-qty">${i.displayQty}</div>
             </div>
             <div class="sugg-item-macros">
@@ -2703,6 +2705,175 @@ function _renderSnackCard(snack){
   </div>`;
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   _enrichMealSuggestion — إثراء الاقتراح بالشروط الكيتونية
+   يُضاف على القالب الثابت: خضار + ألياف + mono_fat + sat check
+═══════════════════════════════════════════════════════════════ */
+function _enrichMealSuggestion(sugg, mem){
+  if(!sugg || !sugg.items) return sugg;
+
+  const prefs      = getMemPrefs(mem);
+  const phase      = mem?.phase || 1;
+  const mealsN     = prefs.meals_per_day || 3;
+  const hasSnack   = prefs.has_snack || false;
+  const mealType   = sugg.mealTypeInfo?.type || 'other';
+  const isSnack    = mealType === 'snack';
+  const favIds     = mem?.favorites_foods || [];
+
+  // الحدود
+  const LIMITS = typeof MEAL_LIMITS !== 'undefined' ? MEAL_LIMITS : {
+    protein_min_g:30, carb_min_g:5, carb_max_g:10,
+    fiber_min_g:5,    veg_leafy_max_g:20, veg_whole_max_g:30,
+    mono_fat_min_g:15, sat_fat_max_g:14,
+  };
+
+  // احسب ماكرو الاقتراح الحالي
+  function calcMac(items){
+    const t = {fat:0,prot:0,nc:0,cal:0,fib:0,sat:0,mono:0};
+    items.forEach(function(i){
+      const f = FOODS.find(function(x){ return x.id===(i.fid||i.food?.id); });
+      if(!f) return;
+      const q = (i.qty||0)/100;
+      t.fat  += f.fat*q;      t.prot += f.protein*q;
+      t.nc   += f.net_carb*q; t.cal  += f.cal*q;
+      t.fib  += (f.fiber||0)*q; t.sat += (f.sat_fat||0)*q;
+      // mono_fat تقدير
+      if(typeof FAT_MONO_FIDS!=='undefined' && FAT_MONO_FIDS.includes(f.id))
+        t.mono += f.fat*q;
+    });
+    return {fat:Math.round(t.fat*10)/10, prot:Math.round(t.prot*10)/10,
+            nc:Math.round(t.nc*10)/10,   cal:Math.round(t.cal),
+            fib:Math.round(t.fib*10)/10, sat:Math.round(t.sat*10)/10,
+            mono:Math.round(t.mono*10)/10};
+  }
+
+  const items = sugg.items.map(function(i){ return {fid:i.fid||i.food?.id, qty:i.qty}; });
+  let m = calcMac(items);
+  const additions = []; // الإضافات الجديدة
+
+  // ── 1. الخضار: إذا لا يوجد خضار → أضف ورقية من المفضلة ──
+  const LEAFY_FIDS  = typeof LEAFY_VEG_FIDS!=='undefined'
+    ? LEAFY_VEG_FIDS : [62,63,64,65];
+  const WHOLE_VEG_MAP = {
+    71:{n:'فلفل أخضر',nc:2.6,fib:1.7,cal:20},
+    75:{n:'طماطم',nc:2.7,fib:1.2,cal:18},
+    74:{n:'خيار',nc:1.8,fib:0.5,cal:12},
+    68:{n:'مشروم',nc:2.3,fib:1.0,cal:22},
+    69:{n:'بروكلي',nc:4.4,fib:2.6,cal:34},
+  };
+  const hasVeg = items.some(function(i){
+    const f=FOODS.find(function(x){return x.id===i.fid;});
+    return f&&f.cat&&(f.cat.includes('خضار')||LEAFY_FIDS.includes(i.fid));
+  });
+
+  if(!hasVeg && !isSnack){
+    // أضف خضرة ورقية: جرجير (62) أو سبانخ (64) حسب المفضلة
+    const leafFid = favIds.find(function(id){ return LEAFY_FIDS.includes(id); })
+      || 62; // جرجير افتراضي
+    const leafF = FOODS.find(function(x){ return x.id===leafFid; });
+    if(leafF){
+      const qty = LIMITS.veg_leafy_max_g; // 20غ
+      items.push({fid:leafFid, qty:qty});
+      additions.push({fid:leafFid, name:leafF.name, qty:qty, reason:'خضار ورقية'});
+      m = calcMac(items);
+    }
+
+    // أضف خضرة حبات إذا المجال يسمح
+    const wholeEntries = Object.entries(WHOLE_VEG_MAP);
+    const bestWhole = wholeEntries
+      .filter(function(e){ return m.nc + e[1].nc*0.30 <= LIMITS.carb_max_g; })
+      .sort(function(a,b){ return b[1].fib-a[1].fib; })[0];
+    if(bestWhole){
+      const fid2 = parseInt(bestWhole[0]);
+      const f2   = FOODS.find(function(x){ return x.id===fid2; });
+      const qty2 = LIMITS.veg_whole_max_g; // 30غ
+      if(f2){
+        items.push({fid:fid2, qty:qty2});
+        additions.push({fid:fid2, name:f2.name, qty:qty2, reason:'خضار حبات'});
+        m = calcMac(items);
+      }
+    }
+  }
+
+  // ── 2. الألياف: إذا أقل من 5غ → أضف بذور ──
+  if(m.fib < LIMITS.fiber_min_g && !isSnack){
+    const SEEDS = [
+      {fid:56,name:'بذور الشيا',  fiber:34.4,fat:30.7,cal:486,serving:15},
+      {fid:55,name:'بذور الكتان', fiber:27.3,fat:42.2,cal:534,serving:15},
+      {fid:59,name:'بذور دوار الشمس',fiber:8.6,fat:51.5,cal:584,serving:20},
+    ];
+    const fiberGap = LIMITS.fiber_min_g - m.fib;
+    const bestSeed = SEEDS.find(function(s){
+      return (s.fiber*s.serving/100) >= fiberGap*0.6;
+    }) || SEEDS[0];
+    const f3 = FOODS.find(function(x){ return x.id===bestSeed.fid; });
+    if(f3){
+      const qty3 = bestSeed.serving;
+      items.push({fid:bestSeed.fid, qty:qty3});
+      additions.push({fid:bestSeed.fid, name:f3.name, qty:qty3, reason:'ألياف'});
+      m = calcMac(items);
+    }
+  }
+
+  // ── 3. mono_fat: إذا أقل من 15غ → أضف زيت زيتون ──
+  if(m.mono < LIMITS.mono_fat_min_g && !isSnack){
+    const monoGap  = LIMITS.mono_fat_min_g - m.mono;
+    const oilNeeded= monoGap; // زيت زيتون = 100% دهن، ~73% mono
+    const oilQty   = Math.min(28, Math.max(7, Math.round(oilNeeded/0.73/14)*14));
+    const oilF     = FOODS.find(function(x){ return x.id===1; });
+    const hasOil   = items.some(function(i){ return i.fid===1; });
+    if(oilF && !hasOil){
+      items.push({fid:1, qty:oilQty});
+      additions.push({fid:1, name:'زيت زيتون', qty:oilQty, reason:'دهون أحادية'});
+      m = calcMac(items);
+    } else if(hasOil){
+      // زد كمية الزيت الموجود
+      const oilItem = items.find(function(i){ return i.fid===1; });
+      if(oilItem) oilItem.qty = Math.min(oilItem.qty + 7, 28);
+      m = calcMac(items);
+    }
+  }
+
+  // ── 4. sat_fat: تحقق من حد المشترك ──
+  const dailySatLim = typeof getSatFatDailyLimit!=='undefined'
+    ? getSatFatDailyLimit(mem) : null;
+  const mealSatLim  = dailySatLim ? dailySatLim*(sugg.share||0.30) : null;
+  const satWarning  = mealSatLim && m.sat > mealSatLim * 1.1;
+
+  // ── 5. إعادة حساب النسبة الكيتونية النهائية ──
+  const denom2 = m.prot*0.6 + m.nc;
+  const ratio2 = denom2>0 ? Math.round(m.fat/denom2*100)/100 : 0;
+
+  // ── 6. بناء displayQty للإضافات ──
+  const enrichedItems = items.map(function(i){
+    const f = FOODS.find(function(x){ return x.id===i.fid; });
+    if(!f) return i;
+    return {
+      fid:       i.fid,
+      qty:       i.qty,
+      food:      f,
+      displayQty: (typeof humanQty==='function') ? humanQty(f,i.qty) : i.qty+'غ',
+      source:    additions.find(function(a){ return a.fid===i.fid; }) ? 'enriched' : 'template',
+      isNew:     !!additions.find(function(a){ return a.fid===i.fid; }),
+    };
+  });
+
+  return Object.assign({}, sugg, {
+    items:       enrichedItems,
+    macros:      Object.assign({}, sugg.macros, {
+      fat:m.fat, prot:m.prot, nc:m.nc, cal:m.cal,
+      fiber:m.fib, sat:m.sat,
+      ratio:ratio2,
+    }),
+    ratioOk:     ratio2 >= (sugg.ketoTarget||1.6),
+    enriched:    additions,
+    satWarning:  satWarning,
+    fiberOk:     m.fib >= LIMITS.fiber_min_g,
+    monoOk:      m.mono >= LIMITS.mono_fat_min_g,
+  });
+}
+
 /* ─── عرض بطاقة الاقتراح في لوحة التحكم ─── */
 function renderSuggSection(mem, rem, phase){
   const sugg = buildMealSuggestion(mem, rem, phase);
@@ -2726,7 +2897,12 @@ function renderSuggSection(mem, rem, phase){
     </div>`;
   }
 
-  const {items, macros, ratioOk, ketoTarget, hasFav, mealTypeInfo} = sugg;
+  // ── إثراء الاقتراح بالشروط الكيتونية ──
+  const enriched = typeof _enrichMealSuggestion!=='undefined'
+    ? _enrichMealSuggestion(sugg, MEMBERS.find(function(m){ return m.uid===(CU&&CU.id); }))
+    : sugg;
+  const {items, macros, ratioOk, ketoTarget, hasFav, mealTypeInfo} = enriched;
+  const enrichedAdds = enriched.enriched || [];
 
   if(!items || !items.length){
     return `<div class="sugg-card"><div class="sugg-body">
@@ -2738,6 +2914,12 @@ function renderSuggSection(mem, rem, phase){
                    : macros.ratio >= ketoTarget*0.8 ? 'var(--warning)' : 'var(--danger)';
   const ratioLabel = macros.ratio >= ketoTarget ? 'محفز للكيتون ✓'
                    : macros.ratio >= ketoTarget*0.8 ? 'قريب من الهدف' : 'يحتاج تحسين';
+  // ملخص الإثراء
+  const enrichNote = enrichedAdds.length
+    ? '<div style="font-size:10px;color:var(--accent);margin-top:4px">✨ أُضيف تلقائياً: '
+      + enrichedAdds.map(function(a){ return a.name+' ('+a.qty+'غ)'; }).join(' · ')
+      + '</div>'
+    : '';
 
   const itemsJSON = JSON.stringify(items.map(i=>({fid:i.fid,qty:i.qty})));
   const snack     = buildSnackSuggestion(mem, rem, phase);
@@ -2756,6 +2938,7 @@ function renderSuggSection(mem, rem, phase){
           <div class="sugg-title">اقتراح ${mealTypeInfo.label} — الوجبة ${sugg.mealNumber} من ${sugg.totalMeals}</div>
           <div class="sugg-sub">حصة ${Math.round((sugg.share||0.33)*100)}% · نسبة كيتو ≥${ketoTarget} · سعرات ≤${typeof getMealCalLimit!=='undefined'?getMealCalLimit(prefs.meals_per_day||3,prefs.has_snack||false,mealTypeInfo?.type==='snack'):600}</div>
           ${sugg.cookingTip ? `<div style="font-size:10px;color:var(--accent);margin-top:2px">👨‍🍳 ${sugg.cookingTip}</div>` : ''}
+          ${enrichNote}
         </div>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
@@ -2775,7 +2958,7 @@ function renderSuggSection(mem, rem, phase){
             <div class="sugg-item-row${hasAlts?' swappable':''}"
               style="margin-bottom:0;border-radius:${hasAlts?'var(--radius-sm) var(--radius-sm) 0 0':'var(--radius-sm)'}">
               <div style="flex:1">
-                <div class="sugg-item-name">${i.food.name}${i.source==='fav'?' ⭐':''}</div>
+                <div class="sugg-item-name">${i.food.name}${i.source==='fav'?' ⭐':''}${i.isNew?'<span style="font-size:9px;background:var(--accent);color:#fff;border-radius:4px;padding:1px 4px;margin-right:3px">+</span>':''}</div>
                 <div class="sugg-item-qty">${i.displayQty||i.qty+'غ'} · ${i.groupName||''}</div>
               </div>
               <div style="display:flex;align-items:center;gap:6px">
@@ -3269,9 +3452,14 @@ function _suggSaveToFav(){
 function openSuggInCalc(items){
   if(typeof closeSuggModal!=='undefined') closeSuggModal();
 
-  // ── تهيئة حاسبة الوصفة بالمكونات المقترحة ──
+  // ── تهيئة حاسبة الوصفة بالمكونات المقترحة (المُثرَاة) ──
+  // items قد تكون من enriched.items → تحتوي fid وqty
+  const cleanItems = items.map(function(i){
+    return {fid: i.fid||i.food?.id, qty: i.qty};
+  }).filter(function(i){ return i.fid && i.qty>0; });
+
   // 1. بناء calcItems مع _sel مناسب
-  calcItems = items.map(function(i){
+  calcItems = cleanItems.map(function(i){
     const uType = typeof _calcGetUnitType!=='undefined' ? _calcGetUnitType(i.fid) : null;
     const sel   = (uType && typeof _buildSelForItem!=='undefined')
       ? _buildSelForItem(uType, i.fid, i.qty)
@@ -3280,7 +3468,7 @@ function openSuggInCalc(items){
   });
 
   // 2. استخرج الـ fids لـ _calcSelected
-  _calcSelected = items.map(function(i){ return i.fid; });
+  _calcSelected = cleanItems.map(function(i){ return i.fid; });
 
   // 3. ضع الحاسبة في وضع "بُنيت"
   _calcBuilt = true;

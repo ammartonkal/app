@@ -163,11 +163,11 @@ const EXCHANGE_GROUPS = {
     icon:    '🥬',
     std_serving: { protein: 1, carb: 2, cal: 20 },
     items: [
-      { fid:64, name:'سبانخ طازجة',       qty:80, weight:5, phases:[], note:'مع البيض — مثالية' },
-      { fid:62, name:'جرجير',             qty:50, weight:5, phases:[], note:'سلطة جانبية سريعة' },
-      { fid:75, name:'طماطم',             qty:80, weight:4, phases:[], note:'شرائح مع البيض' },
-      { fid:68, name:'فطر (مشروم)',       qty:80, weight:4, phases:[], note:'مع الزبدة — رائع' },
-      { fid:63, name:'خس',               qty:60, weight:3, phases:[], note:'ورق طازج' },
+      { fid:64, name:'سبانخ طازجة',       qty:20, weight:5, phases:[], note:'مع البيض — مثالية' },
+      { fid:62, name:'جرجير',             qty:20, weight:5, phases:[], note:'سلطة جانبية سريعة' },
+      { fid:75, name:'طماطم',             qty:30, weight:4, phases:[], note:'شرائح مع البيض' },
+      { fid:68, name:'فطر (مشروم)',       qty:30, weight:4, phases:[], note:'مع الزبدة — رائع' },
+      { fid:63, name:'خس',               qty:20, weight:3, phases:[], note:'ورق طازج' },
       { fid:67, name:'هليون',            qty:80, weight:3, phases:[], note:'مشوي بالزبدة' },
       { fid:78, name:'بصل أخضر',         qty:20, weight:3, phases:[], note:'للنكهة' },
     ]
@@ -182,15 +182,15 @@ const EXCHANGE_GROUPS = {
     icon:    '🥦',
     std_serving: { protein: 2, carb: 3.5, cal: 30 },
     items: [
-      { fid:69, name:'بروكلي',            qty:100, weight:5, phases:[], note:'مطبوخ بالبخار أو مشوي' },
-      { fid:70, name:'قرنبيط (زهرة)',    qty:100, weight:5, phases:[], note:'بديل الأرز والبطاطس' },
-      { fid:73, name:'كوسا',             qty:100, weight:5, phases:[], note:'مع الثوم والزيت' },
+      { fid:69, name:'بروكلي',            qty:30, weight:5, phases:[], note:'مطبوخ بالبخار أو مشوي' },
+      { fid:70, name:'قرنبيط (زهرة)',    qty:30, weight:5, phases:[], note:'بديل الأرز والبطاطس' },
+      { fid:73, name:'كوسا',             qty:30, weight:5, phases:[], note:'مع الثوم والزيت' },
       { fid:71, name:'فلفل أخضر',        qty: 80, weight:4, phases:[], note:'مشوي أو طازج' },
       { fid:72, name:'فلفل أحمر/أصفر',  qty: 60, weight:3, phases:[], note:'كارب أعلى — كمية أقل' },
-      { fid:68, name:'فطر مشوي',         qty:100, weight:4, phases:[], note:'ممتاز مع اللحم' },
-      { fid:76, name:'باذنجان',          qty:100, weight:3, phases:[], note:'مشوي أو مقلي' },
-      { fid:64, name:'سبانخ مطبوخة',    qty:100, weight:4, phases:[], note:'تفقد حجمها كثيراً' },
-      { fid:65, name:'ملفوف (كرنب)',    qty:100, weight:4, phases:[], note:'مقلي بالزبدة' },
+      { fid:68, name:'فطر مشوي',         qty:30, weight:4, phases:[], note:'ممتاز مع اللحم' },
+      { fid:76, name:'باذنجان',          qty:30, weight:3, phases:[], note:'مشوي أو مقلي' },
+      { fid:64, name:'سبانخ مطبوخة',    qty:20, weight:4, phases:[], note:'تفقد حجمها كثيراً' },
+      { fid:65, name:'ملفوف (كرنب)',    qty:20, weight:4, phases:[], note:'مقلي بالزبدة' },
       { fid:82, name:'فاصوليا خضراء',   qty:100, weight:3, phases:[], note:'مسلوقة أو مشوية' },
       { fid:67, name:'هليون',           qty:100, weight:4, phases:[], note:'مشوي بالزيت والملح' },
     ]
@@ -205,13 +205,13 @@ const EXCHANGE_GROUPS = {
     icon:    '🥗',
     std_serving: { protein: 1, carb: 2.5, cal: 20 },
     items: [
-      { fid:63, name:'خس مشكل',          qty:80, weight:5, phases:[], note:'أساس السلطة' },
-      { fid:62, name:'جرجير',            qty:50, weight:5, phases:[], note:'نكهة حارة لطيفة' },
-      { fid:74, name:'خيار',             qty:80, weight:5, phases:[], note:'منعش ومنخفض الكارب' },
-      { fid:75, name:'طماطم شيري',       qty:60, weight:4, phases:[], note:'حلو وملون' },
-      { fid:64, name:'سبانخ طازجة',      qty:60, weight:4, phases:[], note:'مع الليمون والزيت' },
+      { fid:63, name:'خس مشكل',          qty:20, weight:5, phases:[], note:'أساس السلطة' },
+      { fid:62, name:'جرجير',            qty:20, weight:5, phases:[], note:'نكهة حارة لطيفة' },
+      { fid:74, name:'خيار',             qty:30, weight:5, phases:[], note:'منعش ومنخفض الكارب' },
+      { fid:75, name:'طماطم شيري',       qty:30, weight:4, phases:[], note:'حلو وملون' },
+      { fid:64, name:'سبانخ طازجة',      qty:20, weight:4, phases:[], note:'مع الليمون والزيت' },
       { fid:113,name:'زيتون',            qty:30, weight:5, phases:[], note:'دهن + نكهة' },
-      { fid:71, name:'فلفل أخضر',        qty:40, weight:3, phases:[], note:'قطع صغيرة' },
+      { fid:71, name:'فلفل أخضر',        qty:30, weight:3, phases:[], note:'قطع صغيرة' },
       { fid:78, name:'بصل أخضر مفروم',  qty:15, weight:3, phases:[], note:'للنكهة' },
     ]
   },
@@ -274,6 +274,24 @@ const EXCHANGE_GROUPS = {
      14. وصفات جاهزة كيتو
      الحصة المعيارية = وجبة كاملة أو وجبة جانبية
   ──────────────────────────────────────── */
+
+  /* ────────────────────────────────────────
+     16. بذور — مصدر ألياف ودهون صحية
+     الحصة المعيارية ≈ 5غ ألياف · 8غ دهون · 15-20غ
+  ──────────────────────────────────────── */
+  seeds_addon: {
+    name:    'بذور',
+    icon:    '🌱',
+    std_serving: { fiber: 5, fat: 8, carb: 1, cal: 75 },
+    items: [
+      { fid:56, name:'بذور الشيا',          qty:15, weight:5, phases:[], note:'أعلى ألياف — تُضاف للزبادي أو العصير' },
+      { fid:55, name:'بذور الكتان',         qty:15, weight:5, phases:[], note:'أوميغا 3 — تُطحن للاستفادة الكاملة' },
+      { fid:59, name:'بذور دوار الشمس',     qty:20, weight:4, phases:[], note:'مقرمشة — رائعة مع السلطة' },
+      { fid:57, name:'بذور اليقطين',        qty:20, weight:4, phases:[], note:'زنك وألياف' },
+      { fid:58, name:'بذور السمسم',         qty:15, weight:3, phases:[], note:'تاهيني أو ملوي' },
+    ]
+  },
+
   ready_recipes: {
     name:    'وصفات جاهزة',
     icon:    '🥗',
@@ -319,11 +337,12 @@ const MEAL_TEMPLATES = {
     icon:   '🌅',
     share:  { 2: 0.45, 3: 0.30 }, // نسبة من الأهداف اليومية
     groups: [
-      { group:'protein_breakfast', servings:1,   required:true  },
-      { group:'fat_solid',         servings:0.75, required:true  }, // ملعقة كبيرة تقريباً
-      { group:'fat_liquid',        servings:0.5,  required:false }, // إضافة
+      { group:'protein_breakfast', servings:1,    required:true  },
+      { group:'fat_solid',         servings:0.75, required:true  },
+      { group:'fat_liquid',        servings:0.5,  required:false },
       { group:'veg_breakfast',     servings:1,    required:true  },
-      { group:'nuts_addon',        servings:0.5,  required:false }, // اختياري
+      { group:'nuts_addon',        servings:0.5,  required:false },
+      { group:'seeds_addon',       servings:0.5,  required:false }, // بذور للألياف
     ],
     // توجيه: يُفضل نوعان من الدهون (صلب + سائل)
     fat_variety: ['fat_solid', 'fat_liquid'],
@@ -528,6 +547,29 @@ function buildSingleMeal(templateKey, targets, favIds, phase, skipFids, seed, me
       note:       pick.note || '',
       source:     favIds.includes(pick.fid) ? 'fav' : 'std',
     });
+  }
+
+  // ── فحص سقف السعرات ──
+  if(typeof getMealCalLimit !== 'undefined' && targets){
+    const prefs_bsm = mem ? (typeof getMemPrefs!=='undefined' ? getMemPrefs(mem) : {}) : {};
+    const calCap    = getMealCalLimit(
+      prefs_bsm.meals_per_day||3,
+      prefs_bsm.has_snack||false,
+      false
+    );
+    // إذا السعرات تتجاوز الحد → حذف آخر عنصر دهني اختياري
+    const totalCal = mealItems.reduce(function(s,i){
+      const f = FOODS.find(function(x){ return x.id===i.fid; });
+      return s + (f ? f.cal*i.qty/100 : 0);
+    }, 0);
+    if(totalCal > calCap * 1.15){
+      // احذف أول مجموعة دهن اختيارية
+      const optIdx = mealItems.findIndex(function(i){
+        return ['fat_solid','fat_liquid','fat_dairy'].includes(i.group) &&
+               !(['fat_liquid'].includes(i.group) && mealItems.filter(function(x){ return x.group==='fat_liquid'; }).length > 1);
+      });
+      if(optIdx >= 0) mealItems.splice(optIdx, 1);
+    }
   }
 
   return mealItems;
