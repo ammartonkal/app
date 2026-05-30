@@ -3212,10 +3212,52 @@ function buildMealSuggestion(mem, rem, phase){
       const satLim_ = dailySatLim_ ? dailySatLim_ * share_ : null;
       const favIds_ = mem?.favorites_foods || [];
       const phase_  = mem?.phase || 1;
+      console.log('[buildMeal] favIds_:', favIds_.length, favIds_.slice(0,5), '| phase:', phase_);
 
-      let tpl = typeof getBestLunchTemplate!=='undefined'
-        ? getBestLunchTemplate(remaining_, favIds_, phase_, satLim_, _mealSkipFids||[], window._suggSeed||0)
-        : null;
+      // ── اختيار قالب الغداء مباشرة (مدمج في index.html) ──
+      let tpl = (function(){
+        var _pool = (typeof LUNCH_TEMPLATES!=='undefined' ? LUNCH_TEMPLATES : []).filter(function(t){
+          if(t.phases && t.phases.length > 0 && !t.phases.includes(phase_)) return false;
+          if(t.keto_ratio < 1.4) return false;
+          if(satLim_ && t.macros && t.macros.sat_fat > satLim_ * 1.2) return false;
+          return true;
+        });
+        if(!_pool.length) return null;
+
+        // جمّع حسب fid البروتين (أول component)
+        var _groups = {};
+        _pool.forEach(function(t){
+          var pf = String((t.components && t.components[0] && t.components[0].fid) || '0');
+          if(!_groups[pf]) _groups[pf] = [];
+          _groups[pf].push(t);
+        });
+        var _allKeys = Object.keys(_groups);
+
+        // فلتر المفضلة: أنواع البروتين التي فيها favIds_
+        var _favKeys = favIds_.length > 0
+          ? _allKeys.filter(function(k){
+              return _groups[k].some(function(t){
+                return t.components && t.components.some(function(c){ return favIds_.includes(c.fid); });
+              });
+            })
+          : [];
+        var _pickKeys = (_favKeys.length >= 3) ? _favKeys : _allKeys;
+
+        // دوران كامل عبر كل أنواع البروتين
+        var _cKey = _pickKeys.slice().sort().join(',');
+        if(!window._lunchCycle || window._lunchCycle.key !== _cKey)
+          window._lunchCycle = {key:_cKey, used:{}};
+        var _used = window._lunchCycle.used;
+        var _unused = _pickKeys.filter(function(k){ return !_used[k]; });
+        if(!_unused.length){ window._lunchCycle.used={}; _used=window._lunchCycle.used; _unused=_pickKeys.slice(); }
+
+        var _rk = _unused[Math.floor(Math.random()*_unused.length)];
+        _used[_rk] = true;
+        var _grp = _groups[_rk] || _pool;
+        var _picked = _grp[Math.floor(Math.random()*_grp.length)];
+        console.log('[Lunch] fid:'+_rk+'|unused:'+ _unused.length+'/'+_pickKeys.length+'|fav:'+_favKeys.length);
+        return _picked || null;
+      })();
 
       if(tpl){
         tpl = typeof scaleMealToRemaining!=='undefined'
@@ -3262,9 +3304,42 @@ function buildMealSuggestion(mem, rem, phase){
       const favIds_ = mem?.favorites_foods || [];
       const phase_  = mem?.phase || 1;
 
-      let tpl = typeof getBestDinnerTemplate!=='undefined'
-        ? getBestDinnerTemplate(remaining_, favIds_, phase_, satLim_, _mealSkipFids||[], window._suggSeed||0)
-        : null;
+      // ── اختيار قالب العشاء مباشرة ──
+      let tpl = (function(){
+        var _pool = (typeof DINNER_TEMPLATES!=='undefined' ? DINNER_TEMPLATES : []).filter(function(t){
+          if(t.phases && t.phases.length > 0 && !t.phases.includes(phase_)) return false;
+          if(satLim_ && t.macros && t.macros.sat_fat > satLim_ * 1.2) return false;
+          return true;
+        });
+        if(!_pool.length) return null;
+        var _groups = {};
+        _pool.forEach(function(t){
+          var pf = String((t.components && t.components[0] && t.components[0].fid)||'0');
+          if(!_groups[pf]) _groups[pf]=[];
+          _groups[pf].push(t);
+        });
+        var _allKeys = Object.keys(_groups);
+        var _favKeys = favIds_.length > 0
+          ? _allKeys.filter(function(k){
+              return _groups[k].some(function(t){
+                return t.components&&t.components.some(function(c){ return favIds_.includes(c.fid); });
+              });
+            })
+          : [];
+        var _pickKeys = (_favKeys.length >= 3) ? _favKeys : _allKeys;
+        var _cKey = _pickKeys.slice().sort().join(',');
+        if(!window._dinnerCycle||window._dinnerCycle.key!==_cKey)
+          window._dinnerCycle={key:_cKey,used:{}};
+        var _used=window._dinnerCycle.used;
+        var _unused=_pickKeys.filter(function(k){return !_used[k];});
+        if(!_unused.length){window._dinnerCycle.used={};_used=window._dinnerCycle.used;_unused=_pickKeys.slice();}
+        var _rk=_unused[Math.floor(Math.random()*_unused.length)];
+        _used[_rk]=true;
+        var _grp=_groups[_rk]||_pool;
+        var _picked=_grp[Math.floor(Math.random()*_grp.length)];
+        console.log('[Dinner] fid:'+_rk+'|unused:'+_unused.length+'/'+_pickKeys.length);
+        return _picked||null;
+      })();
 
       if(tpl){
         tpl = typeof scaleMealToRemaining!=='undefined'
