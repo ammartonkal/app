@@ -2028,9 +2028,9 @@ const DINNER_TEMPLATES = [
 
 /* ─── اختر أفضل وصفة غداء حسب المتبقي والمفضلة ─── */
 function getBestLunchTemplate(remaining, favIds, phase, satLimit, skipFids, seed){
-  favIds   = favIds   || [];
-  seed     = seed     || 0;
+  favIds = favIds || [];
 
+  // ── 1. فلتر أساسي ──
   var pool = LUNCH_TEMPLATES.filter(function(t){
     if(t.phases && t.phases.length > 0 && !t.phases.includes(phase)) return false;
     if(t.keto_ratio < 1.4) return false;
@@ -2038,67 +2038,51 @@ function getBestLunchTemplate(remaining, favIds, phase, satLimit, skipFids, seed
     return true;
   });
 
-  // فلتر المفضلة: ابحث في كل components (ليس الأول فقط)
-  if(favIds.length > 0){
-    var favPool = pool.filter(function(t){
-      return t.components && t.components.some(function(c){ return favIds.includes(c.fid); });
-    });
-
-    // عدّ أنواع البروتين المختلفة (أول component = البروتين)
-    var favProtTypes = {};
-    favPool.forEach(function(t){
-      var pf = t.components && t.components[0] && t.components[0].fid;
-      if(pf) favProtTypes[pf] = true;
-    });
-
-    // إذا أقل من 4 أنواع بروتين → أكمل من pool الكاملة
-    if(Object.keys(favProtTypes).length < 4){
-      var extraPool = pool.filter(function(t){
-        var pf = t.components && t.components[0] && t.components[0].fid;
-        return !favProtTypes[pf];
-      });
-      var shuffled = extraPool.slice().sort(function(){ return Math.random()-0.5; });
-      pool = favPool.concat(shuffled.slice(0, Math.ceil(pool.length * 0.4)));
-    } else {
-      pool = favPool;
-    }
-  }
-
-  if(!pool.length) pool = LUNCH_TEMPLATES.filter(function(t){ return t.keto_ratio >= 1.4; });
-
-  // تشخيص مؤقت
-  console.log('[Lunch] pool:', pool.length, 'قالب | favIds:', favIds.length);
-
-  // جمّع حسب fid البروتين الفعلي
-  var groups = {};
+  // ── 2. جمّع حسب fid البروتين (أول component) ──
+  var allGroups = {};
   pool.forEach(function(t){
     var pf = String((t.components && t.components[0] && t.components[0].fid) || '0');
-    if(!groups[pf]) groups[pf] = [];
-    groups[pf].push(t);
+    if(!allGroups[pf]) allGroups[pf] = [];
+    allGroups[pf].push(t);
   });
-  var groupKeys = Object.keys(groups);
+  var allKeys = Object.keys(allGroups);
 
-  // استبعد آخر 3 بروتينات مستخدمة (قائمة دوّارة)
-  if(!window._recentProtFids) window._recentProtFids = [];
-  var recent    = window._recentProtFids;
-  var otherKeys = groupKeys.filter(function(k){ return recent.indexOf(k) === -1; });
-  var pickFrom  = otherKeys.length > 0 ? otherKeys : groupKeys;
-
-  // اختيار عشوائي من البروتينات غير المتكررة
-  var randKey = pickFrom[Math.floor(Math.random() * pickFrom.length)];
-  var chosen  = groups[randKey];
-  var picked  = chosen[Math.floor(Math.random() * chosen.length)];
-
-  // أضف للقائمة الدوّارة (max 3)
-  if(randKey){
-    recent.push(randKey);
-    if(recent.length > 2) recent.shift();
-    window._recentProtFids = recent;
+  // ── 3. حدّد المجموعات المفضلة ──
+  var favKeys = [];
+  if(favIds.length > 0){
+    favKeys = allKeys.filter(function(k){
+      // القالب فيه بروتين من المفضلة؟
+      var tpls = allGroups[k];
+      return tpls.some(function(t){
+        return t.components && t.components.some(function(c){ return favIds.includes(c.fid); });
+      });
+    });
   }
-  if(picked && picked.components && picked.components[0])
-    window._lastSuggProtFid = picked.components[0].fid;
+  // إذا لا مفضلة أو مفضلة قليلة → استخدم الكل
+  var pickKeys = (favKeys.length >= 3) ? favKeys : allKeys;
 
-  console.log('[Lunch] اختيار fid:', randKey, '| recent:', JSON.stringify(recent), '| groupKeys:', groupKeys.length, '| pickFrom:', pickFrom.length);
+  // ── 4. دوران كامل (لا يتكرر حتى يُكمل الدورة) ──
+  var cacheKey = pickKeys.slice().sort().join(',');
+  if(!window._lunchCycle || window._lunchCycle.key !== cacheKey){
+    window._lunchCycle = {key: cacheKey, used: {}};
+  }
+  var used = window._lunchCycle.used;
+  var unused = pickKeys.filter(function(k){ return !used[k]; });
+  if(unused.length === 0){
+    // اكتملت الدورة → أعد من الأول
+    window._lunchCycle.used = {};
+    used = window._lunchCycle.used;
+    unused = pickKeys.slice();
+  }
+
+  // ── 5. اختر عشوائياً من غير المستخدمة ──
+  var randKey = unused[Math.floor(Math.random() * unused.length)];
+  used[randKey] = true;
+
+  var group   = allGroups[randKey] || pool;
+  var picked  = group[Math.floor(Math.random() * group.length)];
+
+  console.log('[Lunch] fid:'+randKey+' | unused:'+unused.length+'/'+pickKeys.length+' | favKeys:'+favKeys.length);
   return picked || pool[0] || null;
 }
 
@@ -2106,7 +2090,6 @@ function getBestLunchTemplate(remaining, favIds, phase, satLimit, skipFids, seed
 /* ─── اختر أفضل وصفة عشاء حسب المتبقي الفعلي ─── */
 function getBestDinnerTemplate(remaining, favIds, phase, satLimit, skipFids, seed){
   favIds = favIds || [];
-  seed   = seed   || 0;
 
   var pool = DINNER_TEMPLATES.filter(function(t){
     if(t.phases && t.phases.length > 0 && !t.phases.includes(phase)) return false;
@@ -2114,58 +2097,45 @@ function getBestDinnerTemplate(remaining, favIds, phase, satLimit, skipFids, see
     return true;
   });
 
-  if(favIds.length > 0){
-    var favPool = pool.filter(function(t){
-      return t.components && t.components.some(function(c){ return favIds.includes(c.fid); });
-    });
-    var favProtTypes2 = {};
-    favPool.forEach(function(t){
-      var pf = t.components && t.components[0] && t.components[0].fid;
-      if(pf) favProtTypes2[pf] = true;
-    });
-    if(Object.keys(favProtTypes2).length < 4){
-      var extraPool2 = pool.filter(function(t){
-        var pf2 = t.components && t.components[0] && t.components[0].fid;
-        return !favProtTypes2[pf2];
-      });
-      var shuffled2 = extraPool2.slice().sort(function(){ return Math.random()-0.5; });
-      pool = favPool.concat(shuffled2.slice(0, Math.ceil(pool.length * 0.4)));
-    } else {
-      pool = favPool;
-    }
-  }
-
-  if(!pool.length) pool = DINNER_TEMPLATES.filter(function(t){ return t.keto_ratio >= 1.4; });
-
-  var groups = {};
+  var allGroups = {};
   pool.forEach(function(t){
     var pf = String((t.components && t.components[0] && t.components[0].fid) || '0');
-    if(!groups[pf]) groups[pf] = [];
-    groups[pf].push(t);
+    if(!allGroups[pf]) allGroups[pf] = [];
+    allGroups[pf].push(t);
   });
-  var groupKeys = Object.keys(groups);
-  // دوران كامل للعشاء
-  var _poolKey2 = groupKeys.slice().sort().join(',');
-  if(!window._usedProtFidsDinner || window._usedProtFidsDinner._key !== _poolKey2){
-    window._usedProtFidsDinner = {_key: _poolKey2};
+  var allKeys = Object.keys(allGroups);
+
+  var favKeys = [];
+  if(favIds.length > 0){
+    favKeys = allKeys.filter(function(k){
+      return allGroups[k].some(function(t){
+        return t.components && t.components.some(function(c){ return favIds.includes(c.fid); });
+      });
+    });
   }
-  var _used2 = window._usedProtFidsDinner;
-  var unusedKeys2 = groupKeys.filter(function(k){ return !_used2[k]; });
-  if(unusedKeys2.length === 0){
-    window._usedProtFidsDinner = {_key: _poolKey2};
-    _used2 = window._usedProtFidsDinner;
-    unusedKeys2 = groupKeys.slice();
+  var pickKeys = (favKeys.length >= 3) ? favKeys : allKeys;
+
+  var cacheKey = pickKeys.slice().sort().join(',');
+  if(!window._dinnerCycle || window._dinnerCycle.key !== cacheKey){
+    window._dinnerCycle = {key: cacheKey, used: {}};
   }
-  var randKey = unusedKeys2[Math.floor(Math.random() * unusedKeys2.length)];
-  _used2[randKey] = true;
-  var chosen = groups[randKey] || [pool[0]];
-  var picked = chosen[Math.floor(Math.random() * chosen.length)];
-  if(picked && picked.components && picked.components[0])
-    window._lastSuggProtFid = picked.components[0].fid;
-  console.log('[Dinner] fid:', randKey, '| بقي:', unusedKeys2.length-1, '/', groupKeys.length);
+  var used = window._dinnerCycle.used;
+  var unused = pickKeys.filter(function(k){ return !used[k]; });
+  if(unused.length === 0){
+    window._dinnerCycle.used = {};
+    used = window._dinnerCycle.used;
+    unused = pickKeys.slice();
+  }
+
+  var randKey = unused[Math.floor(Math.random() * unused.length)];
+  used[randKey] = true;
+
+  var group  = allGroups[randKey] || pool;
+  var picked = group[Math.floor(Math.random() * group.length)];
+
+  console.log('[Dinner] fid:'+randKey+' | unused:'+unused.length+'/'+pickKeys.length);
   return picked || pool[0] || null;
 }
-
 
 
 /* ─── تحجيم الوجبة حسب المتبقي ─── */
