@@ -3266,8 +3266,26 @@ function buildMealSuggestion(mem, rem, phase){
         var _rk = _unused[Math.floor(Math.random()*_unused.length)];
         _used[_rk] = true;
         var _grp = _groups[_rk] || _pool;
-        var _picked = _grp[Math.floor(Math.random()*_grp.length)];
-        console.log('[Lunch] fid:'+_rk+'|unused:'+ _unused.length+'/'+_pickKeys.length+'|fav:'+_favKeys.length);
+        // دوران على الدهن+الخضار داخل مجموعة البروتين
+        if(!window._lunchSubCycle) window._lunchSubCycle = {};
+        var _subKey = _rk + '|' + _cKey;
+        if(!window._lunchSubCycle[_subKey]){
+          window._lunchSubCycle[_subKey] = {used:{}};
+        }
+        var _subUsed = window._lunchSubCycle[_subKey].used;
+        var _subUnused = _grp.filter(function(t){ return !_subUsed[t.id]; });
+        if(!_subUnused.length){
+          window._lunchSubCycle[_subKey].used = {};
+          _subUsed = window._lunchSubCycle[_subKey].used;
+          _subUnused = _grp.slice();
+        }
+        var _picked = _subUnused[Math.floor(Math.random()*_subUnused.length)];
+        if(_picked) _subUsed[_picked.id] = true;
+        var _fat_fid = _picked && _picked.components ? 
+          (_picked.components.find(function(c){return c.role==='fat';}) || {}).fid : '?';
+        var _veg_fid = _picked && _picked.components ? 
+          (_picked.components.find(function(c){return c.role==='veg';}) || {}).fid : '?';
+        console.log('[Lunch] prot:'+_rk+'|fat:'+_fat_fid+'|veg:'+_veg_fid+'|tpl:'+(_picked&&_picked.id));
         return _picked || null;
       })();
 
@@ -3349,7 +3367,14 @@ function buildMealSuggestion(mem, rem, phase){
         var _rk=_unused[Math.floor(Math.random()*_unused.length)];
         _used[_rk]=true;
         var _grp=_groups[_rk]||_pool;
-        var _picked=_grp[Math.floor(Math.random()*_grp.length)];
+        if(!window._dinnerSubCycle) window._dinnerSubCycle={};
+        var _subKey2=_rk+'|'+_cKey;
+        if(!window._dinnerSubCycle[_subKey2]) window._dinnerSubCycle[_subKey2]={used:{}};
+        var _subUsed2=window._dinnerSubCycle[_subKey2].used;
+        var _subUnused2=_grp.filter(function(t){return !_subUsed2[t.id];});
+        if(!_subUnused2.length){window._dinnerSubCycle[_subKey2].used={};_subUsed2=window._dinnerSubCycle[_subKey2].used;_subUnused2=_grp.slice();}
+        var _picked=_subUnused2[Math.floor(Math.random()*_subUnused2.length)];
+        if(_picked) _subUsed2[_picked.id]=true;
         console.log('[Dinner] fid:'+_rk+'|unused:'+_unused.length+'/'+_pickKeys.length);
         return _picked||null;
       })();
@@ -3561,9 +3586,74 @@ function _enrichMealSuggestion(sugg, mem){
   if(!sugg || !sugg.items) return sugg;
 
   const favIds  = mem?.favorites_foods || [];
+  const phase   = mem?.phase || 1;
+
+  // ── استبدال الخضار والدهون بأصناف من db-foods حسب المرحلة ──
+  const VEG_CAT  = ['خضار'];
+  const FAT_CAT  = ['دهون'];
+
+  // خضار مسموحة في هذه المرحلة من db-foods
+  const allowedVeg = (typeof FOODS!=='undefined' ? FOODS : []).filter(function(f){
+    return VEG_CAT.some(function(c){ return f.cat && f.cat.includes(c); }) &&
+           f.keto_class <= 2 && f.net_carb <= 8 &&
+           (!f.phases_allowed || !f.phases_allowed.length || f.phases_allowed.includes(phase));
+  });
+
+  // دهون مسموحة في هذه المرحلة من db-foods
+  const allowedFat = (typeof FOODS!=='undefined' ? FOODS : []).filter(function(f){
+    return FAT_CAT.some(function(c){ return f.cat && f.cat.includes(c); }) &&
+           f.keto_class <= 2 &&
+           (!f.phases_allowed || !f.phases_allowed.length || f.phases_allowed.includes(phase));
+  });
+
+  // دالة اختيار عشوائي مع تفضيل المفضلة + دوران
+  function pickRotating(pool, cacheKey, preferFavs){
+    if(!pool.length) return null;
+    var favPool = preferFavs && favIds.length
+      ? pool.filter(function(f){ return favIds.includes(f.id); }) : [];
+    var pickPool = favPool.length ? favPool : pool;
+    if(!window._enrichCycle) window._enrichCycle = {};
+    if(!window._enrichCycle[cacheKey]) window._enrichCycle[cacheKey] = {used:{}};
+    var used = window._enrichCycle[cacheKey].used;
+    var unused = pickPool.filter(function(f){ return !used[f.id]; });
+    if(!unused.length){
+      window._enrichCycle[cacheKey].used = {};
+      used = window._enrichCycle[cacheKey].used;
+      unused = pickPool.slice();
+    }
+    var picked = unused[Math.floor(Math.random()*unused.length)];
+    if(picked) used[picked.id] = true;
+    return picked;
+  }
+
   const newItems = sugg.items.map(function(i){
-    return {fid: i.fid||(i.food&&i.food.id), qty: i.qty, isNew: false,
-            food: i.food, displayQty: i.displayQty, source: i.source};
+    var fid  = i.fid||(i.food&&i.food.id);
+    var food = i.food || (typeof FOODS!=='undefined' ? FOODS.find(function(x){return x.id===fid;}) : null);
+    if(!food) return {fid:fid, qty:i.qty, isNew:false, food:food, displayQty:i.displayQty, source:i.source};
+
+    // استبدل الخضار بخضار من db-foods
+    if(food.cat && food.cat.includes('خضار') && allowedVeg.length > 1 && !i.isNew){
+      var newVeg = pickRotating(allowedVeg, 'veg_'+phase, true);
+      if(newVeg && newVeg.id !== fid){
+        var newQty = Math.min(i.qty||80, 100);
+        return {fid:newVeg.id, qty:newQty, isNew:false, food:newVeg,
+          displayQty:typeof humanQty!=='undefined'?humanQty(newVeg,newQty):newQty+'غ',
+          source:favIds.includes(newVeg.id)?'fav':'std'};
+      }
+    }
+
+    // استبدل الدهون بدهون من db-foods
+    if(food.cat && food.cat.includes('دهون') && allowedFat.length > 1 && !i.isNew){
+      var newFat = pickRotating(allowedFat, 'fat_'+phase, true);
+      if(newFat && newFat.id !== fid){
+        var fatQty = i.qty||14;
+        return {fid:newFat.id, qty:fatQty, isNew:false, food:newFat,
+          displayQty:typeof humanQty!=='undefined'?humanQty(newFat,fatQty):fatQty+'غ',
+          source:favIds.includes(newFat.id)?'fav':'std'};
+      }
+    }
+
+    return {fid:fid, qty:i.qty, isNew:false, food:food, displayQty:i.displayQty, source:i.source};
   });
   const additions = [];
 
