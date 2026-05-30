@@ -2066,6 +2066,9 @@ function getBestLunchTemplate(remaining, favIds, phase, satLimit, skipFids, seed
 
   if(!pool.length) pool = LUNCH_TEMPLATES.filter(function(t){ return t.keto_ratio >= 1.4; });
 
+  // تشخيص مؤقت
+  console.log('[Lunch] pool:', pool.length, 'قالب | favIds:', favIds.length);
+
   // جمّع حسب fid البروتين الفعلي
   var groups = {};
   pool.forEach(function(t){
@@ -2089,12 +2092,13 @@ function getBestLunchTemplate(remaining, favIds, phase, satLimit, skipFids, seed
   // أضف للقائمة الدوّارة (max 3)
   if(randKey){
     recent.push(randKey);
-    if(recent.length > 3) recent.shift();
+    if(recent.length > 2) recent.shift();
     window._recentProtFids = recent;
   }
   if(picked && picked.components && picked.components[0])
     window._lastSuggProtFid = picked.components[0].fid;
 
+  console.log('[Lunch] اختيار fid:', randKey, '| recent:', JSON.stringify(recent), '| groupKeys:', groupKeys.length, '| pickFrom:', pickFrom.length);
   return picked || pool[0] || null;
 }
 
@@ -2140,22 +2144,28 @@ function getBestDinnerTemplate(remaining, favIds, phase, satLimit, skipFids, see
     groups[pf].push(t);
   });
   var groupKeys = Object.keys(groups);
-  if(!window._recentProtFids) window._recentProtFids = [];
-  var recent2   = window._recentProtFids;
-  var otherKeys = groupKeys.filter(function(k){ return recent2.indexOf(k) === -1; });
-  var pickFrom  = otherKeys.length > 0 ? otherKeys : groupKeys;
-  var randKey   = pickFrom[Math.floor(Math.random() * pickFrom.length)];
-  var chosen    = groups[randKey];
-  var picked    = chosen[Math.floor(Math.random() * chosen.length)];
-  if(randKey){
-    recent2.push(randKey);
-    if(recent2.length > 3) recent2.shift();
-    window._recentProtFids = recent2;
+  // دوران كامل للعشاء
+  var _poolKey2 = groupKeys.slice().sort().join(',');
+  if(!window._usedProtFidsDinner || window._usedProtFidsDinner._key !== _poolKey2){
+    window._usedProtFidsDinner = {_key: _poolKey2};
   }
+  var _used2 = window._usedProtFidsDinner;
+  var unusedKeys2 = groupKeys.filter(function(k){ return !_used2[k]; });
+  if(unusedKeys2.length === 0){
+    window._usedProtFidsDinner = {_key: _poolKey2};
+    _used2 = window._usedProtFidsDinner;
+    unusedKeys2 = groupKeys.slice();
+  }
+  var randKey = unusedKeys2[Math.floor(Math.random() * unusedKeys2.length)];
+  _used2[randKey] = true;
+  var chosen = groups[randKey] || [pool[0]];
+  var picked = chosen[Math.floor(Math.random() * chosen.length)];
   if(picked && picked.components && picked.components[0])
     window._lastSuggProtFid = picked.components[0].fid;
+  console.log('[Dinner] fid:', randKey, '| بقي:', unusedKeys2.length-1, '/', groupKeys.length);
   return picked || pool[0] || null;
 }
+
 
 
 /* ─── تحجيم الوجبة حسب المتبقي ─── */
