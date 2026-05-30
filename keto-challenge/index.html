@@ -2879,7 +2879,8 @@ function refreshSuggestion(){
   // احسب الاقتراح مع shuffle لاختيار قالب مختلف
   if(typeof buildMealSuggestion!=='undefined'){
     // أضف seed عشوائي لتغيير القالب
-    window._suggSeed = (window._suggSeed||0) + 1;
+    // seed عشوائي لكل ضغطة → تنويع حقيقي
+    window._suggSeed = Math.floor(Math.random() * 1000);
     const sugg = buildMealSuggestion(mem, rem, phase);
     if(!sugg){ rDash(); return; }
     const enriched = typeof _enrichMealSuggestion!=='undefined'
@@ -3114,13 +3115,18 @@ function buildMealSuggestion(mem, rem, phase){
         if(!fatGroups_[fatFid]) fatGroups_[fatFid] = [];
         fatGroups_[fatFid].push(t);
       });
-      const fatKeys_  = Object.keys(fatGroups_).sort();
-      const seed_     = window._suggSeed || 0;
-      const gIdx_     = seed_ % fatKeys_.length;
-      const gPool_    = fatGroups_[fatKeys_[gIdx_]];
-      const tIdx_     = Math.floor(seed_ / fatKeys_.length) % gPool_.length;
-      const picked_   = gPool_[tIdx_] || pool_[0];
-      if(picked_) window._lastSuggTemplateId = picked_.id;
+      const fatKeys_    = Object.keys(fatGroups_);
+      // تجنب نفس نوع الدهن المستخدم آخر مرة
+      const _lastFat_   = String(window._lastBfFatFid||'');
+      const _otherFats_ = fatKeys_.filter(function(k){ return k!==_lastFat_; });
+      const _pickFats_  = _otherFats_.length>0 ? _otherFats_ : fatKeys_;
+      const _randFatKey_= _pickFats_[Math.floor(Math.random()*_pickFats_.length)];
+      const gPool_      = fatGroups_[_randFatKey_] || pool_;
+      const picked_     = gPool_[Math.floor(Math.random()*gPool_.length)];
+      if(picked_){
+        window._lastSuggTemplateId = picked_.id;
+        window._lastBfFatFid = _randFatKey_;
+      }
 
       if(picked_){
         const scaled_ = eggCount_ !== picked_.egg_count

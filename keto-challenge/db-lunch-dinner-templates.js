@@ -2029,10 +2029,9 @@ const DINNER_TEMPLATES = [
 /* ─── اختر أفضل وصفة غداء حسب المتبقي والمفضلة ─── */
 function getBestLunchTemplate(remaining, favIds, phase, satLimit, skipFids, seed){
   favIds   = favIds   || [];
-  skipFids = skipFids || [];
   seed     = seed     || 0;
 
-  let pool = LUNCH_TEMPLATES.filter(function(t){
+  var pool = LUNCH_TEMPLATES.filter(function(t){
     if(t.phases && t.phases.length > 0 && !t.phases.includes(phase)) return false;
     if(t.keto_ratio < 1.4) return false;
     if(satLimit && t.macros && t.macros.sat_fat > satLimit * 1.2) return false;
@@ -2041,8 +2040,8 @@ function getBestLunchTemplate(remaining, favIds, phase, satLimit, skipFids, seed
 
   // فلتر المفضلة بـ fid البروتين (أول component)
   if(favIds.length > 0){
-    const favPool = pool.filter(function(t){
-      const protFid = t.components && t.components[0] && t.components[0].fid;
+    var favPool = pool.filter(function(t){
+      var protFid = t.components && t.components[0] && t.components[0].fid;
       return favIds.includes(protFid);
     });
     if(favPool.length > 0) pool = favPool;
@@ -2050,37 +2049,47 @@ function getBestLunchTemplate(remaining, favIds, phase, satLimit, skipFids, seed
 
   if(!pool.length) pool = LUNCH_TEMPLATES.filter(function(t){ return t.keto_ratio >= 1.4; });
 
-  // جمّع حسب fid البروتين الفعلي لضمان التنويع
+  // جمّع حسب fid البروتين الفعلي
   var groups = {};
   pool.forEach(function(t){
-    var protFid = String((t.components && t.components[0] && t.components[0].fid) || '0');
-    if(!groups[protFid]) groups[protFid] = [];
-    groups[protFid].push(t);
+    var pf = String((t.components && t.components[0] && t.components[0].fid) || '0');
+    if(!groups[pf]) groups[pf] = [];
+    groups[pf].push(t);
   });
-  var groupKeys   = Object.keys(groups).sort();
-  var groupIdx    = seed % groupKeys.length;
-  var chosenGroup = groups[groupKeys[groupIdx]] || pool;
-  var tplIdx      = Math.floor(seed / groupKeys.length) % chosenGroup.length;
-  return chosenGroup[tplIdx] || pool[0] || null;
+  var groupKeys = Object.keys(groups);
+
+  // استبعد البروتين الأخير المستخدم (تشجيع التنويع)
+  var lastProt  = String(window._lastSuggProtFid || '');
+  var otherKeys = groupKeys.filter(function(k){ return k !== lastProt; });
+  var pickFrom  = otherKeys.length > 0 ? otherKeys : groupKeys;
+
+  // اختيار عشوائي حقيقي
+  var randKey   = pickFrom[Math.floor(Math.random() * pickFrom.length)];
+  var chosen    = groups[randKey];
+  var picked    = chosen[Math.floor(Math.random() * chosen.length)];
+
+  // احفظ البروتين المختار لتجنبه في المرة القادمة
+  if(picked && picked.components && picked.components[0])
+    window._lastSuggProtFid = picked.components[0].fid;
+
+  return picked || pool[0] || null;
 }
 
 
 /* ─── اختر أفضل وصفة عشاء حسب المتبقي الفعلي ─── */
 function getBestDinnerTemplate(remaining, favIds, phase, satLimit, skipFids, seed){
-  favIds   = favIds   || [];
-  skipFids = skipFids || [];
-  seed     = seed     || 0;
+  favIds = favIds || [];
+  seed   = seed   || 0;
 
-  let pool = DINNER_TEMPLATES.filter(function(t){
+  var pool = DINNER_TEMPLATES.filter(function(t){
     if(t.phases && t.phases.length > 0 && !t.phases.includes(phase)) return false;
     if(satLimit && t.macros && t.macros.sat_fat > satLimit * 1.2) return false;
     return true;
   });
 
-  // فلتر المفضلة — حسب fid البروتين (أول component) فقط
   if(favIds.length > 0){
-    const favPool = pool.filter(function(t){
-      const protFid = t.components && t.components[0] && t.components[0].fid;
+    var favPool = pool.filter(function(t){
+      var protFid = t.components && t.components[0] && t.components[0].fid;
       return favIds.includes(protFid);
     });
     if(favPool.length > 0) pool = favPool;
@@ -2088,19 +2097,24 @@ function getBestDinnerTemplate(remaining, favIds, phase, satLimit, skipFids, see
 
   if(!pool.length) pool = DINNER_TEMPLATES.filter(function(t){ return t.keto_ratio >= 1.4; });
 
-  // جمّع حسب fid البروتين الفعلي
-  const groups = {};
+  var groups = {};
   pool.forEach(function(t){
-    const protFid = String((t.components && t.components[0] && t.components[0].fid) || 'other');
-    if(!groups[protFid]) groups[protFid] = [];
-    groups[protFid].push(t);
+    var pf = String((t.components && t.components[0] && t.components[0].fid) || '0');
+    if(!groups[pf]) groups[pf] = [];
+    groups[pf].push(t);
   });
-  const groupKeys = Object.keys(groups).sort();
-  const groupIdx  = seed % groupKeys.length;
-  const chosen    = groups[groupKeys[groupIdx]];
-  const tplIdx    = Math.floor(seed / groupKeys.length) % chosen.length;
-  return chosen[tplIdx] || null;
+  var groupKeys = Object.keys(groups);
+  var lastProt  = String(window._lastSuggProtFid || '');
+  var otherKeys = groupKeys.filter(function(k){ return k !== lastProt; });
+  var pickFrom  = otherKeys.length > 0 ? otherKeys : groupKeys;
+  var randKey   = pickFrom[Math.floor(Math.random() * pickFrom.length)];
+  var chosen    = groups[randKey];
+  var picked    = chosen[Math.floor(Math.random() * chosen.length)];
+  if(picked && picked.components && picked.components[0])
+    window._lastSuggProtFid = picked.components[0].fid;
+  return picked || pool[0] || null;
 }
+
 
 /* ─── تحجيم الوجبة حسب المتبقي ─── */
 function scaleMealToRemaining(template, remaining){
