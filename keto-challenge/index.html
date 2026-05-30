@@ -2909,13 +2909,13 @@ function openSuggInCalc(items){
 
   if(!cleanItems.length){ alert('لا توجد مكونات'); return; }
 
-  // بناء calcItems مع _sel
+  // بناء calcItems مع _lockedQty لمنع إعادة الحساب
   if(typeof calcItems!=='undefined'){
     calcItems = cleanItems.map(function(i){
       const uType = typeof _calcGetUnitType!=='undefined' ? _calcGetUnitType(i.fid) : null;
       const sel   = (uType && typeof _buildSelForItem!=='undefined')
         ? _buildSelForItem(uType, i.fid, i.qty) : {};
-      return {fid:i.fid, qty:i.qty, _sel:sel};
+      return {fid:i.fid, qty:i.qty, _sel:sel, _lockedQty:true};
     });
   }
   if(typeof _calcSelected!=='undefined')
@@ -3104,11 +3104,22 @@ function buildMealSuggestion(mem, rem, phase){
       });
 
       const fromFav_ = eligible_.filter(t => t.components.some(c => favIds_.includes(c.fid)));
-      // تجاهل القالب الأخير المستخدم عند الضغط على "تغيير"
-      const _skipId   = window._lastSuggTemplateId || null;
-      const pool_     = fromFav_.length ? fromFav_ : eligible_;
-      const filtered_ = _skipId ? pool_.filter(t=>t.id!==_skipId) : pool_;
-      const picked_   = (filtered_.length ? filtered_ : pool_)[0];
+      const pool_    = fromFav_.length ? fromFav_ : eligible_;
+
+      // تنويع حسب نوع الدهن (زيت زيتون / سمن / زبدة)
+      const FAT_FIDS_ = [1,3,4,5,6,7];
+      const fatGroups_ = {};
+      pool_.forEach(function(t){
+        const fatFid = (t.components.find(function(c){ return FAT_FIDS_.includes(c.fid); })||{}).fid || 'other';
+        if(!fatGroups_[fatFid]) fatGroups_[fatFid] = [];
+        fatGroups_[fatFid].push(t);
+      });
+      const fatKeys_  = Object.keys(fatGroups_).sort();
+      const seed_     = window._suggSeed || 0;
+      const gIdx_     = seed_ % fatKeys_.length;
+      const gPool_    = fatGroups_[fatKeys_[gIdx_]];
+      const tIdx_     = Math.floor(seed_ / fatKeys_.length) % gPool_.length;
+      const picked_   = gPool_[tIdx_] || pool_[0];
       if(picked_) window._lastSuggTemplateId = picked_.id;
 
       if(picked_){

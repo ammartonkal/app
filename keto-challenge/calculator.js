@@ -609,7 +609,9 @@ function calcTotalFiber(items){
 function _renderCalcItems(){
   if(!calcItems.length) return '';
   // أولاً: أعد حساب qty من _sel لكل صنف لضمان التزامن
+  // استثناء: إذا item._lockedQty = true (قادم من اقتراح الوجبة) → لا تُعيد الحساب
   calcItems.forEach(function(item){
+    if(item._lockedQty) return; // احتفظ بالـ qty الأصلي من الاقتراح
     const isExt2   = typeof item.fid==='string' && item.fid.startsWith('ext:');
     const numFid2  = isExt2 ? null : parseInt(item.fid);
     const uType2   = isExt2 ? item.fid.replace('ext:','')
