@@ -2311,8 +2311,25 @@ function humanQty(food, grams){
 /* ─── بناء اقتراح الوجبة الرئيسية ─── */
 /* يستخدم db-meals-logic.js — getNextMealPlan() */
 function buildMealSuggestion(mem, rem, phase){
-  // استدعاء getNextMealPlan من db-meals-logic.js
   if(typeof getNextMealPlan === 'undefined') return null;
+
+  // ── قراءة الحدود المتفق عليها ──
+  const prefs2    = getMemPrefs(mem);
+  const mealsN2   = prefs2.meals_per_day || 3;
+  const hasSnack2 = prefs2.has_snack || false;
+  const mti2      = getMealType(mem);
+  const isSnack2  = mti2?.type === 'snack';
+  // سقف السعرات حسب خطة الوجبات
+  const calLimit2 = typeof getMealCalLimit!=='undefined'
+    ? getMealCalLimit(mealsN2, hasSnack2, isSnack2)
+    : (mealsN2===3 && hasSnack2 ? 500 : mealsN2===3 ? 600 : 700);
+  // الكارب الصافٍ: 5-10غ للوجبة الرئيسية، 3غ للسناك
+  const carbMin2  = isSnack2 ? 0  : 5;
+  const carbMax2  = isSnack2 ? 3  : 10;
+  // البروتين الأدنى متحرك
+  const dayProt2  = (rem&&rem.protein_target) || (typeof getTargetForDate!=='undefined'
+    ? (getTargetForDate(mem)?.protein||90) : 90);
+  const protMin2  = dayProt2<70 ? 20 : dayProt2<90 ? 25 : 30;
   // للفطور: استخدم BREAKFAST_EGG_TEMPLATES إذا متاحة
   if(typeof BREAKFAST_EGG_TEMPLATES !== 'undefined'){
     const mealTypeCheck = getMealType(mem);
@@ -2737,7 +2754,7 @@ function renderSuggSection(mem, rem, phase){
         <span style="font-size:20px">${mealTypeInfo.icon}</span>
         <div>
           <div class="sugg-title">اقتراح ${mealTypeInfo.label} — الوجبة ${sugg.mealNumber} من ${sugg.totalMeals}</div>
-          <div class="sugg-sub">حصة ${Math.round((sugg.share||0.33)*100)}% من الأهداف اليومية · هدف النسبة ≥${ketoTarget}</div>
+          <div class="sugg-sub">حصة ${Math.round((sugg.share||0.33)*100)}% · نسبة كيتو ≥${ketoTarget} · سعرات ≤${typeof getMealCalLimit!=='undefined'?getMealCalLimit(prefs.meals_per_day||3,prefs.has_snack||false,mealTypeInfo?.type==='snack'):600}</div>
           ${sugg.cookingTip ? `<div style="font-size:10px;color:var(--accent);margin-top:2px">👨‍🍳 ${sugg.cookingTip}</div>` : ''}
         </div>
       </div>
@@ -3250,13 +3267,45 @@ function _suggSaveToFav(){
 
 /* ─── فتح الاقتراح في حاسبة الوصفة ─── */
 function openSuggInCalc(items){
-  closeSuggModal();
-  calcItems = items.map(i=>({fid:i.fid, qty:i.qty}));
+  if(typeof closeSuggModal!=='undefined') closeSuggModal();
+
+  // ── تهيئة حاسبة الوصفة بالمكونات المقترحة ──
+  // 1. بناء calcItems مع _sel مناسب
+  calcItems = items.map(function(i){
+    const uType = typeof _calcGetUnitType!=='undefined' ? _calcGetUnitType(i.fid) : null;
+    const sel   = (uType && typeof _buildSelForItem!=='undefined')
+      ? _buildSelForItem(uType, i.fid, i.qty)
+      : {};
+    return {fid:i.fid, qty:i.qty, _sel:sel};
+  });
+
+  // 2. استخرج الـ fids لـ _calcSelected
+  _calcSelected = items.map(function(i){ return i.fid; });
+
+  // 3. ضع الحاسبة في وضع "بُنيت"
+  _calcBuilt = true;
+  _calcMode  = 'manual';
+
+  // 4. حضّر حد الكارب من المرحلة
+  const _sugg_mem = MEMBERS.find(function(m){ return m.uid===(CU&&CU.id); });
+  if(_sugg_mem && typeof _calcCarbLimit!=='undefined'){
+    // استخدم الحد الذكي من المرحلة
+    const _sp = _sugg_mem.phase || 1;
+    const CARB_PCT = {0:0.07,1:0.05,2:0.05,3:0.05,4:0.05,5:0.07,6:0.10,7:0.10};
+    const _dt = typeof getTargetForDate!=='undefined' ? getTargetForDate(_sugg_mem) : {cal:1800};
+    const _dayCarbG = Math.round((_dt.cal||1800)*CARB_PCT[_sp]/4);
+    const _prefs2   = typeof getMemPrefs!=='undefined' ? getMemPrefs(_sugg_mem) : {};
+    const _share2   = (_prefs2.meals_per_day===2) ? 0.44 : 0.29;
+    _calcCarbLimit  = Math.min(10, Math.round(_dayCarbG * _share2));
+  }
+
+  // 5. انتقل للحاسبة
   gp('calculator');
-  renderCI();
-  updateCR();
-  // أضف شريط الإجراءات إذا لم يكن موجوداً
-  setTimeout(_addCalcActionBar, 100);
+
+  // 6. رسم بعد 150ms لضمان تحميل الصفحة
+  setTimeout(function(){
+    if(typeof rCalc!=='undefined') rCalc();
+  }, 150);
 }
 
 /* ─── شريط الإجراءات في حاسبة الوصفة ─── */
