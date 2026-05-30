@@ -3567,12 +3567,18 @@ function _enrichMealSuggestion(sugg, mem){
     }
   }
 
-  // D. بروتين ≥30غ ديناميكي
+  // D. بروتين — استخدم كمية القالب الأصلي إذا وُجدت
   const dayProt2  = dayTgt.protein||90;
   const dynMin    = dayProt2<70?20:dayProt2<90?25:30;
   const protNeeded= Math.max(dynMin, mealProt*0.80);
   const hasEgg    = protSrcs.find(function(f){ return f.id===10; });
-  let eggQty      = hasEgg ? eggPref*55 : 0;
+  // ابحث في الاقتراح الأصلي عن كمية البروتين
+  const origProtQty = sugg && sugg.items
+    ? (function(){
+        var o={}; sugg.items.forEach(function(i){ o[i.fid||i.food?.id]=i.qty; }); return o;
+      })()
+    : {};
+  let eggQty = hasEgg ? (origProtQty[10] || eggPref*55) : 0;
   if(hasEgg){
     const eggCal = (FOODS.find(function(x){return x.id===10;})||{cal:143}).cal * eggQty/100;
     if(eggCal > mealCal*0.65) eggQty = Math.max(55, eggQty-55);
@@ -3590,7 +3596,9 @@ function _enrichMealSuggestion(sugg, mem){
       qty = eggQty;
     } else {
       if(eggCovers||perOther<=0) return;
-      const rawG = perOther/f.protein*100;
+      // استخدم كمية القالب الأصلي إذا وُجدت
+      const origQ = origProtQty[f.id] || 0;
+      const rawG  = origQ > 0 ? origQ : perOther/f.protein*100;
       const lower = Math.max(50, Math.floor(rawG/50)*50);
       const upper = lower+50;
       qty = Math.min((upper-rawG)<(rawG-lower)*0.8?upper:lower, 250);
