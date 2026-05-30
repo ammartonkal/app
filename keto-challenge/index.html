@@ -3195,7 +3195,7 @@ function buildMealSuggestion(mem, rem, phase){
       const phase_  = mem?.phase || 1;
 
       let tpl = typeof getBestLunchTemplate!=='undefined'
-        ? getBestLunchTemplate(remaining_, favIds_, phase_, satLim_, _mealSkipFids||[])
+        ? getBestLunchTemplate(remaining_, favIds_, phase_, satLim_, _mealSkipFids||[], window._suggSeed||0)
         : null;
 
       if(tpl){
@@ -3244,7 +3244,7 @@ function buildMealSuggestion(mem, rem, phase){
       const phase_  = mem?.phase || 1;
 
       let tpl = typeof getBestDinnerTemplate!=='undefined'
-        ? getBestDinnerTemplate(remaining_, favIds_, phase_, satLim_, _mealSkipFids||[])
+        ? getBestDinnerTemplate(remaining_, favIds_, phase_, satLim_, _mealSkipFids||[], window._suggSeed||0)
         : null;
 
       if(tpl){
@@ -3453,295 +3453,87 @@ function _renderSnackCard(snack){
 function _enrichMealSuggestion(sugg, mem){
   if(!sugg || !sugg.items) return sugg;
 
-  const prefs    = getMemPrefs(mem);
-  const phase    = mem?.phase || 1;
-  const mealsN   = prefs.meals_per_day || 3;
-  const hasSnack = prefs.has_snack || false;
-  const mealType = sugg.mealTypeInfo?.type || 'other';
-  const isSnack  = mealType === 'snack';
-  const favIds   = mem?.favorites_foods || [];
-  const eggPref  = prefs.preferred_egg_count || 2;
-
-  // ── أهداف الوجبة (نفس منطق _buildAutoMeal) ──
-  const dayTgt   = typeof getTargetForDate!=='undefined'
-    ? getTargetForDate(mem) : {fat:130,protein:110,carb:20,cal:1800};
-  const KETO_PH  = {0:1.2,1:1.6,2:1.8,3:2.0,4:2.0,5:1.8,6:1.6,7:1.6};
-  const ketoT    = KETO_PH[phase]||1.6;
-  const CARB_PCT = {0:0.07,1:0.05,2:0.05,3:0.05,4:0.05,5:0.07,6:0.10,7:0.10};
-  const snackSh  = hasSnack ? 0.09 : 0;
-  const mainSh   = 1 - snackSh;
-  const SHARES   = {3:[+(mainSh*0.29).toFixed(3),+(mainSh*0.36).toFixed(3),+(mainSh*0.35).toFixed(3)],
-                    2:[+(mainSh*0.44).toFixed(3),+(mainSh*0.56).toFixed(3)]};
-  const shares   = SHARES[mealsN]||[0.33,0.33,0.34];
-  const mIdx     = {breakfast:0,lunch:1,dinner:2,snack:3}[mealType]||0;
-  const share    = isSnack ? snackSh : (shares[mIdx]||0.33);
-
-  const mealFat  = Math.round(dayTgt.fat     * share);
-  const mealProt = Math.round(dayTgt.protein * share);
-  const mealCal  = typeof getMealCalLimit!=='undefined'
-    ? getMealCalLimit(mealsN, hasSnack, isSnack)
-    : (mealsN===3&&hasSnack?500:mealsN===3?600:700);
-  const dayCarbT = dayTgt.carb || Math.round(dayTgt.cal*(CARB_PCT[phase]||0.05)/4);
-  const mealCarb = Math.min(10, Math.round(dayCarbT * share));
-
-  // ── تصنيف الدهون ──
-  const FAT_MONO  = typeof FAT_MONO_FIDS!=='undefined' ? FAT_MONO_FIDS : [1,2,6,61,46,50,113];
-  const FAT_SAT   = typeof FAT_SAT_FIDS !=='undefined' ? FAT_SAT_FIDS  : [3,4,5,7,8,9];
-  const FAT_PUFA  = typeof FAT_PUFA_FIDS!=='undefined' ? FAT_PUFA_FIDS : [47,55,56,59,17,18];
-  const FAT_ALWAYS= [61,113];
-  const LEAFY_MAX = 20; const WHOLE_MAX = 30; const FRUIT_NC_MAX = 3;
-
-  // ── استخرج fids من الاقتراح الأصلي ──
-  const origFids = sugg.items.map(function(i){ return i.fid||i.food?.id; }).filter(Boolean);
-
-  // ── تصنيف الأصناف (نفس منطق _buildAutoMeal) ──
-  const PROT_CATS = ['بروتين','دواجن','لحوم','أسماك','بيض'];
-  const selFoods  = origFids.map(function(fid){
-    return FOODS.find(function(f){ return f.id===fid; });
-  }).filter(Boolean);
-
-  const protSrcs = selFoods.filter(function(f){
-    return f.protein>8 || f.id===10 ||
-      PROT_CATS.some(function(c){ return f.cat&&f.cat.includes(c); });
+  const favIds  = mem?.favorites_foods || [];
+  const newItems = sugg.items.map(function(i){
+    return {fid: i.fid||(i.food&&i.food.id), qty: i.qty, isNew: false,
+            food: i.food, displayQty: i.displayQty, source: i.source};
   });
-  const fatSrcs = selFoods.filter(function(f){
-    return !protSrcs.find(function(p){ return p.id===f.id; }) &&
-      (f.fat>30 || FAT_ALWAYS.includes(f.id));
-  });
-  const leafyVegs = selFoods.filter(function(f){
-    return !protSrcs.find(function(p){ return p.id===f.id; }) &&
-      !fatSrcs.find(function(ft){ return ft.id===f.id; }) &&
-      (f.net_carb<3 && (f.fiber||0)>=1);
-  });
-  const wholeVegs = selFoods.filter(function(f){
-    return !protSrcs.find(function(p){ return p.id===f.id; }) &&
-      !fatSrcs.find(function(ft){ return ft.id===f.id; }) &&
-      !leafyVegs.find(function(v){ return v.id===f.id; }) &&
-      f.cat&&f.cat.includes('خضار') && f.net_carb<=8;
-  });
-  const fruits = selFoods.filter(function(f){
-    return !protSrcs.find(function(p){ return p.id===f.id; }) &&
-      !fatSrcs.find(function(ft){ return ft.id===f.id; }) &&
-      !leafyVegs.find(function(v){ return v.id===f.id; }) &&
-      !wholeVegs.find(function(v){ return v.id===f.id; }) &&
-      f.cat&&(f.cat.includes('فواكه')||f.cat.includes('فاكهة'));
-  });
+  const additions = [];
 
-  // ── احسب الكميات بنفس منطق _buildAutoMeal ──
-  const newItems = []; // {fid, qty, isNew}
-  let ncUsed=0, fatUsed=0, protUsed=0, calUsed=0, satUsed=0;
-
-  // A. فاكهة ≤3غ nc/نوع
-  fruits.forEach(function(f){
-    if(f.net_carb<=0) return;
-    const maxG = FRUIT_NC_MAX/f.net_carb*100;
-    const qty  = Math.max(5, Math.min(20, Math.round(maxG/5)*5));
-    const q=qty/100;
-    ncUsed+=f.net_carb*q; fatUsed+=f.fat*q; protUsed+=f.protein*q; calUsed+=f.cal*q;
-    newItems.push({fid:f.id, qty:qty, isNew:false});
-  });
-
-  // B. خضار ورقية ≤20غ
-  leafyVegs.forEach(function(f){
-    const qty=LEAFY_MAX; const q=qty/100;
-    ncUsed+=f.net_carb*q; fatUsed+=f.fat*q; protUsed+=f.protein*q; calUsed+=f.cal*q;
-    newItems.push({fid:f.id, qty:qty, isNew:false});
-  });
-
-  // C. خضار حبات ≤30غ
-  wholeVegs.forEach(function(f){
-    const qty=WHOLE_MAX; const q=qty/100;
-    ncUsed+=f.net_carb*q; fatUsed+=f.fat*q; protUsed+=f.protein*q; calUsed+=f.cal*q;
-    newItems.push({fid:f.id, qty:qty, isNew:false});
-  });
-
-  // إضافة خضار إذا لا يوجد
-  if(!leafyVegs.length && !wholeVegs.length && !isSnack){
-    const LEAFY_FIDS_DEF=[62,64,63]; // جرجير، سبانخ
-    const addLeafy = favIds.find(function(id){ return LEAFY_FIDS_DEF.includes(id); })||62;
-    const lf = FOODS.find(function(x){ return x.id===addLeafy; });
-    if(lf){
-      const qty=LEAFY_MAX; const q=qty/100;
-      ncUsed+=lf.net_carb*q; fatUsed+=lf.fat*q; calUsed+=lf.cal*q;
-      newItems.push({fid:lf.id, qty:qty, isNew:true});
-    }
-  }
-
-  // D. بروتين — استخدم كمية القالب الأصلي إذا وُجدت
-  const dayProt2  = dayTgt.protein||90;
-  const dynMin    = dayProt2<70?20:dayProt2<90?25:30;
-  const protNeeded= Math.max(dynMin, mealProt*0.80);
-  const hasEgg    = protSrcs.find(function(f){ return f.id===10; });
-  // ابحث في الاقتراح الأصلي عن كمية البروتين
-  const origProtQty = sugg && sugg.items
-    ? (function(){
-        var o={}; sugg.items.forEach(function(i){ o[i.fid||i.food?.id]=i.qty; }); return o;
-      })()
-    : {};
-  let eggQty = hasEgg ? (origProtQty[10] || eggPref*55) : 0;
-  if(hasEgg){
-    const eggCal = (FOODS.find(function(x){return x.id===10;})||{cal:143}).cal * eggQty/100;
-    if(eggCal > mealCal*0.65) eggQty = Math.max(55, eggQty-55);
-  }
-  const eggProt     = eggQty/100*13;
-  const eggCovers   = eggProt >= protNeeded*0.85;
-  const otherProts  = protSrcs.filter(function(f){ return f.id!==10; });
-  const protForOther= Math.max(protNeeded - eggProt, 0);
-  const perOther    = (otherProts.length&&!eggCovers) ? protForOther/otherProts.length : 0;
-
-  protSrcs.forEach(function(f){
-    if(f.protein<=0) return;
-    let qty;
-    if(f.id===10){
-      qty = eggQty;
-    } else {
-      if(eggCovers||perOther<=0) return;
-      // استخدم كمية القالب الأصلي إذا وُجدت
-      const origQ = origProtQty[f.id] || 0;
-      const rawG  = origQ > 0 ? origQ : perOther/f.protein*100;
-      const lower = Math.max(50, Math.floor(rawG/50)*50);
-      const upper = lower+50;
-      qty = Math.min((upper-rawG)<(rawG-lower)*0.8?upper:lower, 250);
-      if(f.protein*qty/100 > perOther*1.20 && qty>50) qty-=50;
-    }
-    if(!qty||qty<=0) return;
-    const q=qty/100;
-    fatUsed+=f.fat*q; protUsed+=f.protein*q;
-    ncUsed+=f.net_carb*q; calUsed+=f.cal*q; satUsed+=(f.sat_fat||0)*q;
-    newItems.push({fid:f.id, qty:qty, isNew:false});
-  });
-
-  // E. بذور إذا لا يوجد
-  if(!isSnack){
-    const hasSeed = origFids.some(function(fid){
-      const f2=FOODS.find(function(x){return x.id===fid;});
-      return f2&&f2.cat&&f2.cat.includes('بذور');
-    });
-    if(!hasSeed){
-      const SEEDS=[{fid:56,name:'بذور الشيا',fiber:34.4,fat:30.7,cal:486},
-                   {fid:55,name:'بذور الكتان',fiber:27.3,fat:42.2,cal:534}];
-      const bestSeed = SEEDS.find(function(s){ return favIds.includes(s.fid); })||SEEDS[0];
-      const sf = FOODS.find(function(x){return x.id===bestSeed.fid;});
-      if(sf){
-        const qty=15; const q=qty/100;
-        fatUsed+=sf.fat*q; calUsed+=sf.cal*q; ncUsed+=sf.net_carb*q;
-        newItems.push({fid:sf.id, qty:qty, isNew:true});
-      }
-    } else {
-      const seedFid = origFids.find(function(fid){
-        const f2=FOODS.find(function(x){return x.id===fid;});
-        return f2&&f2.cat&&f2.cat.includes('بذور');
-      });
-      if(seedFid){
-        const sf=FOODS.find(function(x){return x.id===seedFid;});
-        const qty=15; const q=qty/100;
-        fatUsed+=sf.fat*q; calUsed+=sf.cal*q;
-        newItems.push({fid:seedFid, qty:qty, isNew:false});
-      }
-    }
-  }
-
-  // F. الدهون — من المعادلة مباشرة
-  const denom      = protUsed*0.6 + ncUsed;
-  const fatForKeto = denom>0 ? Math.max(ketoT*denom-fatUsed,0) : 10;
-  const fatForGoal = Math.max(mealFat-fatUsed, 0);
-  let fatToAdd     = isSnack
-    ? Math.max(mealCal*0.70/9-fatUsed, fatForKeto, 5)
-    : Math.max(fatForKeto, fatForGoal*0.80);
-  const calLeft = mealCal*1.15 - calUsed;
-  fatToAdd = Math.min(fatToAdd, Math.max(calLeft/9, 5));
-
-  const monoSrcs = fatSrcs.filter(function(f){ return FAT_MONO.includes(f.id)||FAT_ALWAYS.includes(f.id); });
-  const satSrcs  = fatSrcs.filter(function(f){ return FAT_SAT.includes(f.id); });
-  const pufaSrcs = fatSrcs.filter(function(f){ return FAT_PUFA.includes(f.id); });
-
-  // إذا لا دهون مختارة → أضف زيت زيتون
-  if(!fatSrcs.length){
-    const oilF = FOODS.find(function(x){return x.id===1;});
-    if(oilF){
-      const rawG = fatToAdd;
-      const spoons = [5,7,14,21,28];
-      const qty = spoons.reduce(function(p,c){ return Math.abs(c-rawG)<Math.abs(p-rawG)?c:p; });
-      newItems.push({fid:1, qty:qty, isNew:true});
-    }
-  } else {
-    const grps = [{srcs:monoSrcs,lim:null},{srcs:satSrcs,lim:14},{srcs:pufaSrcs,lim:28}];
-    let added=0;
-    grps.forEach(function(grp){
-      if(!grp.srcs.length||added>=fatToAdd*0.95) return;
-      const perSrc=(fatToAdd-added)/grp.srcs.length;
-      grp.srcs.forEach(function(f){
-        if(added>=fatToAdd*0.95) return;
-        let rawG=perSrc/f.fat*100;
-        if(grp.lim) rawG=Math.min(rawG,(grp.lim-satUsed)/(f.sat_fat/100||1));
-        rawG=Math.max(rawG,5);
-        // snap حسب النوع
-        let qty;
-        if(f.id===61){ // أفوكادو
-          const b=97.5; const fracs=[0.25,0.5,0.75,1.0];
-          const best=fracs.reduce(function(p,fr){ return Math.abs(fr*b-rawG)<Math.abs(p*b-rawG)?fr:p; },0.5);
-          qty=Math.round(best*b/5)*5;
-        } else if(f.id===113){ // زيتون
-          qty=[15,20,30,40].reduce(function(p,c){ return Math.abs(c-rawG)<Math.abs(p-rawG)?c:p; });
-        } else {
-          qty=[5,7,14,21,28].reduce(function(p,c){ return Math.abs(c-rawG)<Math.abs(p-rawG)?c:p; });
-        }
-        qty=Math.max(qty,5);
-        const q=qty/100; added+=f.fat*q; satUsed+=(f.sat_fat||0)*q;
-        newItems.push({fid:f.id, qty:qty, isNew:false});
-      });
-    });
-  }
-
-  // ── بناء enrichedItems مع displayQty ──
-  const additions = newItems.filter(function(i){ return i.isNew; });
-  const enrichedItems = newItems.map(function(i){
-    const f=FOODS.find(function(x){ return x.id===i.fid; });
-    if(!f) return null;
-    return {
-      fid:       i.fid,
-      qty:       i.qty,
-      food:      f,
-      displayQty: (typeof humanQty==='function') ? humanQty(f,i.qty) : i.qty+'غ',
-      source:    favIds.includes(i.fid) ? 'fav' : (i.isNew ? 'enriched' : 'std'),
-      isNew:     i.isNew,
-    };
-  }).filter(Boolean);
-
-  // ── ماكرو نهائي ──
-  function calcM(items){
-    const t={fat:0,prot:0,nc:0,cal:0,fib:0,sat:0};
+  function getFood(fid){ return FOODS && FOODS.find(function(x){return x.id===fid;}); }
+  function calcMac(items){
+    var t={fat:0,prot:0,nc:0,cal:0,fib:0,sat:0};
     items.forEach(function(i){
-      const f2=FOODS.find(function(x){return x.id===i.fid;});
-      if(!f2) return; const q=i.qty/100;
-      t.fat+=f2.fat*q; t.prot+=f2.protein*q; t.nc+=f2.net_carb*q;
-      t.cal+=f2.cal*q; t.fib+=(f2.fiber||0)*q; t.sat+=(f2.sat_fat||0)*q;
+      var f=getFood(i.fid); if(!f) return; var q=i.qty/100;
+      t.fat+=f.fat*q; t.prot+=f.protein*q; t.nc+=f.net_carb*q;
+      t.cal+=f.cal*q; t.fib+=(f.fiber||0)*q; t.sat+=(f.sat_fat||0)*q;
     });
     return {fat:Math.round(t.fat*10)/10, prot:Math.round(t.prot*10)/10,
             nc:Math.round(t.nc*10)/10,   cal:Math.round(t.cal),
             fiber:Math.round(t.fib*10)/10, sat:Math.round(t.sat*10)/10};
   }
-  const m2 = calcM(newItems);
-  const d2 = m2.prot*0.6+m2.nc;
-  const ratio2 = d2>0 ? Math.round(m2.fat/d2*100)/100 : 0;
+
+  var m = calcMac(newItems);
+
+  // ── أضف خضار إذا لا يوجد ──
+  var LEAFY = [62,64,63,65];
+  var hasVeg = newItems.some(function(i){
+    var f=getFood(i.fid); return f&&f.cat&&f.cat.includes('خضار');
+  });
+  if(!hasVeg){
+    var leafFid = favIds.find(function(id){return LEAFY.includes(id);})||62;
+    var lf = getFood(leafFid);
+    if(lf){
+      newItems.push({fid:leafFid, qty:20, isNew:true, food:lf,
+        displayQty:typeof humanQty!=='undefined'?humanQty(lf,20):'20غ', source:'enriched'});
+      additions.push({fid:leafFid, name:lf.name, qty:20});
+      m = calcMac(newItems);
+    }
+  }
+
+  // ── أضف بذور إذا ألياف أقل من 3غ ──
+  var hasSeed = newItems.some(function(i){
+    var f=getFood(i.fid); return f&&f.cat&&(f.cat.includes('بذور')||f.cat.includes('مكسرات'));
+  });
+  if(!hasSeed && m.fiber < 3){
+    var SEEDS=[{fid:56,name:'بذور الشيا'},{fid:55,name:'بذور الكتان'}];
+    var bestSeed = SEEDS.find(function(s){return favIds.includes(s.fid);})||SEEDS[0];
+    var sf = getFood(bestSeed.fid);
+    if(sf){
+      newItems.push({fid:sf.id, qty:15, isNew:true, food:sf,
+        displayQty:typeof humanQty!=='undefined'?humanQty(sf,15):'15غ', source:'enriched'});
+      additions.push({fid:sf.id, name:sf.name, qty:15});
+      m = calcMac(newItems);
+    }
+  }
+
+  // ── أضف زيت زيتون إذا دهون منخفضة ──
+  var hasMono = newItems.some(function(i){
+    return [1,2,6,61,46,50,113].includes(i.fid);
+  });
+  if(!hasMono && m.fat < 15){
+    var oilF = getFood(1);
+    if(oilF){
+      newItems.push({fid:1, qty:14, isNew:true, food:oilF,
+        displayQty:typeof humanQty!=='undefined'?humanQty(oilF,14):'ملعقة كبيرة', source:'enriched'});
+      additions.push({fid:1, name:'زيت زيتون', qty:14});
+      m = calcMac(newItems);
+    }
+  }
+
+  var d2 = m.prot*0.6+m.nc;
+  var ratio2 = d2>0 ? Math.round(m.fat/d2*100)/100 : 0;
 
   return Object.assign({}, sugg, {
-    items:     enrichedItems,
-    macros:    Object.assign({}, sugg.macros, {
-      fat:m2.fat, prot:m2.prot, nc:m2.nc, cal:m2.cal,
-      fiber:m2.fiber, sat:m2.sat, ratio:ratio2,
+    items:    newItems,
+    macros:   Object.assign({}, sugg.macros, {
+      fat:m.fat, prot:m.prot, nc:m.nc, cal:m.cal,
+      fiber:m.fiber, sat:m.sat, ratio:ratio2,
     }),
-    ratioOk:   ratio2 >= ketoT,
-    enriched:  additions,
-    fiberOk:   m2.fiber >= 5,
-    monoOk:    true,
+    ratioOk:  ratio2 >= (sugg.ketoTarget||1.6),
+    enriched: additions,
   });
 }
-
-
-/* ═══════════════════════════════════════════
-   صفحة المراحل والبروتوكول
-═══════════════════════════════════════════ */
 
 
 function determinePhase(answers){

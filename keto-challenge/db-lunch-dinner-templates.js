@@ -2027,7 +2027,7 @@ const DINNER_TEMPLATES = [
 ════════════════════════════════════════════════════════════════ */
 
 /* ─── اختر أفضل وصفة غداء حسب المتبقي والمفضلة ─── */
-function getBestLunchTemplate(remaining, favIds, phase, satLimit, skipFids){
+function getBestLunchTemplate(remaining, favIds, phase, satLimit, skipFids, seed){
   favIds   = favIds   || [];
   skipFids = skipFids || [];
 
@@ -2050,13 +2050,12 @@ function getBestLunchTemplate(remaining, favIds, phase, satLimit, skipFids){
   // رتّب حسب أقرب نسبة كيتونية للهدف
   pool.sort((a,b) => Math.abs(a.keto_ratio-2.0) - Math.abs(b.keto_ratio-2.0));
   // استخدم seed للتنويع عند الضغط على "تغيير"
-  const _seed = typeof window!=='undefined' ? (window._suggSeed||0) : 0;
-  const _idx  = _seed % pool.length;
+  const _idx  = (seed||0) % pool.length;
   return pool[_idx] || null;
 }
 
 /* ─── اختر أفضل وصفة عشاء حسب المتبقي الفعلي ─── */
-function getBestDinnerTemplate(remaining, favIds, phase, satLimit, skipFids){
+function getBestDinnerTemplate(remaining, favIds, phase, satLimit, skipFids, seed){
   favIds   = favIds   || [];
   skipFids = skipFids || [];
 
@@ -2073,8 +2072,7 @@ function getBestDinnerTemplate(remaining, favIds, phase, satLimit, skipFids){
   });
   if(!pool.length) pool = DINNER_TEMPLATES.filter(t=>t.keto_ratio>=1.4);
   pool.sort((a,b) => Math.abs(a.keto_ratio-2.0) - Math.abs(b.keto_ratio-2.0));
-  const _seedD = typeof window!=='undefined'?(window._suggSeed||0):0;
-  return pool[_seedD % pool.length] || null;
+  return pool[(seed||0) % pool.length] || null;
 }
 
 /* ─── تحجيم الوجبة حسب المتبقي ─── */
