@@ -3216,13 +3216,15 @@ function buildMealSuggestion(mem, rem, phase){
 
       // ── اختيار قالب الغداء مباشرة (مدمج في index.html) ──
       let tpl = (function(){
-        var _pool = (typeof LUNCH_TEMPLATES!=='undefined' ? LUNCH_TEMPLATES : []).filter(function(t){
+        var _LTPLS = typeof LUNCH_TEMPLATES!=='undefined' ? LUNCH_TEMPLATES : [];
+        console.log('[LunchPool] LUNCH_TEMPLATES:', _LTPLS.length, '| favIds:', favIds_.length);
+        var _pool = _LTPLS.filter(function(t){
           if(t.phases && t.phases.length > 0 && !t.phases.includes(phase_)) return false;
           if(t.keto_ratio < 1.4) return false;
           if(satLim_ && t.macros && t.macros.sat_fat > satLim_ * 1.2) return false;
           return true;
         });
-        if(!_pool.length) return null;
+        if(!_pool.length){ console.log('[LunchPool] EMPTY!'); return null; }
 
         // جمّع حسب fid البروتين (أول component)
         var _groups = {};
