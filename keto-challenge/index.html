@@ -3212,7 +3212,7 @@ function buildMealSuggestion(mem, rem, phase){
       const satLim_ = dailySatLim_ ? dailySatLim_ * share_ : null;
       const favIds_ = mem?.favorites_foods || [];
       const phase_  = mem?.phase || 1;
-      console.log('[buildMeal] favIds_:', favIds_.length, favIds_.slice(0,5), '| phase:', phase_);
+      console.log('[buildMeal] favIds_ FULL:', JSON.stringify(favIds_), '| phase:', phase_);
 
       // ── اختيار قالب الغداء مباشرة (مدمج في index.html) ──
       let tpl = (function(){
@@ -3234,6 +3234,8 @@ function buildMealSuggestion(mem, rem, phase){
         var _allKeys = Object.keys(_groups);
 
         // فلتر المفضلة: أنواع البروتين التي فيها favIds_
+        // favIds_ يحتوي fids المفضلة
+        // نبحث عن أنواع البروتين التي تحتوي أي fid من المفضلة
         var _favKeys = favIds_.length > 0
           ? _allKeys.filter(function(k){
               return _groups[k].some(function(t){
@@ -3241,7 +3243,14 @@ function buildMealSuggestion(mem, rem, phase){
               });
             })
           : [];
-        var _pickKeys = (_favKeys.length >= 3) ? _favKeys : _allKeys;
+        // إذا المفضلة أعطت أقل من نصف الأنواع المتاحة → أضف بقية الأنواع
+        var _pickKeys;
+        if(_favKeys.length >= Math.ceil(_allKeys.length / 2)){
+          _pickKeys = _favKeys; // مفضلة كافية → استخدمها فقط
+        } else {
+          // أضف كل الأنواع مع إعطاء أولوية للمفضلة (تظهر أول)
+          _pickKeys = _allKeys; // استخدم الكل لضمان التنوع
+        }
 
         // دوران كامل عبر كل أنواع البروتين
         var _cKey = _pickKeys.slice().sort().join(',');
@@ -3326,7 +3335,7 @@ function buildMealSuggestion(mem, rem, phase){
               });
             })
           : [];
-        var _pickKeys = (_favKeys.length >= 3) ? _favKeys : _allKeys;
+        var _pickKeys = (_favKeys.length >= Math.ceil(_allKeys.length/2)) ? _favKeys : _allKeys;
         var _cKey = _pickKeys.slice().sort().join(',');
         if(!window._dinnerCycle||window._dinnerCycle.key!==_cKey)
           window._dinnerCycle={key:_cKey,used:{}};
