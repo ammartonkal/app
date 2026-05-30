@@ -2180,13 +2180,10 @@ function rDash(){
     ? buildMealSuggestion(mem, rem, phase) : null;
   const _suggEnriched = (_sugg && typeof _enrichMealSuggestion!=='undefined')
     ? _enrichMealSuggestion(_sugg, mem) : _sugg;
-  const suggSection = (_suggEnriched && typeof renderSuggSection!=='undefined')
+  const _suggInner = (_suggEnriched && typeof renderSuggSection!=='undefined')
     ? renderSuggSection(_suggEnriched, mem, rem, phase)
-    : `<div class="card" style="margin-bottom:14px">
-        <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">
-          سجّل وجباتك اليوم لعرض الاقتراح
-        </div>
-      </div>`;
+    : '<div class="card" style="margin-bottom:14px"><div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">سجّل وجباتك اليوم لعرض الاقتراح</div></div>';
+  const suggSection = '<div id="sugg-section-wrapper">'+_suggInner+'</div>';
   const lost=mem.start_weight?(mem.start_weight-(mem.current_weight||mem.start_weight)).toFixed(1):'—';
   const pctGoal=mem.start_weight&&mem.goal_weight&&parseFloat(lost)>0?Math.min(100,Math.round(parseFloat(lost)/(mem.start_weight-mem.goal_weight)*100)):0;
   document.getElementById('d-stats').innerHTML=`<div class="stat-card"><div class="stat-label">وزن البداية</div><div class="stat-val warn">${mem.start_weight?mem.start_weight+' كغ':'—'}</div></div><div class="stat-card"><div class="stat-label">الوزن الحالي</div><div class="stat-val">${mem.current_weight?mem.current_weight+' كغ':'—'}</div></div><div class="stat-card"><div class="stat-label">المفقود</div><div class="stat-val">${mem.start_weight?lost+' كغ':'—'}</div></div><div class="stat-card"><div class="stat-label">نحو الهدف</div><div class="stat-val inf">${mem.start_weight&&mem.goal_weight?pctGoal+'%':'—'}</div></div>`;
@@ -2889,21 +2886,13 @@ function refreshSuggestion(){
       ? _enrichMealSuggestion(sugg, mem) : sugg;
     const html = typeof renderSuggSection!=='undefined'
       ? renderSuggSection(enriched, mem, rem, phase) : '';
-    // ابحث عن حاوية الاقتراح وحدّثها
-    const panel = document.getElementById('panel-dashboard');
-    if(panel && html){
-      // ابحث عن بطاقة الاقتراح الحالية وأستبدلها
-      const cards = panel.querySelectorAll('.card');
-      for(var i=0;i<cards.length;i++){
-        if(cards[i].textContent.includes('اقتراح')){
-          const tmp = document.createElement('div');
-          tmp.innerHTML = html;
-          cards[i].parentNode.replaceChild(tmp.firstChild, cards[i]);
-          return;
-        }
-      }
+    // استهداف مباشر بالـ id
+    const wrapper = document.getElementById('sugg-section-wrapper');
+    if(wrapper && html){
+      wrapper.innerHTML = html;
+    } else {
+      rDash();
     }
-    rDash();
   } else {
     rDash();
   }
