@@ -3220,7 +3220,7 @@ function buildMealSuggestion(mem, rem, phase){
         console.log('[LunchPool] LUNCH_TEMPLATES:', _LTPLS.length, '| favIds:', favIds_.length);
         var _pool = _LTPLS.filter(function(t){
           if(t.phases && t.phases.length > 0 && !t.phases.includes(phase_)) return false;
-          if(t.keto_ratio < 1.4) return false;
+          if(t.keto_ratio < 0.9) return false; // خفّضنا الحد — الدهن يُضاف بعدها
           if(satLim_ && t.macros && t.macros.sat_fat > satLim_ * 1.2) return false;
           return true;
         });
@@ -3255,6 +3255,7 @@ function buildMealSuggestion(mem, rem, phase){
         }
 
         // دوران كامل عبر كل أنواع البروتين
+        console.log('[Lunch2] allKeys:'+_allKeys.length+'|fav:'+_favKeys.length+'|pick:'+_pickKeys.length);
         var _cKey = _pickKeys.slice().sort().join(',');
         if(!window._lunchCycle || window._lunchCycle.key !== _cKey)
           window._lunchCycle = {key:_cKey, used:{}};
@@ -3319,6 +3320,7 @@ function buildMealSuggestion(mem, rem, phase){
       let tpl = (function(){
         var _pool = (typeof DINNER_TEMPLATES!=='undefined' ? DINNER_TEMPLATES : []).filter(function(t){
           if(t.phases && t.phases.length > 0 && !t.phases.includes(phase_)) return false;
+          if(t.keto_ratio < 0.9) return false;
           if(satLim_ && t.macros && t.macros.sat_fat > satLim_ * 1.2) return false;
           return true;
         });
