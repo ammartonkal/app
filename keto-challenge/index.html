@@ -2115,6 +2115,255 @@ function setSnackPref(checked){
   rDash();
 }
 
+function rDash(){
+  const adm=CU.role==='admin';
+  if(adm){
+    document.getElementById('d-rbar').innerHTML='⬡ دخلت كمدير — صلاحيات كاملة';
+    document.getElementById('d-stats').innerHTML=`<div class="stat-card"><div class="stat-label">الأطعمة</div><div class="stat-val">${FOODS.length}</div></div><div class="stat-card"><div class="stat-label">الوصفات</div><div class="stat-val">${RECIPES.length}</div></div><div class="stat-card"><div class="stat-label">المشتركون</div><div class="stat-val inf">${MEMBERS.length}</div></div><div class="stat-card"><div class="stat-label">المطاعم</div><div class="stat-val warn">${typeof RESTAURANTS!=='undefined'?RESTAURANTS.length:0}</div></div>`;
+    document.getElementById('d-bottom').innerHTML=`<div class="card"><div class="card-header"><div class="card-title">آخر الوصفات</div><button class="btn sm" onclick="gp('recipes')">عرض الكل ←</button></div>${RECIPES.slice(-4).map(r=>{const m=cmac(r);const k=klbl(m.k);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px;font-weight:500">${r.name}</div><div style="font-size:11px;color:var(--text3)">${Math.round(m.cal/r.servings)} سعر/حصة</div></div><span class="badge ${k.c}">${k.l}</span></div>`;}).join('')}</div><div class="card"><div class="card-header"><div class="card-title">تحدي الأسبوع</div><button class="btn sm" onclick="gp('challenge_personal')">عرض ←</button></div>${miniChallenge()}</div>`;
+    return;
+  }
+  const mem=MEMBERS.find(m=>m.uid===CU.id);
+  if(!mem){
+    document.getElementById('d-rbar').innerHTML=`⬡ أهلاً ${CU.name}`;
+    document.getElementById('d-stats').innerHTML='';
+    document.getElementById('d-bottom').innerHTML=`<div class="card" style="grid-column:1/-1"><div style="text-align:center;padding:10px 0 18px"><div style="font-size:40px;margin-bottom:10px">👋</div><div style="font-size:16px;font-weight:600;margin-bottom:6px">أهلاً ${CU.name}!</div><div style="font-size:13px;color:var(--text2);margin-bottom:18px">لم يكتمل ملفك بعد</div><button class="btn primary" onclick="showOnboarding()">إكمال الملف الشخصي ←</button></div></div>`;
+    return;
+  }
+  const missing=[];
+  if(!mem.start_weight||mem.start_weight===0)missing.push({label:'الوزن الحالي',icon:'⚖️'});
+  if(!mem.goal_weight||mem.goal_weight===0)missing.push({label:'وزن الهدف',icon:'🏁'});
+  if(!mem.height||mem.height===0)missing.push({label:'الطول',icon:'📏'});
+  const phase=mem.phase!==undefined&&mem.phase!==null?mem.phase:1;
+  /* حساب عدد الأيام — يعتمد على phase_start أولاً ثم challenge_start */
+  const startDate = mem.phase_start || mem.challenge_start || null;
+  const phDay = startDate
+    ? Math.max(1, Math.floor((new Date() - new Date(startDate)) / 86400000) + 1)
+    : 1;
+  /* تحية حسب وقت اليوم */
+  const hr = new Date().getHours();
+  const greeting = hr < 12 ? 'صباح الخير،' : hr < 18 ? 'مساء الخير،' : 'مساء النور،';
+  const rem=getDayRemaining(mem);
+  const ratio=getDayKetoRatio(mem);
+  const ratioColor=ratio.type==='positive'?'var(--accent)':ratio.type==='neutral'?'var(--warning)':'var(--danger)';
+  /* الشريط يكون صفر إذا لا توجد وجبات */
+  const hasRatio = ratio.simple !== '—' && ratio.advanced !== '—';
+  const ratioFill = hasRatio ? Math.min(100,(parseFloat(ratio.advanced)||0)/4*100) : 0;
+  document.getElementById('d-rbar').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:12px;flex-wrap:wrap">
+      <div><div style="font-size:11px;color:var(--text3);margin-bottom:1px">${greeting}</div><div style="font-size:16px;font-weight:600;color:var(--text)">${CU.name} 👋</div></div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 13px;text-align:center;flex-shrink:0;cursor:pointer" onclick="gp('phases')" title="اضغط لعرض المراحل">
+        <div style="font-size:9px;color:var(--text3)">المرحلة</div>
+        <div style="font-size:13px;font-weight:700;color:var(--accent)">المرحلة ${getPhaseLabel(phase)}</div>
+        <div style="font-size:9px;color:var(--text3)">اليوم ${phDay} · ${getPhaseName(phase)}</div>
+      </div>
+    </div>
+    ${missing.length>0?`<div style="margin-top:10px;background:var(--warning-dim);border:1px solid rgba(160,112,16,.25);border-radius:var(--radius-sm);padding:9px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div style="font-size:11px;font-weight:600;color:var(--warning);margin-bottom:4px">💡 أكمل ملفك للحصول على تجربة مخصصة</div><div style="display:flex;flex-wrap:wrap;gap:4px">${missing.map(m=>`<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(160,112,16,.12);border:1px solid rgba(160,112,16,.2);color:var(--warning);border-radius:100px;padding:2px 9px;font-size:11px">${m.icon} ${m.label}</span>`).join('')}</div></div><button class="btn sm" style="background:var(--warning);color:#fff;border-color:var(--warning);white-space:nowrap;flex-shrink:0" onclick="gp('profile')">إكمال الملف ←</button></div>`:''}`;
+  const ratioSection=`<div class="card" style="margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2)">النسبة الكيتونية اليوم</div>
+      <span style="font-size:11px;font-weight:700;color:${hasRatio?ratioColor:'var(--text3)'};background:${hasRatio?(ratio.type==='positive'?'var(--accent-light)':ratio.type==='neutral'?'var(--warning-dim)':'var(--danger-dim)'):'var(--surface2)'};padding:2px 9px;border-radius:100px">${ratio.label}</span>
+    </div>
+    <div class="keto-ratio-bar" style="margin-bottom:6px">
+      <div class="keto-ratio-fill ${ratio.type==='positive'?'ratio-positive':ratio.type==='neutral'?'ratio-neutral':'ratio-negative'}" style="width:${ratioFill}%"></div>
+    </div>
+    ${hasRatio
+      ? `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3)"><span>مبسطة: <strong style="color:var(--text2);font-family:var(--mono)">${ratio.simple}</strong></span><span>متقدمة: <strong style="color:${ratioColor};font-family:var(--mono)">${ratio.advanced}</strong></span><span>هدف المرحلة: <strong style="color:var(--info);font-family:var(--mono)">≥ ${(typeof PHASE_KETO_TARGETS!=='undefined'?PHASE_KETO_TARGETS[phase]?.advanced:null)||'—'}</strong></span></div>`
+      : `<div style="font-size:11px;color:var(--text3);text-align:center">سجّل وجباتك لحساب النسبة الكيتونية · هدف المرحلة ≥ ${(typeof PHASE_KETO_TARGETS!=='undefined'?PHASE_KETO_TARGETS[phase]?.advanced:null)||'—'}</div>`}
+  </div>`;
+  /* carbPct يُحسب من المستهلك (consumed) لا من المتبقي */
+  const carbConsumedPct=rem.plan.carb>0?Math.round((rem.consumed?.net_carb||0)/rem.plan.carb*100):0;
+  const carbPct=carbConsumedPct;
+  const macroSection=`<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:var(--text2)">المتبقي لليوم</div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:var(--text3)">${rem.cal} سعرة متبقية</span><button onclick="gp('needs')" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 8px;font-size:10px;color:var(--text2);cursor:pointer">✏️ تعديل الأهداف</button></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:${carbPct>80?'10':'0'}px">${[['دهون',rem.fat,rem.plan.fat,'var(--accent)',rem.consumed?.fat||0],['بروتين',rem.protein,rem.plan.protein,'var(--info)',rem.consumed?.protein||0],['كارب صافٍ',rem.carb,rem.plan.carb,'var(--danger)',rem.consumed?.net_carb||0]].map(([lbl,val,total,col,consumed])=>{const consumedPct=total>0?Math.min(100,Math.round(consumed/total*100)):0;const isWarn=lbl==='كارب صافٍ'&&consumedPct>80;return`<div class="day-macro-card" style="${isWarn?'border-color:var(--danger);background:var(--danger-dim)':''}"><div class="day-macro-val" style="color:${isWarn?'var(--danger)':col}">${val}</div><div style="font-size:8px;color:var(--text3);margin-bottom:6px">غ متبقي</div><div class="keto-ratio-bar" style="height:4px"><div class="keto-ratio-fill" style="width:${consumedPct}%;background:${isWarn?'var(--danger)':col}"></div></div><div class="day-macro-sub">${lbl} · ${total}غ</div></div>`;}).join('')}</div>${carbPct>80?`<div style="background:var(--danger-dim);border:1px solid rgba(192,57,43,.2);border-radius:var(--radius-sm);padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--danger);margin-bottom:10px"><span>⚠️</span> استهلكت ${carbPct}% من الكارب اليومي — تجنب الأصناف النشوية في باقي اليوم</div>`:''}<button class="btn primary" style="width:100%;justify-content:center" onclick="gp('meals')">🍽️ تسجيل وجبة جديدة</button></div>`;
+  const suggestions=typeof getSuggestionsToImproveRatio==='function'?getSuggestionsToImproveRatio(rem.plan.fat-rem.fat,rem.plan.protein-rem.protein,rem.plan.carb-rem.carb,(typeof PHASE_KETO_TARGETS!=='undefined'?PHASE_KETO_TARGETS[phase]?.advanced:null)||1.5,phase,mem.activity||'sedentary'):[];
+  const suggSection=`<div class="card" style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:18px">🎯</span><div><div style="font-size:12px;font-weight:600;color:var(--text2)">اقتراح الوجبة القادمة</div><div style="font-size:11px;color:var(--text3)">بناءً على المتبقي ومتطلبات النسبة الكيتونية</div></div></div>${suggestions.length>0?suggestions.map((s,i)=>`<div class="suggestion-item" onclick="this.classList.toggle('selected')"><div><div style="font-size:13px;font-weight:500">${s.food.name}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${s.qty}غ · دهون ${s.nutrients.fat}غ · بروتين ${s.nutrients.protein}غ · كارب ${s.nutrients.net_carb}غ</div></div><div style="text-align:center;flex-shrink:0"><div style="font-size:10px;color:var(--text3)">النسبة</div><div style="font-size:14px;font-weight:700;color:var(--accent)">+${s.improvement}</div></div></div>`).join(''):`<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0">سجّل وجباتك اليوم لعرض الاقتراحات</div>`}</div>`;
+  const lost=mem.start_weight?(mem.start_weight-(mem.current_weight||mem.start_weight)).toFixed(1):'—';
+  const pctGoal=mem.start_weight&&mem.goal_weight&&parseFloat(lost)>0?Math.min(100,Math.round(parseFloat(lost)/(mem.start_weight-mem.goal_weight)*100)):0;
+  document.getElementById('d-stats').innerHTML=`<div class="stat-card"><div class="stat-label">وزن البداية</div><div class="stat-val warn">${mem.start_weight?mem.start_weight+' كغ':'—'}</div></div><div class="stat-card"><div class="stat-label">الوزن الحالي</div><div class="stat-val">${mem.current_weight?mem.current_weight+' كغ':'—'}</div></div><div class="stat-card"><div class="stat-label">المفقود</div><div class="stat-val">${mem.start_weight?lost+' كغ':'—'}</div></div><div class="stat-card"><div class="stat-label">نحو الهدف</div><div class="stat-val inf">${mem.start_weight&&mem.goal_weight?pctGoal+'%':'—'}</div></div>`;
+  document.getElementById('d-bottom').innerHTML=`<div>${ratioSection}${macroSection}${suggSection}</div><div><div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">⚖️ تسجيل الوزن اليومي</div></div><div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:14px"><div class="fg" style="flex:1"><label>الوزن (كغ)</label><input type="number" step="0.1" id="dash-weight-input" placeholder="${mem.current_weight||'0.0'}" style="font-size:16px;padding:10px 12px"></div><div class="fg"><label>التاريخ</label><input type="date" id="dash-weight-date" value="${new Date().toISOString().split('T')[0]}"></div><button class="btn primary" onclick="dashAddWeight()" style="padding:10px 16px;white-space:nowrap">تسجيل ✓</button></div>${PROGRESS.filter(p=>p.mid===mem.id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5).map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3)">${p.date}</span><div style="display:flex;align-items:center;gap:10px"><span class="mono" style="color:var(--accent);font-size:13px">${p.weight} كغ</span><button class="btn sm dng" style="padding:2px 7px;font-size:11px" onclick="dashDeleteWeight('${p.date}',${mem.id})">✕</button></div></div>`).join('')||'<div style="color:var(--text3);font-size:13px;text-align:center;padding:12px 0">لا توجد قياسات بعد</div>'}</div><div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">🏆 تحدي الأسبوع</div><button class="btn sm" onclick="gp('challenge_personal')">متابعة ←</button></div>${miniChallenge()}</div><div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">🎯 تحديي الشخصي</div><button class="btn sm" onclick="gp('challenge_personal')">عرض ←</button></div>${(()=>{const ch=typeof WEEKLY_CHALLENGES!=='undefined'?WEEKLY_CHALLENGES.find(c=>c.active&&c.uid===CU.id):null;if(!ch)return`<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">لا يوجد تحدٍّ شخصي نشط</div><button class="btn sm" style="width:100%;justify-content:center;margin-top:8px" onclick="gp('challenge_personal')">إنشاء تحدٍّ جديد +</button>`;const done=ch.tasks.filter(t=>CHALLENGE_PROGRESS[CU.id]?.[ch.id+'_'+t.id]).length;const pct=Math.round(done/ch.tasks.length*100);return`<div style="font-size:13px;font-weight:500;margin-bottom:6px">${ch.title}</div><div style="display:flex;align-items:center;gap:10px"><div class="kbar" style="flex:1;margin:0"><div class="kfill gr" style="width:${pct}%"></div></div><span class="mono" style="color:var(--accent);font-weight:600">${pct}%</span></div><div style="font-size:11px;color:var(--text3);margin-top:4px">${done} من ${ch.tasks.length} مهام مكتملة</div>`;})()}</div><div class="card"><div class="card-header"><div class="card-title">🏅 التحدي العام</div><button class="btn sm" onclick="gp('challenge_group')">عرض ←</button></div>${(()=>{const ch=typeof GROUP_CHALLENGES!=='undefined'?GROUP_CHALLENGES.find(c=>c.active):null;if(!ch)return'<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">لا يوجد تحدٍّ عام نشط حالياً</div>';const prog=GROUP_CHALLENGE_PROGRESS[CU.id]?.[ch.id]||{};const done=ch.tasks.filter(t=>prog[t.id]).length;const pts=ch.tasks.filter(t=>prog[t.id]).reduce((s,t)=>s+t.points,0);const totalPts=ch.tasks.reduce((s,t)=>s+t.points,0);const pct=Math.round(done/ch.tasks.length*100);return`<div style="font-size:13px;font-weight:500;margin-bottom:6px">${ch.title}</div><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><div class="kbar" style="flex:1;margin:0"><div class="kfill gr" style="width:${pct}%"></div></div><span class="mono" style="color:var(--accent);font-weight:600">${pct}%</span></div><div style="font-size:11px;color:var(--text3)">${done} من ${ch.tasks.length} مهام · <strong style="color:var(--warning);font-family:var(--mono)">${pts}</strong> من ${totalPts} نقطة</div>`;})()}</div></div>`;
+}
+/* ═══════════════════════════════════════════
+   صفحة المراحل والبروتوكول
+═══════════════════════════════════════════ */
+
+const PHASES_DATA = {
+  0: {
+    id:0, name:"التمهيدية", label:"تهيئة واستعداد", icon:"🌱",
+    color:"#8aaa82", duration:"مرنة — حتى الاستعداد الكامل",
+    carb_range:null, fat_range:null,
+    tagline:"أهم مرحلة — تحدد الوجهة وتزيد فرصة النجاح",
+    overview:"مرحلة التهيئة النفسية والجسدية والمعلوماتية قبل البدء. جودتها تحدد سلاسة كل ما يليها.",
+    goals:["قراءة الدليل كاملاً قبل البدء","التهيئة النفسية وتجنب الشعور بالحرمان","تقليل اعتمادية السكريات تدريجياً","استشارة الطبيب إذا كانت هناك أمراض مزمنة","تحديد موعد البدء بالالتزام"],
+    program:[
+      {icon:"🍓", text:"استبدال الحلويات والسكريات بالفاكهة الكيتو-فريندلي (فراولة، توت أزرق، جوافة) — تجنب الموز والمانجو والكرز والأناناس"},
+      {icon:"🥜", text:"استبدال الوجبات الخفيفة بالمكسرات أو الفشار بكميات ملائمة"},
+      {icon:"🥗", text:"تناول سلطة ورقيات خضراء بزيت الزيتون بشكل شبه يومي"},
+      {icon:"🥤", text:"استبدال المشروبات الغازية المحلاة بغازية خالية السعرات (مع خطة للتخلص منها تدريجياً)"},
+      {icon:"🍞", text:"تقليل تدريجي من المعجنات والمخبوزات — استبعادها عدة أيام في الأسبوع أولاً"},
+      {icon:"🍗", text:"استبدال المقلي بالقلاية الهوائية — الدجاج المغلف بالبقسماط مشتق من الدقيق الأبيض"},
+      {icon:"🏠", text:"تقليل مطاعم الوجبات السريعة وزيادة الوعي بتحضير الأكل الصحي في المنزل"},
+      {icon:"📖", text:"البدء بقراءة القيم الغذائية ومكونات المنتجات الجاهزة"},
+    ],
+    next_when:["القدرة على قطع السكريات شبه كاملاً مع انخفاض الاشتهاء","تقليل الكربوهيدرات لأكثر من 50% لمدة 5 أيام متواصلة بلا أعراض","الاستعداد لزيادة النشاط البدني","التشبع المعلوماتي بالبروتوكول"],
+    tip:"استعن بالله، اقرأ، هيّئ نفسك، غيّر بالتدريج، استشر"
+  },
+  1: {
+    id:1, name:"الأولى", label:"دخول الكيتوز", icon:"🔥",
+    color:"#3a8c3f", duration:"2 – 7 أيام",
+    carb_range:"أقل من 15 جرام/يوم", fat_range:"أكثر من 100 جرام/يوم",
+    tagline:"الجسم يحوّل مصدر طاقته من الجلوكوز إلى الدهون",
+    overview:"أول مرحلة حقيقية في الكيتو. المدة تعتمد على مرونة جسمك ومستوى الكارب السابق. الجسم يعيد برمجة نفسه.",
+    goals:["دخول الحالة الكيتونية (كيتون الدم >0.5 ملمول/لتر)","استقرار مصادر الطاقة الجديدة","التخلص من مخازن الجلايكوجين"],
+    macros:{carb:"<5% من السعرات · <15 جرام/يوم", fat:">75% · >100 جرام/يوم", protein:"المتبقي حسب الاحتياج"},
+    allowed:["البيض بالزبدة والجبن — أساس الفطور","اللحوم والدواجن والأسماك","الأجبان والقشطة والكريمة","الأفوكادو والزيتون","الخضار الورقية بزيت الزيتون","مرق العظام يومياً","القهوة السادة أو بالكريمة"],
+    avoid:["أي كارب فوق 15 جرام","الصيام أكثر من 12 ساعة","النشاط البدني الشديد غير الاعتيادي","تقليل كميات الأكل"],
+    symptoms:["صداع — نقص صوديوم، أضف ملح هيمالايا","تعب — انسحاب السكريات، طبيعي ومؤقت","تشنجات — نقص ماغنيسيوم أو بوتاسيوم","غثيان — مبالغة في الدهون المشبعة، خففها"],
+    next_when:["مستوى كيتون >0.5 ملمول/لتر في الدم","أو ظهور العلامات الإيجابية: صفاء ذهني + نشاط + تنظيم شهية"],
+    tip:"لا تفكر في الوزن الآن — الخسارة 1-3 كج معظمها سوائل"
+  },
+  2: {
+    id:2, name:"الثانية", label:"Keto Adaptation", icon:"⚡",
+    color:"#2d7032", duration:"21 يوماً كحد أدنى (إجمالي 4-6 أسابيع من البداية)",
+    carb_range:"20 – 30 جرام/يوم (زيادة تدريجية)", fat_range:"65 – 75%",
+    tagline:"الدماغ والعضلات يتأقلمان مع الكيتون كمصدر أساسي للطاقة",
+    overview:"المرحلة التي تشعر فيها بفارق حقيقي — طاقة مستدامة، صفاء ذهني، شهية منتظمة. جسمك يعيد بناء آلياته.",
+    goals:["تأقلم الدماغ على طاقة الكيتون حتى نسبة مرتفعة","استقرار الطاقة طوال اليوم","معدل خسارة دهون 500-1000 جرام/أسبوع"],
+    macros:{carb:"زيادة +5 جرام/أسبوع حتى 20-30 جرام", fat:"65-75% (انخفاض تدريجي)", protein:"حسب النشاط البدني"},
+    allowed:["كل المسموح في المرحلة الأولى","زيادة تدريجية في الخضار","إدخال الصيام المتقطع (12-16 ساعة)","توسيع القائمة الغذائية"],
+    avoid:["تجاوز 10 جرام كارب في وجبة واحدة","المبالغة في الصيام","قلة كميات الأكل التي تُقرّب من التجويع"],
+    next_when:["بعد 4-6 أسابيع من بداية المرحلة الأولى","عند الشعور بالملل البسيط أو الرغبة في تغيير الروتين","أو الانتقال مباشرة للمرحلة الرابعة إذا لم تشعر بالحاجة للثالثة"],
+    tip:"الطاقة الفائضة — استثمرها في النشاط البدني وبناء عادات جديدة"
+  },
+  3: {
+    id:3, name:"الثالثة", label:"خروج مؤقت", icon:"🔄",
+    color:"#a07010", duration:"1 – 3 أيام كحد أقصى",
+    carb_range:"حتى 100 جرام (جزئي) أو أكثر من 130 (كامل)", fat_range:"مرنة",
+    tagline:"زيادة المرونة الأيضية — ليست وجبة مفتوحة",
+    overview:"محطة مقصودة لزيادة المرونة الأيضية. الجسم يُعيد ملء مخازن الجلايكوجين. الزيادة في الوزن مؤقتة (سوائل).",
+    goals:["زيادة المرونة الأيضية","إعادة ملء مخازن الجلايكوجين","تجنب الدخول للحالة الكيتونية التجويعية"],
+    macros:{carb:"حتى 100 جرام (جزئي) أو >130 (كامل)", fat:"تناول سعرات الثبات أو أعلى", protein:"تغطية كافية"},
+    allowed:["مصادر كارب صحية: رز أسمر، حبوب كاملة","فاكهة متنوعة بكميات معتدلة","بطاطا حلوة","وجبة واحدة خارج النطاق الصحي بكميات صغيرة"],
+    avoid:["مراقبة الوزن خلال هذه الأيام","الإفراط في السكريات والكارب المكرر","تقليل السعرات","وجبة واحدة ضخمة جداً"],
+    next_when:["عند الشعور بالاكتفاء والرغبة في العودة","أو بمرور 3 أيام كحد أقصى"],
+    tip:"للنساء: يُفضَّل توقيتها مع مرحلة ما قبل الدورة الشهرية"
+  },
+  4: {
+    id:4, name:"الرابعة", label:"Fat Adaptation", icon:"💪",
+    color:"#1a6fa8", duration:"6 – 8 أسابيع (قابلة للتمديد)",
+    carb_range:"تبدأ <30 جرام وتزيد تدريجياً حتى 40 جرام", fat_range:"65 – 75%",
+    tagline:"الدهون الحرة مصدر الطاقة — بدون الحاجة لكيتون مرتفع",
+    overview:"المرحلة التي يصل فيها الجسم للمرونة الأيضية الكاملة. مستوى الكيتون ينخفض — وهذه علامة إيجابية لا فشل.",
+    goals:["اعتماد الجسم على الدهون الحرة مباشرة","الدماغ يصل لـ75% اعتماد على الكيتون","إعادة بناء الكتلة العضلية مع البروتين الكافي"],
+    macros:{carb:"<30 جرام تزيد تدريجياً", fat:"65-75%", protein:"مرتفع لدعم بناء العضل"},
+    allowed:["توسيع الخضار تدريجياً","زيادة تدريجية في النشاط البدني المكثف","تمارين المقاومة لبناء العضل","صيام متقطع حسب الراحة"],
+    avoid:["قائمة غذائية صارمة جداً — الملل يضر","إهمال النشاط البدني","المبالغة في ساعات الصيام (وجبة واحدة يومياً خطأ)"],
+    next_when:["بعد 6-8 أسابيع من الانتظام في هذه المرحلة","يمكن التمديد إذا شعرت بالارتياح"],
+    tip:"انخفاض الكيتون في الدم = Fat Adaptation ناجح، ليس فشلاً"
+  },
+  5: {
+    id:5, name:"الخامسة", label:"الاستمرارية", icon:"🎯",
+    color:"#3a8c3f", duration:"حتى الوصول للهدف الصحي (قد تتجاوز سنة)",
+    carb_range:"تدوير بين المرحلة 3 و4", fat_range:"مرنة",
+    tagline:"التدوير المستمر بين الخروج المؤقت وFat Adaptation للوصول للهدف",
+    overview:"أطول مرحلة وأكثرها نضجاً. جسمك يعرف كيف يتعامل مع الكيتو — أنت تضبط الإيقاع.",
+    goals:["الوصول للهدف الصحي","تطوير المرونة الأيضية","بناء نمط حياة كيتوني مستدام"],
+    schedule_example:[
+      {day:"اليوم 1", meals:3, cal:1800, window:"8-10 ساعات"},
+      {day:"اليوم 2", meals:3, cal:1600, window:"8-10 ساعات"},
+      {day:"اليوم 3", meals:2, cal:1400, window:"8-10 ساعات"},
+      {day:"اليوم 4", meals:1, cal:1000, window:"6-8 ساعات"},
+      {day:"اليوم 5", meals:2, cal:1200, window:"3-4 ساعات"},
+      {day:"اليوم 6", meals:2, cal:1400, window:"6-8 ساعات"},
+      {day:"اليوم 7", meals:3, cal:1600, window:"6-8 ساعات"},
+    ],
+    next_when:["عند الوصول للهدف الصحي المطلوب","تقييم الوضع شهرياً أو كل 3 أشهر"],
+    tip:"ثبات الوزن لأسابيع طبيعي — الجسم يعيد ضبط نفسه ثم يعود للخسارة"
+  },
+  6: {
+    id:6, name:"السادسة", label:"تثبيت النتائج", icon:"🏆",
+    color:"#2d7032", duration:"مرنة — حتى ثبات المكتسبات",
+    carb_range:"حسب الخيار المختار (كيتو / low carb / سعرات)", fat_range:"مرنة",
+    tagline:"وصلت للهدف — الآن نثبّت ونُبرمج من جديد",
+    overview:"مرحلة إعادة البرمجة. الوصول للوزن المثالي إنجاز — لكن تثبيته كنمط حياة هو الأعظم.",
+    options:[
+      {name:"الاستمرار في الكيتو", desc:"الانتقال للمرحلة السابعة — الأفضل للحالات المرضية", carb:"< 50 جرام/يوم"},
+      {name:"Low Carb", desc:"مرونة أكبر — قد لا يصل لكيتوز كامل", carb:"< 130 جرام/يوم أو <25% من السعرات"},
+      {name:"حساب السعرات", desc:"مرونة أكبر مع الحفاظ على جودة المصادر", carb:"حسب الهدف"},
+    ],
+    next_when:["استشارة طبية لتقييم الحالة الصحية","تحديد الهدف القادم وطبيعة الحياة"],
+    tip:"الاختيار الصحيح يعتمد على: حالتك الصحية + أهدافك القادمة + طبيعة حياتك"
+  },
+  7: {
+    id:7, name:"السابعة", label:"نمط حياة", icon:"✨",
+    color:"#1a6fa8", duration:"دائمة — كيتو كنمط حياة مرن ومستدام",
+    carb_range:"20 – 50 جرام/يوم (مرن حسب الجسم)", fat_range:"50% فأكثر",
+    tagline:"الكيتو ليس نظاماً — هو طريقة حياة",
+    overview:"المرحلة النهائية. أنت الآن تعرف جسمك وكيف يستجيب. الكيتو أصبح جزءاً طبيعياً من يومك.",
+    conditions:["تطبيق النظام بدون صعوبات تذكر","فهم الفوائد الصحية وآلية الجسم","القدرة على تصميم برنامج غذائي ملائم","تغطية الاحتياج من المغذيات الكبرى والصغرى","تفادي الحالة الكيتونية التجويعية","متابعة طبية دورية للأمراض المزمنة"],
+    tip:"الكيتو آمن طويل الأمد — دراسات تمتد 150 سنة تدعم ذلك"
+  }
+};
+
+const ONBOARDING_QUESTIONS = [
+  {
+    id:'q0', text:'هل أنت حالياً تطبق الكيتو؟',
+    options:[
+      {value:'yes_active',  label:'نعم — أنا على الكيتو الآن'},
+      {value:'yes_paused',  label:'كنت أطبقه وتوقفت مؤخراً'},
+      {value:'no',          label:'لا، لم أبدأ بعد'},
+    ]
+  },
+  {
+    id:'q_ready', text:'هل أنت مستعد للبدء أو الاستمرار الآن؟',
+    options:[
+      {value:'ready',    label:'نعم — مستعد تماماً وعندي الوقت والالتزام'},
+      {value:'almost',   label:'تقريباً — أحتاج بعض التحضير'},
+      {value:'not_yet',  label:'لا — أريد أن أتعرف على البروتوكول أولاً'},
+    ]
+  },
+  {
+    id:'q1', text:'ما خبرتك السابقة مع الكيتو؟',
+    options:[
+      {value:'never',       label:'هذه المرة الأولى تماماً'},
+      {value:'tried',       label:'جربته لفترة قصيرة ووقفت'},
+      {value:'experienced', label:'جربته لفترة طويلة وأنا على دراية به'},
+    ]
+  },
+  {
+    id:'q2', text:'ما مستوى اعتمادك الحالي على السكريات والكارب؟',
+    options:[
+      {value:'high',   label:'مرتفع جداً — لا أتخيل يومي بدونها'},
+      {value:'medium', label:'متوسط — أستطيع الاستغناء عنها لأيام'},
+      {value:'low',    label:'منخفض — لدي سيطرة على شهوة السكر'},
+    ]
+  },
+  {
+    id:'q3', text:'هل تعاني من أي أمراض مزمنة أو تأخذ أدوية منتظمة؟',
+    options:[
+      {value:'yes_critical', label:'نعم — سكري أو ضغط أو إنسولين'},
+      {value:'yes_other',    label:'نعم — حالة أخرى'},
+      {value:'no',           label:'لا، صحتي جيدة'},
+    ]
+  },
+  {
+    id:'q4', text:'ما مستوى نشاطك البدني الحالي؟',
+    options:[
+      {value:'sedentary', label:'خامل — جلوس معظم اليوم'},
+      {value:'light',     label:'خفيف — حركة يومية بسيطة'},
+      {value:'active',    label:'نشط — رياضة منتظمة'},
+    ]
+  },
+  {
+    id:'q5', text:'ما هدفك الرئيسي من الكيتو؟',
+    options:[
+      {value:'weight',    label:'خسارة الوزن والدهون'},
+      {value:'health',    label:'تحسين الصحة والمؤشرات (سكر، ضغط، طاقة)'},
+      {value:'lifestyle', label:'نمط حياة صحي مستدام'},
+      {value:'medical',   label:'علاج حالة صحية محددة'},
+    ]
+  }
+];
+
 function rPreferences(){
   const mem = MEMBERS.find(m => m.uid === CU?.id);
   const el  = document.getElementById('preferences-content');
@@ -3291,183 +3540,6 @@ function _enrichMealSuggestion(sugg, mem){
    صفحة المراحل والبروتوكول
 ═══════════════════════════════════════════ */
 
-const PHASES_DATA = {
-  0: {
-    id:0, name:"التمهيدية", label:"تهيئة واستعداد", icon:"🌱",
-    color:"#8aaa82", duration:"مرنة — حتى الاستعداد الكامل",
-    carb_range:null, fat_range:null,
-    tagline:"أهم مرحلة — تحدد الوجهة وتزيد فرصة النجاح",
-    overview:"مرحلة التهيئة النفسية والجسدية والمعلوماتية قبل البدء. جودتها تحدد سلاسة كل ما يليها.",
-    goals:["قراءة الدليل كاملاً قبل البدء","التهيئة النفسية وتجنب الشعور بالحرمان","تقليل اعتمادية السكريات تدريجياً","استشارة الطبيب إذا كانت هناك أمراض مزمنة","تحديد موعد البدء بالالتزام"],
-    program:[
-      {icon:"🍓", text:"استبدال الحلويات والسكريات بالفاكهة الكيتو-فريندلي (فراولة، توت أزرق، جوافة) — تجنب الموز والمانجو والكرز والأناناس"},
-      {icon:"🥜", text:"استبدال الوجبات الخفيفة بالمكسرات أو الفشار بكميات ملائمة"},
-      {icon:"🥗", text:"تناول سلطة ورقيات خضراء بزيت الزيتون بشكل شبه يومي"},
-      {icon:"🥤", text:"استبدال المشروبات الغازية المحلاة بغازية خالية السعرات (مع خطة للتخلص منها تدريجياً)"},
-      {icon:"🍞", text:"تقليل تدريجي من المعجنات والمخبوزات — استبعادها عدة أيام في الأسبوع أولاً"},
-      {icon:"🍗", text:"استبدال المقلي بالقلاية الهوائية — الدجاج المغلف بالبقسماط مشتق من الدقيق الأبيض"},
-      {icon:"🏠", text:"تقليل مطاعم الوجبات السريعة وزيادة الوعي بتحضير الأكل الصحي في المنزل"},
-      {icon:"📖", text:"البدء بقراءة القيم الغذائية ومكونات المنتجات الجاهزة"},
-    ],
-    next_when:["القدرة على قطع السكريات شبه كاملاً مع انخفاض الاشتهاء","تقليل الكربوهيدرات لأكثر من 50% لمدة 5 أيام متواصلة بلا أعراض","الاستعداد لزيادة النشاط البدني","التشبع المعلوماتي بالبروتوكول"],
-    tip:"استعن بالله، اقرأ، هيّئ نفسك، غيّر بالتدريج، استشر"
-  },
-  1: {
-    id:1, name:"الأولى", label:"دخول الكيتوز", icon:"🔥",
-    color:"#3a8c3f", duration:"2 – 7 أيام",
-    carb_range:"أقل من 15 جرام/يوم", fat_range:"أكثر من 100 جرام/يوم",
-    tagline:"الجسم يحوّل مصدر طاقته من الجلوكوز إلى الدهون",
-    overview:"أول مرحلة حقيقية في الكيتو. المدة تعتمد على مرونة جسمك ومستوى الكارب السابق. الجسم يعيد برمجة نفسه.",
-    goals:["دخول الحالة الكيتونية (كيتون الدم >0.5 ملمول/لتر)","استقرار مصادر الطاقة الجديدة","التخلص من مخازن الجلايكوجين"],
-    macros:{carb:"<5% من السعرات · <15 جرام/يوم", fat:">75% · >100 جرام/يوم", protein:"المتبقي حسب الاحتياج"},
-    allowed:["البيض بالزبدة والجبن — أساس الفطور","اللحوم والدواجن والأسماك","الأجبان والقشطة والكريمة","الأفوكادو والزيتون","الخضار الورقية بزيت الزيتون","مرق العظام يومياً","القهوة السادة أو بالكريمة"],
-    avoid:["أي كارب فوق 15 جرام","الصيام أكثر من 12 ساعة","النشاط البدني الشديد غير الاعتيادي","تقليل كميات الأكل"],
-    symptoms:["صداع — نقص صوديوم، أضف ملح هيمالايا","تعب — انسحاب السكريات، طبيعي ومؤقت","تشنجات — نقص ماغنيسيوم أو بوتاسيوم","غثيان — مبالغة في الدهون المشبعة، خففها"],
-    next_when:["مستوى كيتون >0.5 ملمول/لتر في الدم","أو ظهور العلامات الإيجابية: صفاء ذهني + نشاط + تنظيم شهية"],
-    tip:"لا تفكر في الوزن الآن — الخسارة 1-3 كج معظمها سوائل"
-  },
-  2: {
-    id:2, name:"الثانية", label:"Keto Adaptation", icon:"⚡",
-    color:"#2d7032", duration:"21 يوماً كحد أدنى (إجمالي 4-6 أسابيع من البداية)",
-    carb_range:"20 – 30 جرام/يوم (زيادة تدريجية)", fat_range:"65 – 75%",
-    tagline:"الدماغ والعضلات يتأقلمان مع الكيتون كمصدر أساسي للطاقة",
-    overview:"المرحلة التي تشعر فيها بفارق حقيقي — طاقة مستدامة، صفاء ذهني، شهية منتظمة. جسمك يعيد بناء آلياته.",
-    goals:["تأقلم الدماغ على طاقة الكيتون حتى نسبة مرتفعة","استقرار الطاقة طوال اليوم","معدل خسارة دهون 500-1000 جرام/أسبوع"],
-    macros:{carb:"زيادة +5 جرام/أسبوع حتى 20-30 جرام", fat:"65-75% (انخفاض تدريجي)", protein:"حسب النشاط البدني"},
-    allowed:["كل المسموح في المرحلة الأولى","زيادة تدريجية في الخضار","إدخال الصيام المتقطع (12-16 ساعة)","توسيع القائمة الغذائية"],
-    avoid:["تجاوز 10 جرام كارب في وجبة واحدة","المبالغة في الصيام","قلة كميات الأكل التي تُقرّب من التجويع"],
-    next_when:["بعد 4-6 أسابيع من بداية المرحلة الأولى","عند الشعور بالملل البسيط أو الرغبة في تغيير الروتين","أو الانتقال مباشرة للمرحلة الرابعة إذا لم تشعر بالحاجة للثالثة"],
-    tip:"الطاقة الفائضة — استثمرها في النشاط البدني وبناء عادات جديدة"
-  },
-  3: {
-    id:3, name:"الثالثة", label:"خروج مؤقت", icon:"🔄",
-    color:"#a07010", duration:"1 – 3 أيام كحد أقصى",
-    carb_range:"حتى 100 جرام (جزئي) أو أكثر من 130 (كامل)", fat_range:"مرنة",
-    tagline:"زيادة المرونة الأيضية — ليست وجبة مفتوحة",
-    overview:"محطة مقصودة لزيادة المرونة الأيضية. الجسم يُعيد ملء مخازن الجلايكوجين. الزيادة في الوزن مؤقتة (سوائل).",
-    goals:["زيادة المرونة الأيضية","إعادة ملء مخازن الجلايكوجين","تجنب الدخول للحالة الكيتونية التجويعية"],
-    macros:{carb:"حتى 100 جرام (جزئي) أو >130 (كامل)", fat:"تناول سعرات الثبات أو أعلى", protein:"تغطية كافية"},
-    allowed:["مصادر كارب صحية: رز أسمر، حبوب كاملة","فاكهة متنوعة بكميات معتدلة","بطاطا حلوة","وجبة واحدة خارج النطاق الصحي بكميات صغيرة"],
-    avoid:["مراقبة الوزن خلال هذه الأيام","الإفراط في السكريات والكارب المكرر","تقليل السعرات","وجبة واحدة ضخمة جداً"],
-    next_when:["عند الشعور بالاكتفاء والرغبة في العودة","أو بمرور 3 أيام كحد أقصى"],
-    tip:"للنساء: يُفضَّل توقيتها مع مرحلة ما قبل الدورة الشهرية"
-  },
-  4: {
-    id:4, name:"الرابعة", label:"Fat Adaptation", icon:"💪",
-    color:"#1a6fa8", duration:"6 – 8 أسابيع (قابلة للتمديد)",
-    carb_range:"تبدأ <30 جرام وتزيد تدريجياً حتى 40 جرام", fat_range:"65 – 75%",
-    tagline:"الدهون الحرة مصدر الطاقة — بدون الحاجة لكيتون مرتفع",
-    overview:"المرحلة التي يصل فيها الجسم للمرونة الأيضية الكاملة. مستوى الكيتون ينخفض — وهذه علامة إيجابية لا فشل.",
-    goals:["اعتماد الجسم على الدهون الحرة مباشرة","الدماغ يصل لـ75% اعتماد على الكيتون","إعادة بناء الكتلة العضلية مع البروتين الكافي"],
-    macros:{carb:"<30 جرام تزيد تدريجياً", fat:"65-75%", protein:"مرتفع لدعم بناء العضل"},
-    allowed:["توسيع الخضار تدريجياً","زيادة تدريجية في النشاط البدني المكثف","تمارين المقاومة لبناء العضل","صيام متقطع حسب الراحة"],
-    avoid:["قائمة غذائية صارمة جداً — الملل يضر","إهمال النشاط البدني","المبالغة في ساعات الصيام (وجبة واحدة يومياً خطأ)"],
-    next_when:["بعد 6-8 أسابيع من الانتظام في هذه المرحلة","يمكن التمديد إذا شعرت بالارتياح"],
-    tip:"انخفاض الكيتون في الدم = Fat Adaptation ناجح، ليس فشلاً"
-  },
-  5: {
-    id:5, name:"الخامسة", label:"الاستمرارية", icon:"🎯",
-    color:"#3a8c3f", duration:"حتى الوصول للهدف الصحي (قد تتجاوز سنة)",
-    carb_range:"تدوير بين المرحلة 3 و4", fat_range:"مرنة",
-    tagline:"التدوير المستمر بين الخروج المؤقت وFat Adaptation للوصول للهدف",
-    overview:"أطول مرحلة وأكثرها نضجاً. جسمك يعرف كيف يتعامل مع الكيتو — أنت تضبط الإيقاع.",
-    goals:["الوصول للهدف الصحي","تطوير المرونة الأيضية","بناء نمط حياة كيتوني مستدام"],
-    schedule_example:[
-      {day:"اليوم 1", meals:3, cal:1800, window:"8-10 ساعات"},
-      {day:"اليوم 2", meals:3, cal:1600, window:"8-10 ساعات"},
-      {day:"اليوم 3", meals:2, cal:1400, window:"8-10 ساعات"},
-      {day:"اليوم 4", meals:1, cal:1000, window:"6-8 ساعات"},
-      {day:"اليوم 5", meals:2, cal:1200, window:"3-4 ساعات"},
-      {day:"اليوم 6", meals:2, cal:1400, window:"6-8 ساعات"},
-      {day:"اليوم 7", meals:3, cal:1600, window:"6-8 ساعات"},
-    ],
-    next_when:["عند الوصول للهدف الصحي المطلوب","تقييم الوضع شهرياً أو كل 3 أشهر"],
-    tip:"ثبات الوزن لأسابيع طبيعي — الجسم يعيد ضبط نفسه ثم يعود للخسارة"
-  },
-  6: {
-    id:6, name:"السادسة", label:"تثبيت النتائج", icon:"🏆",
-    color:"#2d7032", duration:"مرنة — حتى ثبات المكتسبات",
-    carb_range:"حسب الخيار المختار (كيتو / low carb / سعرات)", fat_range:"مرنة",
-    tagline:"وصلت للهدف — الآن نثبّت ونُبرمج من جديد",
-    overview:"مرحلة إعادة البرمجة. الوصول للوزن المثالي إنجاز — لكن تثبيته كنمط حياة هو الأعظم.",
-    options:[
-      {name:"الاستمرار في الكيتو", desc:"الانتقال للمرحلة السابعة — الأفضل للحالات المرضية", carb:"< 50 جرام/يوم"},
-      {name:"Low Carb", desc:"مرونة أكبر — قد لا يصل لكيتوز كامل", carb:"< 130 جرام/يوم أو <25% من السعرات"},
-      {name:"حساب السعرات", desc:"مرونة أكبر مع الحفاظ على جودة المصادر", carb:"حسب الهدف"},
-    ],
-    next_when:["استشارة طبية لتقييم الحالة الصحية","تحديد الهدف القادم وطبيعة الحياة"],
-    tip:"الاختيار الصحيح يعتمد على: حالتك الصحية + أهدافك القادمة + طبيعة حياتك"
-  },
-  7: {
-    id:7, name:"السابعة", label:"نمط حياة", icon:"✨",
-    color:"#1a6fa8", duration:"دائمة — كيتو كنمط حياة مرن ومستدام",
-    carb_range:"20 – 50 جرام/يوم (مرن حسب الجسم)", fat_range:"50% فأكثر",
-    tagline:"الكيتو ليس نظاماً — هو طريقة حياة",
-    overview:"المرحلة النهائية. أنت الآن تعرف جسمك وكيف يستجيب. الكيتو أصبح جزءاً طبيعياً من يومك.",
-    conditions:["تطبيق النظام بدون صعوبات تذكر","فهم الفوائد الصحية وآلية الجسم","القدرة على تصميم برنامج غذائي ملائم","تغطية الاحتياج من المغذيات الكبرى والصغرى","تفادي الحالة الكيتونية التجويعية","متابعة طبية دورية للأمراض المزمنة"],
-    tip:"الكيتو آمن طويل الأمد — دراسات تمتد 150 سنة تدعم ذلك"
-  }
-};
-
-const ONBOARDING_QUESTIONS = [
-  {
-    id:'q0', text:'هل أنت حالياً تطبق الكيتو؟',
-    options:[
-      {value:'yes_active',  label:'نعم — أنا على الكيتو الآن'},
-      {value:'yes_paused',  label:'كنت أطبقه وتوقفت مؤخراً'},
-      {value:'no',          label:'لا، لم أبدأ بعد'},
-    ]
-  },
-  {
-    id:'q_ready', text:'هل أنت مستعد للبدء أو الاستمرار الآن؟',
-    options:[
-      {value:'ready',    label:'نعم — مستعد تماماً وعندي الوقت والالتزام'},
-      {value:'almost',   label:'تقريباً — أحتاج بعض التحضير'},
-      {value:'not_yet',  label:'لا — أريد أن أتعرف على البروتوكول أولاً'},
-    ]
-  },
-  {
-    id:'q1', text:'ما خبرتك السابقة مع الكيتو؟',
-    options:[
-      {value:'never',       label:'هذه المرة الأولى تماماً'},
-      {value:'tried',       label:'جربته لفترة قصيرة ووقفت'},
-      {value:'experienced', label:'جربته لفترة طويلة وأنا على دراية به'},
-    ]
-  },
-  {
-    id:'q2', text:'ما مستوى اعتمادك الحالي على السكريات والكارب؟',
-    options:[
-      {value:'high',   label:'مرتفع جداً — لا أتخيل يومي بدونها'},
-      {value:'medium', label:'متوسط — أستطيع الاستغناء عنها لأيام'},
-      {value:'low',    label:'منخفض — لدي سيطرة على شهوة السكر'},
-    ]
-  },
-  {
-    id:'q3', text:'هل تعاني من أي أمراض مزمنة أو تأخذ أدوية منتظمة؟',
-    options:[
-      {value:'yes_critical', label:'نعم — سكري أو ضغط أو إنسولين'},
-      {value:'yes_other',    label:'نعم — حالة أخرى'},
-      {value:'no',           label:'لا، صحتي جيدة'},
-    ]
-  },
-  {
-    id:'q4', text:'ما مستوى نشاطك البدني الحالي؟',
-    options:[
-      {value:'sedentary', label:'خامل — جلوس معظم اليوم'},
-      {value:'light',     label:'خفيف — حركة يومية بسيطة'},
-      {value:'active',    label:'نشط — رياضة منتظمة'},
-    ]
-  },
-  {
-    id:'q5', text:'ما هدفك الرئيسي من الكيتو؟',
-    options:[
-      {value:'weight',    label:'خسارة الوزن والدهون'},
-      {value:'health',    label:'تحسين الصحة والمؤشرات (سكر، ضغط، طاقة)'},
-      {value:'lifestyle', label:'نمط حياة صحي مستدام'},
-      {value:'medical',   label:'علاج حالة صحية محددة'},
-    ]
-  }
-];
 
 function determinePhase(answers){
   const {q0, q_ready, q1, q2} = answers;
@@ -5936,109 +6008,7 @@ function switchSchedTab(idx){
 function saveNewSchedule(){
   const title=document.getElementById('ns-title').value.trim();
   if(!title){alert('أدخل عنوان الجدول');return;}
-  const DAYS=['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'];
-  const days=DAYS.map(day=>{const val=document.getElementById('ns-'+day)?.value||'';return{day,tasks:val.split('\n').filter(l=>l.trim())};});
-  const anyTasks=days.some(d=>d.tasks.length>0);
-  if(!anyTasks){alert('أضف وجبة واحدة على الأقل');return;}
-  const maxW=WEEK_SCHEDULES.length>0?Math.max(...WEEK_SCHEDULES.map(s=>s.week)):0;
-  WEEK_SCHEDULES.push({id:WEEK_SCHEDULES.length+1,week:maxW+1,title,days,doc_note:document.getElementById('ns-note').value});
-  rSchedule();
-}
-
-/* ═══ ADD MEMBER (ADMIN) ═══ */
-function genPass(){
-  const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  let p='';for(let i=0;i<8;i++)p+=chars[Math.floor(Math.random()*chars.length)];
-  return p;
-}
-function rAddMember(){
-  const el=document.getElementById('addmember-content');
-  const today=new Date().toISOString().split('T')[0];
-  el.innerHTML=`
-    <div class="two-col" style="max-width:860px">
-      <div>
-        <div class="card">
-          <div class="card-header"><div><div class="card-title">بيانات المشترك الجديد</div><div class="card-sub">أدخل الإيميل فقط — سيُولَّد باقي البيانات تلقائياً</div></div></div>
-
-          <div class="form-row f1"><div class="fg"><label>البريد الإلكتروني للمشترك</label><input type="email" id="am-email" dir="ltr" placeholder="example@email.com" oninput="amCheckEmail()"></div></div>
-          <div id="am-email-status" style="font-size:12px;margin:-8px 0 10px;min-height:16px"></div>
-
-          <div class="form-row">
-            <div class="fg">
-              <label>كلمة المرور المؤقتة</label>
-              <div style="display:flex;gap:6px">
-                <input id="am-pass" dir="ltr" value="${genPass()}" style="flex:1;font-family:var(--mono);letter-spacing:.05em">
-                <button class="btn sm" onclick="document.getElementById('am-pass').value=genPass()">🔄</button>
-              </div>
-              <div style="font-size:11px;color:var(--text3);margin-top:4px">ستُرسَل للمشترك — يمكنه تغييرها لاحقاً</div>
-            </div>
-            <div class="fg">
-              <label>مدة الاشتراك</label>
-              <select id="am-dur">
-                <option value="30">شهر واحد (30 يوم)</option>
-                <option value="90" selected>3 أشهر (90 يوم)</option>
-                <option value="180">6 أشهر (180 يوم)</option>
-                <option value="365">سنة كاملة (365 يوم)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="fg">
-              <label>تاريخ بداية الاشتراك</label>
-              <input type="date" id="am-start" value="${today}">
-            </div>
-            <div class="fg">
-              <label>تاريخ انتهاء الاشتراك</label>
-              <input type="date" id="am-end" readonly style="opacity:.7">
-            </div>
-          </div>
-
-          <div class="form-row f1"><div class="fg"><label>ملاحظات (اختياري — لا يراها المشترك)</label><textarea id="am-notes" placeholder="مثال: مشترك من زامن، دفع عبر الباقة الشهرية..."></textarea></div></div>
-
-          <div class="flex-end">
-            <button class="btn primary" onclick="saveNewMember()">✓ تسجيل المشترك وتوليد بيانات الدخول</button>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">معاينة إيميل الترحيب</div></div>
-          <div id="am-email-preview" style="background:var(--surface2);border-radius:var(--radius-sm);padding:16px;font-size:13px;line-height:1.9;color:var(--text2)">
-            <div style="font-weight:600;color:var(--text);margin-bottom:8px">موضوع: مرحباً في تحدي الكيتو مع د. عمار 🥑</div>
-            <div style="border-top:1px solid var(--border);padding-top:10px">
-              أهلاً،<br><br>
-              يسعدنا انضمامك لتحدي الكيتو مع د. عمار!<br><br>
-              <strong>بيانات دخولك:</strong><br>
-              🔗 الرابط: tools.drammartonkal.com/keto-challenge/<br>
-              📧 الإيميل: <span id="prev-email" style="color:var(--info)">—</span><br>
-              🔑 كلمة المرور: <span id="prev-pass" style="color:var(--accent);font-family:var(--mono)">—</span><br><br>
-              عند أول دخول ستُطلب منك بعض المعلومات الأساسية.<br>
-              كلمة المرور مؤقتة — يمكنك تغييرها من ملفك الشخصي لاحقاً.<br><br>
-              نتمنى لك رحلة صحية موفقة 💪<br><br>
-              د. عمار تنكل<br>
-              <span style="font-size:11px;color:var(--text3)">ceo@drammartonkal.com</span>
-            </div>
-          </div>
-          <div style="margin-top:12px;padding:10px 13px;background:var(--warning-dim);border-radius:var(--radius-sm);font-size:12px;color:var(--warning)">
-            ⚠ الإرسال التلقائي سيُفعَّل بعد ربط EmailJS — حالياً انسخ الإيميل وأرسله يدوياً
-          </div>
-          <button class="btn sm" style="margin-top:10px;width:100%;justify-content:center" onclick="copyEmailText()">📋 نسخ نص الإيميل</button>
-        </div>
-
-        <div class="card" id="am-success-card" style="display:none">
-          <div style="text-align:center;padding:8px 0">
-            <div style="font-size:36px;margin-bottom:8px">✅</div>
-            <div style="font-size:14px;font-weight:600;color:var(--accent);margin-bottom:4px">تم تسجيل المشترك!</div>
-            <div style="font-size:12px;color:var(--text3);margin-bottom:14px">أرسل له بيانات الدخول عبر الإيميل</div>
-            <button class="btn sm primary" onclick="gp('members')">عرض قائمة المشتركين ←</button>
-          </div>
-        </div>
-      </div>
-    </div>`;
-
-  // Live update preview
+   // Live update preview
   document.getElementById('am-start').addEventListener('input',amUpdateEnd);
   document.getElementById('am-dur').addEventListener('change',amUpdateEnd);
   document.getElementById('am-pass').addEventListener('input',()=>{
